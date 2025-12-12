@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Plus, Printer, Download, Settings2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { CalendarWizard, ScheduleConfig } from "@/components/calendar/CalendarWizard";
+import { ScheduleChangeRequest, ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -47,9 +49,13 @@ const getParentForDate = (date: Date, config: ScheduleConfig | null): "A" | "B" 
 };
 
 const CalendarPage = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"calendar" | "court">("calendar");
   const [showWizard, setShowWizard] = useState(false);
+  const [showChangeRequest, setShowChangeRequest] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig | null>(null);
 
   const year = currentDate.getFullYear();
@@ -79,6 +85,37 @@ const CalendarPage = () => {
     setShowWizard(false);
   };
 
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date);
+    setShowChangeRequest(true);
+  };
+
+  const handleScheduleChangeRequest = (
+    request: Omit<ScheduleChangeRequestData, "id" | "status" | "createdAt" | "fromParent">
+  ) => {
+    // Create the request object
+    const fullRequest: ScheduleChangeRequestData = {
+      ...request,
+      id: Date.now().toString(),
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      fromParent: "A",
+    };
+
+    // Store in localStorage for demo (would be database in production)
+    const existingRequests = JSON.parse(localStorage.getItem("scheduleRequests") || "[]");
+    localStorage.setItem("scheduleRequests", JSON.stringify([...existingRequests, fullRequest]));
+
+    setShowChangeRequest(false);
+    toast({
+      title: "Request Sent",
+      description: "Your schedule change request has been sent to your co-parent.",
+    });
+
+    // Navigate to messages with the request
+    navigate("/messages", { state: { newScheduleRequest: fullRequest } });
+  };
+
   const getPatternName = () => {
     if (!scheduleConfig) return "Alternating Weeks (Default)";
     const patterns: Record<string, string> = {
@@ -105,7 +142,11 @@ const CalendarPage = () => {
             <h1 className="text-2xl lg:text-3xl font-display font-bold">Parenting Calendar</h1>
             <p className="text-muted-foreground mt-1">View and manage your custody schedule</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => setShowChangeRequest(true)}>
+              <ArrowRightLeft className="w-4 h-4 mr-2" />
+              Request Change
+            </Button>
             <Button variant="outline" size="sm">
               <Printer className="w-4 h-4 mr-2" />
               Print
@@ -244,9 +285,10 @@ const CalendarPage = () => {
                 return (
                   <div
                     key={date.toISOString()}
+                    onClick={() => handleDateClick(date)}
                     className={cn(
-                      "aspect-square p-2 border-b border-r border-border relative transition-colors cursor-pointer hover:bg-muted/50",
-                      parent === "A" ? "bg-parent-a-light" : "bg-parent-b-light"
+                      "aspect-square p-2 border-b border-r border-border relative transition-colors cursor-pointer group",
+                      parent === "A" ? "bg-parent-a-light hover:bg-parent-a/20" : "bg-parent-b-light hover:bg-parent-b/20"
                     )}
                   >
                     <span
@@ -261,6 +303,9 @@ const CalendarPage = () => {
                       "absolute bottom-1 right-1 w-2 h-2 rounded-full",
                       parent === "A" ? "bg-parent-a" : "bg-parent-b"
                     )} />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/60 rounded">
+                      <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
+                    </div>
                   </div>
                 );
               })}
@@ -340,6 +385,17 @@ const CalendarPage = () => {
           <CalendarWizard
             onComplete={handleWizardComplete}
             onCancel={() => setShowWizard(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Schedule Change Request Modal */}
+      <AnimatePresence>
+        {showChangeRequest && (
+          <ScheduleChangeRequest
+            selectedDate={selectedDate}
+            onSubmit={handleScheduleChangeRequest}
+            onCancel={() => setShowChangeRequest(false)}
           />
         )}
       </AnimatePresence>
