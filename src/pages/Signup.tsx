@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, Users, Briefcase } from "lucide-react";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 type AccountType = "parent" | "lawoffice";
@@ -15,6 +17,7 @@ const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { user, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [accountType, setAccountType] = useState<AccountType>(
@@ -27,20 +30,71 @@ const Signup = () => {
     firmName: "",
   });
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate signup - replace with Supabase auth
-    setTimeout(() => {
-      setIsLoading(false);
+    const redirectUrl = `${window.location.origin}/`;
+
+    const { error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          full_name: formData.fullName,
+          account_type: accountType,
+          firm_name: accountType === "lawoffice" ? formData.firmName : null,
+        },
+      },
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      let errorMessage = error.message;
+      if (error.message.includes("already registered")) {
+        errorMessage = "An account with this email already exists. Please sign in instead.";
+      }
       toast({
-        title: "Account created!",
-        description: "Let's set up your profile.",
+        title: "Sign up failed",
+        description: errorMessage,
+        variant: "destructive",
       });
-      navigate("/onboarding");
-    }, 1000);
+      return;
+    }
+
+    toast({
+      title: "Account created!",
+      description: "Let's set up your profile.",
+    });
+    navigate("/onboarding");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -145,6 +199,7 @@ const Signup = () => {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
+                    minLength={6}
                   />
                   <button
                     type="button"
@@ -155,7 +210,7 @@ const Signup = () => {
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  At least 8 characters with a number and symbol
+                  At least 6 characters
                 </p>
               </div>
 
