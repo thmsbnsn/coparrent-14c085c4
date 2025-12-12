@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Plus, Printer, Download } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ChevronRight, Plus, Printer, Download, Settings2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { CalendarWizard, ScheduleConfig } from "@/components/calendar/CalendarWizard";
 import { cn } from "@/lib/utils";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -11,15 +12,45 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-// Sample schedule data - alternating weeks pattern
-const getParentForDate = (date: Date): "A" | "B" => {
-  const weekNumber = Math.floor(date.getTime() / (7 * 24 * 60 * 60 * 1000));
-  return weekNumber % 2 === 0 ? "A" : "B";
+// Pattern definitions for different schedule types
+const PATTERN_DEFINITIONS: Record<string, number[]> = {
+  "alternating-weeks": [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+  "2-2-3": [0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1],
+  "2-2-5-5": [0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1],
+  "3-4-4-3": [0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+  "every-other-weekend": [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+};
+
+const getParentForDate = (date: Date, config: ScheduleConfig | null): "A" | "B" => {
+  if (!config) {
+    // Default alternating weeks
+    const weekNumber = Math.floor(date.getTime() / (7 * 24 * 60 * 60 * 1000));
+    return weekNumber % 2 === 0 ? "A" : "B";
+  }
+
+  const pattern = config.customPattern || PATTERN_DEFINITIONS[config.pattern] || PATTERN_DEFINITIONS["alternating-weeks"];
+  const startDate = new Date(config.startDate);
+  startDate.setHours(0, 0, 0, 0);
+  
+  const diffTime = date.getTime() - startDate.getTime();
+  const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
+  const patternIndex = ((diffDays % pattern.length) + pattern.length) % pattern.length;
+  
+  const parentFromPattern = pattern[patternIndex] === 0 ? "A" : "B";
+  
+  // Flip if starting parent is B
+  if (config.startingParent === "B") {
+    return parentFromPattern === "A" ? "B" : "A";
+  }
+  
+  return parentFromPattern;
 };
 
 const CalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"calendar" | "court">("calendar");
+  const [showWizard, setShowWizard] = useState(false);
+  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -32,7 +63,7 @@ const CalendarPage = () => {
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
-  const days = [];
+  const days: (Date | null)[] = [];
   for (let i = 0; i < startingDayOfWeek; i++) {
     days.push(null);
   }
@@ -42,6 +73,24 @@ const CalendarPage = () => {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  const handleWizardComplete = (config: ScheduleConfig) => {
+    setScheduleConfig(config);
+    setShowWizard(false);
+  };
+
+  const getPatternName = () => {
+    if (!scheduleConfig) return "Alternating Weeks (Default)";
+    const patterns: Record<string, string> = {
+      "alternating-weeks": "Alternating Weeks",
+      "2-2-3": "2-2-3 Rotation",
+      "2-2-5-5": "2-2-5-5 Rotation",
+      "3-4-4-3": "3-4-4-3 Rotation",
+      "every-other-weekend": "Every Other Weekend",
+      "custom": "Custom Pattern",
+    };
+    return patterns[scheduleConfig.pattern] || scheduleConfig.pattern;
+  };
 
   return (
     <DashboardLayout>
@@ -65,12 +114,43 @@ const CalendarPage = () => {
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-            <Button size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Edit Schedule
+            <Button size="sm" onClick={() => setShowWizard(true)}>
+              <Settings2 className="w-4 h-4 mr-2" />
+              {scheduleConfig ? "Edit Schedule" : "Setup Schedule"}
             </Button>
           </div>
         </motion.div>
+
+        {/* Current Schedule Info */}
+        {scheduleConfig && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="p-4 rounded-xl bg-primary/5 border border-primary/20"
+          >
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Pattern:</span>{" "}
+                <span className="font-medium">{getPatternName()}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Exchange:</span>{" "}
+                <span className="font-medium">{scheduleConfig.exchangeTime}</span>
+              </div>
+              {scheduleConfig.exchangeLocation && (
+                <div>
+                  <span className="text-muted-foreground">Location:</span>{" "}
+                  <span className="font-medium">{scheduleConfig.exchangeLocation}</span>
+                </div>
+              )}
+              <div>
+                <span className="text-muted-foreground">Holidays:</span>{" "}
+                <span className="font-medium">{scheduleConfig.holidays.length} configured</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* View Toggle */}
         <motion.div
@@ -158,7 +238,7 @@ const CalendarPage = () => {
                   return <div key={`empty-${index}`} className="aspect-square border-b border-r border-border bg-muted/20" />;
                 }
 
-                const parent = getParentForDate(date);
+                const parent = getParentForDate(date, scheduleConfig);
                 const isToday = date.getTime() === today.getTime();
 
                 return (
@@ -203,25 +283,43 @@ const CalendarPage = () => {
               <div className="p-4 rounded-lg bg-muted/30 border border-border">
                 <h3 className="font-semibold mb-2">Schedule Pattern</h3>
                 <p className="text-sm text-muted-foreground">
-                  Alternating weeks between Parent A and Parent B, with exchanges occurring on Sundays at 6:00 PM.
+                  {getPatternName()} between Parent A and Parent B
+                  {scheduleConfig?.exchangeTime && `, with exchanges occurring at ${scheduleConfig.exchangeTime}`}.
                 </p>
               </div>
 
               <div className="p-4 rounded-lg bg-muted/30 border border-border">
                 <h3 className="font-semibold mb-2">Holiday Schedule</h3>
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p>• Thanksgiving: Alternating years (Parent A - Even years)</p>
-                  <p>• Christmas Eve/Day: Split (Eve to one parent, Day to other)</p>
-                  <p>• Summer Break: Two consecutive weeks each parent</p>
+                  {scheduleConfig?.holidays && scheduleConfig.holidays.length > 0 ? (
+                    scheduleConfig.holidays.map((h) => (
+                      <p key={h.name}>
+                        • {h.name}:{" "}
+                        {h.rule === "alternate"
+                          ? "Alternating years (Parent A - Even years)"
+                          : h.rule === "split"
+                          ? "Split between parents"
+                          : h.rule === "fixed-a"
+                          ? "Always with Parent A"
+                          : "Always with Parent B"}
+                      </p>
+                    ))
+                  ) : (
+                    <>
+                      <p>• Thanksgiving: Alternating years (Parent A - Even years)</p>
+                      <p>• Christmas Eve/Day: Split (Eve to one parent, Day to other)</p>
+                      <p>• Summer Break: Two consecutive weeks each parent</p>
+                    </>
+                  )}
                 </div>
               </div>
 
               <div className="p-4 rounded-lg bg-muted/30 border border-border">
                 <h3 className="font-semibold mb-2">Exchange Details</h3>
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p>• Primary Location: School pickup/dropoff</p>
-                  <p>• Alternate Location: Public library</p>
-                  <p>• Standard Time: 6:00 PM</p>
+                  <p>• Primary Location: {scheduleConfig?.exchangeLocation || "School pickup/dropoff"}</p>
+                  <p>• Alternate Location: {scheduleConfig?.alternateLocation || "Public library"}</p>
+                  <p>• Standard Time: {scheduleConfig?.exchangeTime || "6:00 PM"}</p>
                 </div>
               </div>
 
@@ -235,6 +333,16 @@ const CalendarPage = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Calendar Wizard Modal */}
+      <AnimatePresence>
+        {showWizard && (
+          <CalendarWizard
+            onComplete={handleWizardComplete}
+            onCancel={() => setShowWizard(false)}
+          />
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 };
