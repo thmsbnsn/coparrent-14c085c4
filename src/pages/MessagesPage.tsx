@@ -1,12 +1,25 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Send, Download, Info, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Download, Info, FileText, Calendar, Check, X, Clock, ArrowRightLeft } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
 
-const messages = [
+interface Message {
+  id: number;
+  from: string;
+  fromMe: boolean;
+  content: string;
+  timestamp: string;
+  type?: "message" | "schedule-request";
+  scheduleRequest?: ScheduleChangeRequestData;
+}
+
+const initialMessages: Message[] = [
   {
     id: 1,
     from: "Sarah",
@@ -44,16 +57,195 @@ const messages = [
   },
 ];
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const getRequestTypeLabel = (type: string) => {
+  switch (type) {
+    case "swap":
+      return "Day Swap Request";
+    case "transfer":
+      return "Day Transfer Request";
+    case "modification":
+      return "Time Modification Request";
+    default:
+      return "Schedule Request";
+  }
+};
+
 const MessagesPage = () => {
+  const location = useLocation();
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [pendingRequests, setPendingRequests] = useState<ScheduleChangeRequestData[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [viewMode, setViewMode] = useState<"chat" | "court">("chat");
 
+  // Load pending requests from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("scheduleRequests");
+    if (stored) {
+      setPendingRequests(JSON.parse(stored).filter((r: ScheduleChangeRequestData) => r.status === "pending"));
+    }
+  }, []);
+
+  // Handle new schedule request from navigation
+  useEffect(() => {
+    if (location.state?.newScheduleRequest) {
+      const request = location.state.newScheduleRequest as ScheduleChangeRequestData;
+      
+      // Add as a message
+      const newMsg: Message = {
+        id: Date.now(),
+        from: "You",
+        fromMe: true,
+        content: "",
+        timestamp: new Date().toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        }),
+        type: "schedule-request",
+        scheduleRequest: request,
+      };
+      
+      setMessages((prev) => [...prev, newMsg]);
+      
+      // Clear the navigation state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   const handleSend = () => {
     if (newMessage.trim()) {
-      // Handle sending message
+      const newMsg: Message = {
+        id: Date.now(),
+        from: "You",
+        fromMe: true,
+        content: newMessage.trim(),
+        timestamp: new Date().toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        }),
+      };
+      setMessages((prev) => [...prev, newMsg]);
       setNewMessage("");
     }
   };
+
+  const handleRequestResponse = (requestId: string, response: "accepted" | "declined") => {
+    // Update local storage
+    const stored = JSON.parse(localStorage.getItem("scheduleRequests") || "[]");
+    const updated = stored.map((r: ScheduleChangeRequestData) =>
+      r.id === requestId ? { ...r, status: response } : r
+    );
+    localStorage.setItem("scheduleRequests", JSON.stringify(updated));
+
+    // Update pending requests
+    setPendingRequests((prev) => prev.filter((r) => r.id !== requestId));
+
+    // Update the message
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.scheduleRequest?.id === requestId
+          ? { ...msg, scheduleRequest: { ...msg.scheduleRequest, status: response } }
+          : msg
+      )
+    );
+
+    toast({
+      title: response === "accepted" ? "Request Accepted" : "Request Declined",
+      description:
+        response === "accepted"
+          ? "The schedule change has been approved."
+          : "The schedule change has been declined.",
+    });
+  };
+
+  const renderScheduleRequestCard = (request: ScheduleChangeRequestData, fromMe: boolean) => (
+    <div className={cn(
+      "rounded-xl border p-4 space-y-3",
+      fromMe 
+        ? "bg-primary/10 border-primary/20" 
+        : "bg-secondary/50 border-secondary"
+    )}>
+      <div className="flex items-center gap-2">
+        <Calendar className="w-4 h-4 text-primary" />
+        <span className="font-medium text-sm">{getRequestTypeLabel(request.type)}</span>
+        {request.status !== "pending" && (
+          <span className={cn(
+            "ml-auto text-xs px-2 py-0.5 rounded-full font-medium",
+            request.status === "accepted" 
+              ? "bg-success/20 text-success" 
+              : "bg-destructive/20 text-destructive"
+          )}>
+            {request.status === "accepted" ? "Accepted" : "Declined"}
+          </span>
+        )}
+        {request.status === "pending" && (
+          <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-medium bg-warning/20 text-warning flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Pending
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-2 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">Date:</span>
+          <span className="font-medium">{formatDate(request.originalDate)}</span>
+          {request.proposedDate && (
+            <>
+              <ArrowRightLeft className="w-3 h-3 text-muted-foreground" />
+              <span className="font-medium">{formatDate(request.proposedDate)}</span>
+            </>
+          )}
+        </div>
+        <div>
+          <span className="text-muted-foreground">Reason: </span>
+          <span>{request.reason}</span>
+        </div>
+      </div>
+
+      {/* Response buttons for received requests */}
+      {!fromMe && request.status === "pending" && (
+        <div className="flex gap-2 pt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 border-success text-success hover:bg-success hover:text-success-foreground"
+            onClick={() => handleRequestResponse(request.id, "accepted")}
+          >
+            <Check className="w-4 h-4 mr-1" />
+            Accept
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={() => handleRequestResponse(request.id, "declined")}
+          >
+            <X className="w-4 h-4 mr-1" />
+            Decline
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <DashboardLayout>
@@ -86,6 +278,25 @@ const MessagesPage = () => {
             </Button>
           </div>
         </motion.div>
+
+        {/* Pending Requests Banner */}
+        <AnimatePresence>
+          {pendingRequests.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-4"
+            >
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-warning/10 border border-warning/30">
+                <Clock className="w-5 h-5 text-warning flex-shrink-0" />
+                <div className="text-sm">
+                  <strong>Pending Requests:</strong> You have {pendingRequests.length} schedule change request(s) awaiting response.
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Info Banner */}
         <motion.div
@@ -137,21 +348,30 @@ const MessagesPage = () => {
                 >
                   <div
                     className={cn(
-                      "max-w-[80%] md:max-w-[60%] rounded-2xl px-4 py-3",
-                      message.fromMe
-                        ? "bg-primary text-primary-foreground rounded-br-sm"
-                        : "bg-muted rounded-bl-sm"
+                      "max-w-[85%] md:max-w-[70%]",
+                      message.type !== "schedule-request" && cn(
+                        "rounded-2xl px-4 py-3",
+                        message.fromMe
+                          ? "bg-primary text-primary-foreground rounded-br-sm"
+                          : "bg-muted rounded-bl-sm"
+                      )
                     )}
                   >
-                    <p className="text-sm">{message.content}</p>
-                    <p
-                      className={cn(
-                        "text-xs mt-2",
-                        message.fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
-                      )}
-                    >
-                      {message.timestamp}
-                    </p>
+                    {message.type === "schedule-request" && message.scheduleRequest ? (
+                      renderScheduleRequestCard(message.scheduleRequest, message.fromMe)
+                    ) : (
+                      <>
+                        <p className="text-sm">{message.content}</p>
+                        <p
+                          className={cn(
+                            "text-xs mt-2",
+                            message.fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
+                          )}
+                        >
+                          {message.timestamp}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
@@ -205,7 +425,37 @@ const MessagesPage = () => {
                       <span className="font-medium">{message.from}</span>
                       <span className="text-xs text-muted-foreground font-mono">{message.timestamp}</span>
                     </div>
-                    <p className="text-sm">{message.content}</p>
+                    {message.type === "schedule-request" && message.scheduleRequest ? (
+                      <div className="text-sm space-y-1">
+                        <p className="font-medium text-primary">
+                          [{getRequestTypeLabel(message.scheduleRequest.type)}]
+                        </p>
+                        <p>
+                          <span className="text-muted-foreground">Date: </span>
+                          {formatDate(message.scheduleRequest.originalDate)}
+                          {message.scheduleRequest.proposedDate && (
+                            <> → {formatDate(message.scheduleRequest.proposedDate)}</>
+                          )}
+                        </p>
+                        <p>
+                          <span className="text-muted-foreground">Reason: </span>
+                          {message.scheduleRequest.reason}
+                        </p>
+                        <p>
+                          <span className="text-muted-foreground">Status: </span>
+                          <span className={cn(
+                            "font-medium",
+                            message.scheduleRequest.status === "accepted" && "text-success",
+                            message.scheduleRequest.status === "declined" && "text-destructive",
+                            message.scheduleRequest.status === "pending" && "text-warning"
+                          )}>
+                            {message.scheduleRequest.status.charAt(0).toUpperCase() + message.scheduleRequest.status.slice(1)}
+                          </span>
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm">{message.content}</p>
+                    )}
                   </div>
                 ))}
               </div>
