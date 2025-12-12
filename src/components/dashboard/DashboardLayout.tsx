@@ -16,6 +16,8 @@ import {
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -43,8 +45,19 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const { toast } = useToast();
 
   const navItems = userRole === "lawoffice" ? lawOfficeNavItems : parentNavItems;
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: "Signed out",
+      description: "You've been successfully signed out.",
+    });
+    navigate("/login");
+  };
 
   const SidebarContent = () => (
     <>
@@ -82,7 +95,7 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
       {/* Bottom Section */}
       <div className="p-3 border-t border-sidebar-border">
         <button
-          onClick={() => navigate("/login")}
+          onClick={handleSignOut}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
         >
           <LogOut className="w-5 h-5" />
