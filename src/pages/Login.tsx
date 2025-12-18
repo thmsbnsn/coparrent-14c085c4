@@ -24,7 +24,13 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      navigate("/dashboard");
+      // Check for pending invite token
+      const pendingToken = localStorage.getItem("pendingInviteToken");
+      if (pendingToken) {
+        navigate(`/accept-invite?token=${pendingToken}`);
+      } else {
+        navigate("/dashboard");
+      }
     }
   }, [user, loading, navigate]);
 
@@ -52,7 +58,14 @@ const Login = () => {
       title: "Welcome back!",
       description: "You've successfully signed in.",
     });
-    navigate("/dashboard");
+    
+    // Check for pending invite token
+    const pendingToken = localStorage.getItem("pendingInviteToken");
+    if (pendingToken) {
+      navigate(`/accept-invite?token=${pendingToken}`);
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   if (loading) {

@@ -33,7 +33,13 @@ const Signup = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      navigate("/dashboard");
+      // Check for pending invite token
+      const pendingToken = localStorage.getItem("pendingInviteToken");
+      if (pendingToken) {
+        navigate(`/accept-invite?token=${pendingToken}`);
+      } else {
+        navigate("/dashboard");
+      }
     }
   }, [user, loading, navigate]);
 
@@ -85,7 +91,14 @@ const Signup = () => {
       title: "Account created!",
       description: "Let's set up your profile.",
     });
-    navigate("/onboarding");
+    
+    // Check for pending invite token
+    const pendingToken = localStorage.getItem("pendingInviteToken");
+    if (pendingToken) {
+      navigate(`/accept-invite?token=${pendingToken}`);
+    } else {
+      navigate("/onboarding");
+    }
   };
 
   if (loading) {
