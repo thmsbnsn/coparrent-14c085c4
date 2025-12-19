@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Bell, Shield, LogOut, Users } from "lucide-react";
+import { User, Bell, Shield, LogOut, Users, UserPlus } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { CoParentInvite } from "@/components/settings/CoParentInvite";
 import { TrialStatus } from "@/components/settings/TrialStatus";
+import { StepParentManager } from "@/components/settings/StepParentManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,7 @@ interface Profile {
   trial_started_at: string | null;
   trial_ends_at: string | null;
   subscription_status: string | null;
+  subscription_tier: string | null;
 }
 
 interface CoParentProfile {
@@ -63,7 +65,7 @@ const SettingsPage = () => {
       // Fetch profile
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("id, full_name, email, co_parent_id, trial_started_at, trial_ends_at, subscription_status")
+        .select("id, full_name, email, co_parent_id, trial_started_at, trial_ends_at, subscription_status, subscription_tier")
         .eq("user_id", user.id)
         .single();
 
@@ -193,6 +195,22 @@ const SettingsPage = () => {
             trialStartedAt={profile?.trial_started_at || null}
             trialEndsAt={profile?.trial_ends_at || null}
             subscriptionStatus={profile?.subscription_status || null}
+          />
+        </motion.div>
+
+        {/* Step-Parent Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+        >
+          <StepParentManager
+            subscriptionTier={profile?.subscription_tier || "free"}
+            isTrialActive={
+              profile?.subscription_status === "trial" &&
+              profile?.trial_ends_at &&
+              new Date(profile.trial_ends_at) > new Date()
+            }
           />
         </motion.div>
 

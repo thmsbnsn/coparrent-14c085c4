@@ -16,33 +16,67 @@ export type Database = {
     Tables: {
       children: {
         Row: {
+          allergies: string[] | null
           avatar_url: string | null
+          blood_type: string | null
           created_at: string
           date_of_birth: string | null
+          doctor_name: string | null
+          doctor_phone: string | null
+          emergency_contact: string | null
+          emergency_phone: string | null
+          grade: string | null
           id: string
+          medical_notes: string | null
+          medications: string[] | null
           name: string
+          school_name: string | null
+          school_phone: string | null
           updated_at: string
         }
         Insert: {
+          allergies?: string[] | null
           avatar_url?: string | null
+          blood_type?: string | null
           created_at?: string
           date_of_birth?: string | null
+          doctor_name?: string | null
+          doctor_phone?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          grade?: string | null
           id?: string
+          medical_notes?: string | null
+          medications?: string[] | null
           name: string
+          school_name?: string | null
+          school_phone?: string | null
           updated_at?: string
         }
         Update: {
+          allergies?: string[] | null
           avatar_url?: string | null
+          blood_type?: string | null
           created_at?: string
           date_of_birth?: string | null
+          doctor_name?: string | null
+          doctor_phone?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          grade?: string | null
           id?: string
+          medical_notes?: string | null
+          medications?: string[] | null
           name?: string
+          school_name?: string | null
+          school_phone?: string | null
           updated_at?: string
         }
         Relationships: []
       }
       custody_schedules: {
         Row: {
+          child_ids: string[] | null
           created_at: string
           exchange_location: string | null
           exchange_time: string | null
@@ -55,6 +89,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          child_ids?: string[] | null
           created_at?: string
           exchange_location?: string | null
           exchange_time?: string | null
@@ -67,6 +102,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          child_ids?: string[] | null
           created_at?: string
           exchange_location?: string | null
           exchange_time?: string | null
@@ -220,6 +256,7 @@ export type Database = {
           full_name: string | null
           id: string
           subscription_status: string | null
+          subscription_tier: string | null
           trial_ends_at: string | null
           trial_started_at: string | null
           updated_at: string
@@ -233,6 +270,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           subscription_status?: string | null
+          subscription_tier?: string | null
           trial_ends_at?: string | null
           trial_started_at?: string | null
           updated_at?: string
@@ -246,6 +284,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           subscription_status?: string | null
+          subscription_tier?: string | null
           trial_ends_at?: string | null
           trial_started_at?: string | null
           updated_at?: string
@@ -319,6 +358,57 @@ export type Database = {
           {
             foreignKeyName: "schedule_requests_requester_id_fkey"
             columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      step_parents: {
+        Row: {
+          created_at: string
+          id: string
+          other_parent_approved: boolean | null
+          other_parent_id: string | null
+          primary_parent_approved: boolean | null
+          primary_parent_id: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          other_parent_approved?: boolean | null
+          other_parent_id?: string | null
+          primary_parent_approved?: boolean | null
+          primary_parent_id: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          other_parent_approved?: boolean | null
+          other_parent_id?: string | null
+          primary_parent_approved?: boolean | null
+          primary_parent_id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "step_parents_other_parent_id_fkey"
+            columns: ["other_parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "step_parents_primary_parent_id_fkey"
+            columns: ["primary_parent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

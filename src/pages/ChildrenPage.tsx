@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Edit2, Baby, Calendar } from "lucide-react";
+import { Plus, Edit2, Baby, Calendar, Heart, School, Phone, Droplet, AlertCircle, Pill } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useChildren, Child } from "@/hooks/useChildren";
 import {
@@ -16,6 +19,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
+const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 const calculateAge = (dateOfBirth: string | null) => {
   if (!dateOfBirth) return null;
@@ -45,8 +50,21 @@ const ChildrenPage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newChildName, setNewChildName] = useState("");
   const [newChildDob, setNewChildDob] = useState("");
+  
+  // Edit form states
   const [editName, setEditName] = useState("");
   const [editDob, setEditDob] = useState("");
+  const [editBloodType, setEditBloodType] = useState("");
+  const [editAllergies, setEditAllergies] = useState("");
+  const [editMedications, setEditMedications] = useState("");
+  const [editMedicalNotes, setEditMedicalNotes] = useState("");
+  const [editEmergencyContact, setEditEmergencyContact] = useState("");
+  const [editEmergencyPhone, setEditEmergencyPhone] = useState("");
+  const [editDoctorName, setEditDoctorName] = useState("");
+  const [editDoctorPhone, setEditDoctorPhone] = useState("");
+  const [editSchoolName, setEditSchoolName] = useState("");
+  const [editSchoolPhone, setEditSchoolPhone] = useState("");
+  const [editGrade, setEditGrade] = useState("");
 
   const handleAddChild = async () => {
     if (newChildName.trim()) {
@@ -65,9 +83,35 @@ const ChildrenPage = () => {
       const success = await updateChild(selectedChild.id, {
         name: editName.trim(),
         date_of_birth: editDob || null,
+        blood_type: editBloodType || null,
+        allergies: editAllergies ? editAllergies.split(",").map(a => a.trim()) : null,
+        medications: editMedications ? editMedications.split(",").map(m => m.trim()) : null,
+        medical_notes: editMedicalNotes || null,
+        emergency_contact: editEmergencyContact || null,
+        emergency_phone: editEmergencyPhone || null,
+        doctor_name: editDoctorName || null,
+        doctor_phone: editDoctorPhone || null,
+        school_name: editSchoolName || null,
+        school_phone: editSchoolPhone || null,
+        grade: editGrade || null,
       });
       if (success) {
-        setSelectedChild({ ...selectedChild, name: editName.trim(), date_of_birth: editDob || null });
+        setSelectedChild({
+          ...selectedChild,
+          name: editName.trim(),
+          date_of_birth: editDob || null,
+          blood_type: editBloodType || null,
+          allergies: editAllergies ? editAllergies.split(",").map(a => a.trim()) : null,
+          medications: editMedications ? editMedications.split(",").map(m => m.trim()) : null,
+          medical_notes: editMedicalNotes || null,
+          emergency_contact: editEmergencyContact || null,
+          emergency_phone: editEmergencyPhone || null,
+          doctor_name: editDoctorName || null,
+          doctor_phone: editDoctorPhone || null,
+          school_name: editSchoolName || null,
+          school_phone: editSchoolPhone || null,
+          grade: editGrade || null,
+        });
         setIsEditDialogOpen(false);
       }
     }
@@ -77,6 +121,17 @@ const ChildrenPage = () => {
     if (selectedChild) {
       setEditName(selectedChild.name);
       setEditDob(selectedChild.date_of_birth || "");
+      setEditBloodType(selectedChild.blood_type || "");
+      setEditAllergies(selectedChild.allergies?.join(", ") || "");
+      setEditMedications(selectedChild.medications?.join(", ") || "");
+      setEditMedicalNotes(selectedChild.medical_notes || "");
+      setEditEmergencyContact(selectedChild.emergency_contact || "");
+      setEditEmergencyPhone(selectedChild.emergency_phone || "");
+      setEditDoctorName(selectedChild.doctor_name || "");
+      setEditDoctorPhone(selectedChild.doctor_phone || "");
+      setEditSchoolName(selectedChild.school_name || "");
+      setEditSchoolPhone(selectedChild.school_phone || "");
+      setEditGrade(selectedChild.grade || "");
       setIsEditDialogOpen(true);
     }
   };
@@ -151,7 +206,6 @@ const ChildrenPage = () => {
         </motion.div>
 
         {children.length === 0 ? (
-          /* Empty State */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -238,90 +292,357 @@ const ChildrenPage = () => {
                         </p>
                       </div>
                     </div>
-                    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" onClick={openEditDialog}>
-                          <Edit2 className="w-4 h-4 mr-2" />
-                          Edit Profile
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Child Profile</DialogTitle>
-                          <DialogDescription>
-                            Update your child's information.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-name">Name</Label>
-                            <Input
-                              id="edit-name"
-                              placeholder="Child's name"
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-dob">Date of Birth</Label>
-                            <Input
-                              id="edit-dob"
-                              type="date"
-                              value={editDob}
-                              onChange={(e) => setEditDob(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleEditChild} disabled={!editName.trim()}>
-                            Save Changes
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                    <Button variant="outline" size="sm" onClick={openEditDialog}>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-4">
-                    Last updated: {formatDate(selectedChild.updated_at)}
-                  </p>
                 </div>
 
-                {/* Profile Content */}
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg bg-muted/30 border border-border">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-medium text-muted-foreground">Date of Birth</h4>
+                {/* Profile Tabs */}
+                <Tabs defaultValue="overview" className="p-6">
+                  <TabsList className="mb-6">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="health">Health</TabsTrigger>
+                    <TabsTrigger value="school">School</TabsTrigger>
+                    <TabsTrigger value="emergency">Emergency</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium text-muted-foreground">Date of Birth</h4>
+                        </div>
+                        <p className="font-medium">{formatDate(selectedChild.date_of_birth)}</p>
                       </div>
-                      <p className="font-medium">{formatDate(selectedChild.date_of_birth)}</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-muted/30 border border-border">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Baby className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-medium text-muted-foreground">Age</h4>
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Baby className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium text-muted-foreground">Age</h4>
+                        </div>
+                        <p className="font-medium">
+                          {calculateAge(selectedChild.date_of_birth) !== null
+                            ? `${calculateAge(selectedChild.date_of_birth)} years old`
+                            : "Not set"}
+                        </p>
                       </div>
-                      <p className="font-medium">
-                        {calculateAge(selectedChild.date_of_birth) !== null
-                          ? `${calculateAge(selectedChild.date_of_birth)} years old`
-                          : "Not set"}
-                      </p>
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Droplet className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium text-muted-foreground">Blood Type</h4>
+                        </div>
+                        <p className="font-medium">{selectedChild.blood_type || "Not set"}</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                        <div className="flex items-center gap-2 mb-2">
+                          <School className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium text-muted-foreground">School</h4>
+                        </div>
+                        <p className="font-medium">{selectedChild.school_name || "Not set"}</p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="mt-6 p-4 rounded-lg bg-accent/20 border border-accent/30">
-                    <p className="text-sm text-muted-foreground">
-                      More profile features like health information, school details, sizes, and purchase tracking coming soon!
-                    </p>
-                  </div>
-                </div>
+                  </TabsContent>
+
+                  <TabsContent value="health">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Droplet className="w-4 h-4 text-destructive" />
+                            <h4 className="text-sm font-medium text-muted-foreground">Blood Type</h4>
+                          </div>
+                          <p className="font-medium text-lg">{selectedChild.blood_type || "Not set"}</p>
+                        </div>
+                        <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Heart className="w-4 h-4 text-destructive" />
+                            <h4 className="text-sm font-medium text-muted-foreground">Doctor</h4>
+                          </div>
+                          <p className="font-medium">{selectedChild.doctor_name || "Not set"}</p>
+                          {selectedChild.doctor_phone && (
+                            <p className="text-sm text-muted-foreground">{selectedChild.doctor_phone}</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {selectedChild.allergies && selectedChild.allergies.length > 0 && (
+                        <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertCircle className="w-4 h-4 text-destructive" />
+                            <h4 className="text-sm font-medium text-destructive">Allergies</h4>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedChild.allergies.map((allergy, i) => (
+                              <span key={i} className="px-2 py-1 bg-destructive/20 text-destructive rounded text-sm">
+                                {allergy}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedChild.medications && selectedChild.medications.length > 0 && (
+                        <div className="p-4 rounded-lg bg-warning/10 border border-warning/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Pill className="w-4 h-4 text-warning" />
+                            <h4 className="text-sm font-medium">Current Medications</h4>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedChild.medications.map((med, i) => (
+                              <span key={i} className="px-2 py-1 bg-warning/20 rounded text-sm">
+                                {med}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedChild.medical_notes && (
+                        <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                          <h4 className="text-sm font-medium text-muted-foreground mb-2">Medical Notes</h4>
+                          <p className="text-sm">{selectedChild.medical_notes}</p>
+                        </div>
+                      )}
+
+                      {!selectedChild.blood_type && !selectedChild.allergies?.length && !selectedChild.medications?.length && (
+                        <div className="p-4 rounded-lg bg-accent/20 border border-accent/30 text-center">
+                          <p className="text-sm text-muted-foreground">
+                            No health information added yet. Click "Edit Profile" to add details.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="school">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <School className="w-4 h-4 text-muted-foreground" />
+                            <h4 className="text-sm font-medium text-muted-foreground">School</h4>
+                          </div>
+                          <p className="font-medium">{selectedChild.school_name || "Not set"}</p>
+                          {selectedChild.school_phone && (
+                            <p className="text-sm text-muted-foreground">{selectedChild.school_phone}</p>
+                          )}
+                        </div>
+                        <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <h4 className="text-sm font-medium text-muted-foreground">Grade</h4>
+                          </div>
+                          <p className="font-medium">{selectedChild.grade || "Not set"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="emergency">
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Phone className="w-4 h-4 text-destructive" />
+                          <h4 className="font-medium text-destructive">Emergency Contact</h4>
+                        </div>
+                        <p className="font-medium">{selectedChild.emergency_contact || "Not set"}</p>
+                        {selectedChild.emergency_phone && (
+                          <p className="text-lg font-bold mt-1">{selectedChild.emergency_phone}</p>
+                        )}
+                      </div>
+                      
+                      {selectedChild.doctor_name && (
+                        <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Heart className="w-4 h-4 text-muted-foreground" />
+                            <h4 className="text-sm font-medium text-muted-foreground">Primary Doctor</h4>
+                          </div>
+                          <p className="font-medium">{selectedChild.doctor_name}</p>
+                          {selectedChild.doctor_phone && (
+                            <p className="text-lg font-bold mt-1">{selectedChild.doctor_phone}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </motion.div>
             )}
           </>
         )}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Child Profile</DialogTitle>
+            <DialogDescription>
+              Update your child's information. All changes are shared with your co-parent.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Tabs defaultValue="basic" className="py-4">
+            <TabsList className="mb-4">
+              <TabsTrigger value="basic">Basic</TabsTrigger>
+              <TabsTrigger value="health">Health</TabsTrigger>
+              <TabsTrigger value="school">School</TabsTrigger>
+              <TabsTrigger value="emergency">Emergency</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Name</Label>
+                <Input
+                  id="edit-name"
+                  placeholder="Child's name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-dob">Date of Birth</Label>
+                <Input
+                  id="edit-dob"
+                  type="date"
+                  value={editDob}
+                  onChange={(e) => setEditDob(e.target.value)}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="health" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-blood-type">Blood Type</Label>
+                <Select value={editBloodType} onValueChange={setEditBloodType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select blood type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BLOOD_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-allergies">Allergies (comma-separated)</Label>
+                <Input
+                  id="edit-allergies"
+                  placeholder="e.g., Peanuts, Penicillin, Bee stings"
+                  value={editAllergies}
+                  onChange={(e) => setEditAllergies(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-medications">Current Medications (comma-separated)</Label>
+                <Input
+                  id="edit-medications"
+                  placeholder="e.g., Inhaler, Allergy medication"
+                  value={editMedications}
+                  onChange={(e) => setEditMedications(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-medical-notes">Medical Notes</Label>
+                <Textarea
+                  id="edit-medical-notes"
+                  placeholder="Any additional medical information..."
+                  value={editMedicalNotes}
+                  onChange={(e) => setEditMedicalNotes(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-doctor-name">Doctor Name</Label>
+                  <Input
+                    id="edit-doctor-name"
+                    placeholder="Dr. Smith"
+                    value={editDoctorName}
+                    onChange={(e) => setEditDoctorName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-doctor-phone">Doctor Phone</Label>
+                  <Input
+                    id="edit-doctor-phone"
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    value={editDoctorPhone}
+                    onChange={(e) => setEditDoctorPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="school" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-school-name">School Name</Label>
+                <Input
+                  id="edit-school-name"
+                  placeholder="School name"
+                  value={editSchoolName}
+                  onChange={(e) => setEditSchoolName(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-school-phone">School Phone</Label>
+                  <Input
+                    id="edit-school-phone"
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    value={editSchoolPhone}
+                    onChange={(e) => setEditSchoolPhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-grade">Grade</Label>
+                  <Input
+                    id="edit-grade"
+                    placeholder="e.g., 3rd Grade"
+                    value={editGrade}
+                    onChange={(e) => setEditGrade(e.target.value)}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="emergency" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-emergency-contact">Emergency Contact Name</Label>
+                <Input
+                  id="edit-emergency-contact"
+                  placeholder="Contact name"
+                  value={editEmergencyContact}
+                  onChange={(e) => setEditEmergencyContact(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-emergency-phone">Emergency Phone</Label>
+                <Input
+                  id="edit-emergency-phone"
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={editEmergencyPhone}
+                  onChange={(e) => setEditEmergencyPhone(e.target.value)}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditChild} disabled={!editName.trim()}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
