@@ -58,7 +58,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="mt-16 pt-8 border-t border-primary-foreground/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-primary-foreground/50">
-            © {new Date().getFullYear()} ClearNest. All rights reserved.
+            © {new Date().getFullYear()} CoParrent. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="text-primary-foreground/50 hover:text-primary-foreground transition-colors text-sm">

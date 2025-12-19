@@ -3,6 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+export interface ChildHealth {
+  blood_type: string | null;
+  allergies: string[] | null;
+  medications: string[] | null;
+  medical_notes: string | null;
+  emergency_contact: string | null;
+  emergency_phone: string | null;
+  doctor_name: string | null;
+  doctor_phone: string | null;
+}
+
+export interface ChildSchool {
+  school_name: string | null;
+  school_phone: string | null;
+  grade: string | null;
+}
+
 export interface Child {
   id: string;
   name: string;
@@ -10,6 +27,19 @@ export interface Child {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  // Health info
+  blood_type: string | null;
+  allergies: string[] | null;
+  medications: string[] | null;
+  medical_notes: string | null;
+  emergency_contact: string | null;
+  emergency_phone: string | null;
+  doctor_name: string | null;
+  doctor_phone: string | null;
+  // School info
+  school_name: string | null;
+  school_phone: string | null;
+  grade: string | null;
 }
 
 export const useChildren = () => {
@@ -80,7 +110,7 @@ export const useChildren = () => {
           variant: "destructive",
         });
       } else {
-        setChildren(data || []);
+        setChildren((data as Child[]) || []);
       }
       setLoading(false);
     };
@@ -148,18 +178,18 @@ export const useChildren = () => {
       });
     }
 
-    setChildren((prev) => [...prev, newChild]);
+    setChildren((prev) => [...prev, newChild as Child]);
     toast({
       title: "Success",
       description: `${name} has been added`,
     });
 
-    return newChild;
+    return newChild as Child;
   };
 
   const updateChild = async (
     childId: string,
-    updates: Partial<Pick<Child, "name" | "date_of_birth" | "avatar_url">>
+    updates: Partial<Omit<Child, "id" | "created_at" | "updated_at">>
   ) => {
     const { error } = await supabase
       .from("children")

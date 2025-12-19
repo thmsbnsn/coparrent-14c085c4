@@ -23,7 +23,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending invite email to:", inviteeEmail);
 
     // Get the app URL from the request origin or use a default
-    const origin = req.headers.get("origin") || "https://clearnest.lovable.app";
+    const origin = req.headers.get("origin") || "https://coparrent.com";
     const inviteLink = `${origin}/accept-invite?token=${token}`;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -38,9 +38,9 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "ClearNest <onboarding@resend.dev>",
+        from: "CoParrent <onboarding@resend.dev>",
         to: [inviteeEmail],
-        subject: `${inviterName} invited you to co-parent on ClearNest`,
+        subject: `${inviterName} invited you to co-parent on CoParrent`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -50,20 +50,21 @@ const handler = async (req: Request): Promise<Response> => {
               .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
               .header { text-align: center; margin-bottom: 30px; }
               .logo { font-size: 28px; font-weight: bold; color: #2563eb; }
+              .logo-accent { color: #0d9488; }
               .content { background: #f8fafc; border-radius: 12px; padding: 30px; margin-bottom: 30px; }
-              .button { display: inline-block; background: #2563eb; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+              .button { display: inline-block; background: linear-gradient(135deg, #2563eb, #0d9488); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; }
               .footer { text-align: center; color: #64748b; font-size: 14px; }
             </style>
           </head>
           <body>
             <div class="container">
               <div class="header">
-                <div class="logo">🏠 ClearNest</div>
+                <div class="logo">Co<span class="logo-accent">Parrent</span></div>
               </div>
               <div class="content">
                 <h2 style="margin-top: 0;">You've been invited to co-parent!</h2>
-                <p><strong>${inviterName}</strong> has invited you to join ClearNest, a co-parenting coordination platform that helps families communicate better and manage custody schedules.</p>
-                <p>With ClearNest, you can:</p>
+                <p><strong>${inviterName}</strong> has invited you to join CoParrent, a co-parenting coordination platform that helps families communicate better and manage custody schedules.</p>
+                <p>With CoParrent, you can:</p>
                 <ul>
                   <li>Share and manage custody calendars</li>
                   <li>Send court-friendly messages</li>
@@ -78,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
               <div class="footer">
                 <p>If you didn't expect this invitation, you can safely ignore this email.</p>
-                <p>© ClearNest - Making co-parenting easier</p>
+                <p>© CoParrent - Making co-parenting easier</p>
               </div>
             </div>
           </body>
