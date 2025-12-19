@@ -1,61 +1,15 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Download, Info, FileText, Calendar, Check, X, Clock, ArrowRightLeft } from "lucide-react";
+import { Send, Download, Info, FileText, Calendar, Check, X, Clock, ArrowRightLeft, UserPlus } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
-
-interface Message {
-  id: number;
-  from: string;
-  fromMe: boolean;
-  content: string;
-  timestamp: string;
-  type?: "message" | "schedule-request";
-  scheduleRequest?: ScheduleChangeRequestData;
-}
-
-const initialMessages: Message[] = [
-  {
-    id: 1,
-    from: "Sarah",
-    fromMe: false,
-    content: "Hi, I wanted to discuss the holiday schedule for Christmas. Would it work if I have the kids on Christmas Eve and you have them on Christmas Day?",
-    timestamp: "Dec 10, 2024 2:30 PM",
-  },
-  {
-    id: 2,
-    from: "You",
-    fromMe: true,
-    content: "That sounds fair. I'd like to pick them up around 10 AM on Christmas Day if that works for you.",
-    timestamp: "Dec 10, 2024 3:15 PM",
-  },
-  {
-    id: 3,
-    from: "Sarah",
-    fromMe: false,
-    content: "10 AM works great. I'll have them ready. Also, Emma mentioned she needs new snow boots - her current ones are too small.",
-    timestamp: "Dec 10, 2024 3:45 PM",
-  },
-  {
-    id: 4,
-    from: "You",
-    fromMe: true,
-    content: "Thanks for letting me know about the boots. I can take her shopping this weekend. What size does she need now?",
-    timestamp: "Dec 10, 2024 4:00 PM",
-  },
-  {
-    id: 5,
-    from: "Sarah",
-    fromMe: false,
-    content: "She's moved up to a size 3. There's a sale at the outlet mall if you want to check there.",
-    timestamp: "Dec 11, 2024 9:30 AM",
-  },
-];
+import { useMessages } from "@/hooks/useMessages";
+import { Link } from "react-router-dom";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -64,6 +18,18 @@ const formatDate = (dateString: string) => {
     month: "short",
     day: "numeric",
     year: "numeric",
+  });
+};
+
+const formatTimestamp = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
   });
 };
 
@@ -83,12 +49,13 @@ const getRequestTypeLabel = (type: string) => {
 const MessagesPage = () => {
   const location = useLocation();
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const { messages, coParent, userProfile, loading, sendMessage } = useMessages();
   const [pendingRequests, setPendingRequests] = useState<ScheduleChangeRequestData[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [viewMode, setViewMode] = useState<"chat" | "court">("chat");
+  const [sending, setSending] = useState(false);
 
-  // Load pending requests from localStorage
+  // Load pending requests from localStorage (for schedule requests)
   useEffect(() => {
     const stored = localStorage.getItem("scheduleRequests");
     if (stored) {
@@ -101,49 +68,23 @@ const MessagesPage = () => {
     if (location.state?.newScheduleRequest) {
       const request = location.state.newScheduleRequest as ScheduleChangeRequestData;
       
-      // Add as a message
-      const newMsg: Message = {
-        id: Date.now(),
-        from: "You",
-        fromMe: true,
-        content: "",
-        timestamp: new Date().toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        }),
-        type: "schedule-request",
-        scheduleRequest: request,
-      };
-      
-      setMessages((prev) => [...prev, newMsg]);
+      // Send as a message
+      const messageContent = `[Schedule Request] ${getRequestTypeLabel(request.type)}: ${formatDate(request.originalDate)}${request.proposedDate ? ` → ${formatDate(request.proposedDate)}` : ""}. Reason: ${request.reason}`;
+      sendMessage(messageContent);
       
       // Clear the navigation state
       window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.state, sendMessage]);
 
-  const handleSend = () => {
-    if (newMessage.trim()) {
-      const newMsg: Message = {
-        id: Date.now(),
-        from: "You",
-        fromMe: true,
-        content: newMessage.trim(),
-        timestamp: new Date().toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        }),
-      };
-      setMessages((prev) => [...prev, newMsg]);
-      setNewMessage("");
+  const handleSend = async () => {
+    if (newMessage.trim() && !sending) {
+      setSending(true);
+      const success = await sendMessage(newMessage.trim());
+      if (success) {
+        setNewMessage("");
+      }
+      setSending(false);
     }
   };
 
@@ -158,15 +99,6 @@ const MessagesPage = () => {
     // Update pending requests
     setPendingRequests((prev) => prev.filter((r) => r.id !== requestId));
 
-    // Update the message
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.scheduleRequest?.id === requestId
-          ? { ...msg, scheduleRequest: { ...msg.scheduleRequest, status: response } }
-          : msg
-      )
-    );
-
     toast({
       title: response === "accepted" ? "Request Accepted" : "Request Declined",
       description:
@@ -176,76 +108,35 @@ const MessagesPage = () => {
     });
   };
 
-  const renderScheduleRequestCard = (request: ScheduleChangeRequestData, fromMe: boolean) => (
-    <div className={cn(
-      "rounded-xl border p-4 space-y-3",
-      fromMe 
-        ? "bg-primary/10 border-primary/20" 
-        : "bg-secondary/50 border-secondary"
-    )}>
-      <div className="flex items-center gap-2">
-        <Calendar className="w-4 h-4 text-primary" />
-        <span className="font-medium text-sm">{getRequestTypeLabel(request.type)}</span>
-        {request.status !== "pending" && (
-          <span className={cn(
-            "ml-auto text-xs px-2 py-0.5 rounded-full font-medium",
-            request.status === "accepted" 
-              ? "bg-success/20 text-success" 
-              : "bg-destructive/20 text-destructive"
-          )}>
-            {request.status === "accepted" ? "Accepted" : "Declined"}
-          </span>
-        )}
-        {request.status === "pending" && (
-          <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-medium bg-warning/20 text-warning flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            Pending
-          </span>
-        )}
-      </div>
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="h-[calc(100vh-7rem)] flex items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">Loading messages...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
-      <div className="space-y-2 text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Date:</span>
-          <span className="font-medium">{formatDate(request.originalDate)}</span>
-          {request.proposedDate && (
-            <>
-              <ArrowRightLeft className="w-3 h-3 text-muted-foreground" />
-              <span className="font-medium">{formatDate(request.proposedDate)}</span>
-            </>
-          )}
+  if (!coParent) {
+    return (
+      <DashboardLayout>
+        <div className="h-[calc(100vh-7rem)] flex flex-col items-center justify-center gap-4">
+          <UserPlus className="w-16 h-16 text-muted-foreground" />
+          <h2 className="text-xl font-display font-bold">No Co-Parent Connected</h2>
+          <p className="text-muted-foreground text-center max-w-md">
+            You need to invite and connect with your co-parent before you can start messaging.
+          </p>
+          <Link to="/settings">
+            <Button>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Invite Co-Parent
+            </Button>
+          </Link>
         </div>
-        <div>
-          <span className="text-muted-foreground">Reason: </span>
-          <span>{request.reason}</span>
-        </div>
-      </div>
-
-      {/* Response buttons for received requests */}
-      {!fromMe && request.status === "pending" && (
-        <div className="flex gap-2 pt-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 border-success text-success hover:bg-success hover:text-success-foreground"
-            onClick={() => handleRequestResponse(request.id, "accepted")}
-          >
-            <Check className="w-4 h-4 mr-1" />
-            Accept
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={() => handleRequestResponse(request.id, "declined")}
-          >
-            <X className="w-4 h-4 mr-1" />
-            Decline
-          </Button>
-        </div>
-      )}
-    </div>
-  );
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -323,10 +214,10 @@ const MessagesPage = () => {
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground font-semibold">
-                  S
+                  {coParent.full_name?.charAt(0) || coParent.email?.charAt(0) || "?"}
                 </div>
                 <div>
-                  <p className="font-medium">Sarah</p>
+                  <p className="font-medium">{coParent.full_name || coParent.email}</p>
                   <p className="text-xs text-muted-foreground">Co-Parent</p>
                 </div>
               </div>
@@ -338,43 +229,40 @@ const MessagesPage = () => {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex",
-                    message.fromMe ? "justify-end" : "justify-start"
-                  )}
-                >
+              {messages.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  No messages yet. Start the conversation!
+                </div>
+              ) : (
+                messages.map((message) => (
                   <div
+                    key={message.id}
                     className={cn(
-                      "max-w-[85%] md:max-w-[70%]",
-                      message.type !== "schedule-request" && cn(
-                        "rounded-2xl px-4 py-3",
-                        message.fromMe
-                          ? "bg-primary text-primary-foreground rounded-br-sm"
-                          : "bg-muted rounded-bl-sm"
-                      )
+                      "flex",
+                      message.is_from_me ? "justify-end" : "justify-start"
                     )}
                   >
-                    {message.type === "schedule-request" && message.scheduleRequest ? (
-                      renderScheduleRequestCard(message.scheduleRequest, message.fromMe)
-                    ) : (
-                      <>
-                        <p className="text-sm">{message.content}</p>
-                        <p
-                          className={cn(
-                            "text-xs mt-2",
-                            message.fromMe ? "text-primary-foreground/70" : "text-muted-foreground"
-                          )}
-                        >
-                          {message.timestamp}
-                        </p>
-                      </>
-                    )}
+                    <div
+                      className={cn(
+                        "max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3",
+                        message.is_from_me
+                          ? "bg-primary text-primary-foreground rounded-br-sm"
+                          : "bg-muted rounded-bl-sm"
+                      )}
+                    >
+                      <p className="text-sm">{message.content}</p>
+                      <p
+                        className={cn(
+                          "text-xs mt-2",
+                          message.is_from_me ? "text-primary-foreground/70" : "text-muted-foreground"
+                        )}
+                      >
+                        {formatTimestamp(message.created_at)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Input */}
@@ -386,8 +274,9 @@ const MessagesPage = () => {
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   className="flex-1"
+                  disabled={sending}
                 />
-                <Button onClick={handleSend} disabled={!newMessage.trim()}>
+                <Button onClick={handleSend} disabled={!newMessage.trim() || sending}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
@@ -422,40 +311,14 @@ const MessagesPage = () => {
                     className="p-4 rounded-lg bg-muted/30 border border-border"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">{message.from}</span>
-                      <span className="text-xs text-muted-foreground font-mono">{message.timestamp}</span>
+                      <span className="font-medium">
+                        {message.is_from_me ? (userProfile?.full_name || "You") : (coParent.full_name || coParent.email)}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {formatTimestamp(message.created_at)}
+                      </span>
                     </div>
-                    {message.type === "schedule-request" && message.scheduleRequest ? (
-                      <div className="text-sm space-y-1">
-                        <p className="font-medium text-primary">
-                          [{getRequestTypeLabel(message.scheduleRequest.type)}]
-                        </p>
-                        <p>
-                          <span className="text-muted-foreground">Date: </span>
-                          {formatDate(message.scheduleRequest.originalDate)}
-                          {message.scheduleRequest.proposedDate && (
-                            <> → {formatDate(message.scheduleRequest.proposedDate)}</>
-                          )}
-                        </p>
-                        <p>
-                          <span className="text-muted-foreground">Reason: </span>
-                          {message.scheduleRequest.reason}
-                        </p>
-                        <p>
-                          <span className="text-muted-foreground">Status: </span>
-                          <span className={cn(
-                            "font-medium",
-                            message.scheduleRequest.status === "accepted" && "text-success",
-                            message.scheduleRequest.status === "declined" && "text-destructive",
-                            message.scheduleRequest.status === "pending" && "text-warning"
-                          )}>
-                            {message.scheduleRequest.status.charAt(0).toUpperCase() + message.scheduleRequest.status.slice(1)}
-                          </span>
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm">{message.content}</p>
-                    )}
+                    <p className="text-sm">{message.content}</p>
                   </div>
                 ))}
               </div>
