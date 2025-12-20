@@ -1,10 +1,15 @@
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Check, Loader2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { StripeTier } from "@/lib/stripe";
 
 const tiers = [
   {
@@ -21,6 +26,7 @@ const tiers = [
     cta: "Start Free",
     variant: "outline" as const,
     popular: false,
+    stripeTier: null as StripeTier | null,
   },
   {
     name: "Premium",
@@ -38,6 +44,7 @@ const tiers = [
     cta: "Start Premium Trial",
     variant: "default" as const,
     popular: true,
+    stripeTier: "premium" as StripeTier,
   },
   {
     name: "MVP",
@@ -55,6 +62,7 @@ const tiers = [
     cta: "Join as MVP",
     variant: "outline" as const,
     popular: false,
+    stripeTier: "mvp" as StripeTier,
   },
   {
     name: "Law Office",
@@ -73,11 +81,50 @@ const tiers = [
     cta: "Contact Sales",
     variant: "outline" as const,
     popular: false,
+    stripeTier: "law_office" as StripeTier,
   },
 ];
 
 const Pricing = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { tier: currentTier, subscribed, loading, createCheckout } = useSubscription();
+
+  useEffect(() => {
+    if (searchParams.get("canceled") === "true") {
+      toast({
+        title: "Checkout canceled",
+        description: "You can try again when you're ready.",
+      });
+    }
+  }, [searchParams, toast]);
+
+  const handleSubscribe = async (tier: typeof tiers[number]) => {
+    if (!tier.stripeTier) {
+      navigate("/signup");
+      return;
+    }
+
+    if (!user) {
+      navigate("/signup");
+      return;
+    }
+
+    if (tier.name === "Law Office") {
+      window.open("mailto:support@coparrent.com?subject=Law Office Plan Inquiry", "_blank");
+      return;
+    }
+
+    await createCheckout(tier.stripeTier);
+  };
+
+  const isCurrentPlan = (tier: typeof tiers[number]) => {
+    if (!tier.stripeTier && currentTier === "free" && !subscribed) return true;
+    if (tier.stripeTier === currentTier && subscribed) return true;
+    return false;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,11 +193,18 @@ const Pricing = () => {
 
                 {/* CTA */}
                 <Button
-                  variant={tier.variant}
-                  className="w-full"
-                  onClick={() => navigate("/signup")}
+                  variant={isCurrentPlan(tier) ? "outline" : tier.variant}
+                  className={cn("w-full", isCurrentPlan(tier) && "border-success text-success")}
+                  onClick={() => handleSubscribe(tier)}
+                  disabled={loading || isCurrentPlan(tier)}
                 >
-                  {tier.cta}
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isCurrentPlan(tier) ? (
+                    "Current Plan"
+                  ) : (
+                    tier.cta
+                  )}
                 </Button>
               </motion.div>
             ))}
