@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Download, Info, FileText, Calendar, Check, X, Clock, ArrowRightLeft, UserPlus } from "lucide-react";
+import { Send, Download, Info, FileText, Calendar, Check, X, Clock, ArrowRightLeft, UserPlus, Sparkles } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { cn } from "@/lib/utils";
 import { useMessages } from "@/hooks/useMessages";
 import { useScheduleRequests } from "@/hooks/useScheduleRequests";
+import { MessageToneAssistant } from "@/components/messages/MessageToneAssistant";
 import { Link } from "react-router-dom";
 
 const formatDate = (dateString: string) => {
@@ -53,6 +55,7 @@ const MessagesPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [viewMode, setViewMode] = useState<"chat" | "court">("chat");
   const [sending, setSending] = useState(false);
+  const [useExpandedInput, setUseExpandedInput] = useState(false);
 
   // Handle new schedule request from navigation (legacy support)
   useEffect(() => {
@@ -235,21 +238,58 @@ const MessagesPage = () => {
               )}
             </div>
 
+            {/* Tone Assistant */}
+            <MessageToneAssistant 
+              message={newMessage} 
+              onRephrase={setNewMessage}
+              className="px-4 pt-4"
+            />
+
             {/* Input */}
-            <div className="p-4 border-t border-border">
-              <div className="flex gap-3">
-                <Input
-                  placeholder="Type a message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  className="flex-1"
-                  disabled={sending}
-                />
-                <Button onClick={handleSend} disabled={!newMessage.trim() || sending}>
-                  <Send className="w-4 h-4" />
+            <div className="p-4 border-t border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setUseExpandedInput(!useExpandedInput)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {useExpandedInput ? "Simple Input" : "Expand for AI Assist"}
                 </Button>
               </div>
+              
+              {useExpandedInput ? (
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Type your message... AI will help ensure it's professional and child-focused."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="min-h-[100px] resize-none"
+                    disabled={sending}
+                  />
+                  <div className="flex justify-end">
+                    <Button onClick={handleSend} disabled={!newMessage.trim() || sending}>
+                      <Send className="w-4 h-4 mr-2" />
+                      Send Message
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Type a message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    className="flex-1"
+                    disabled={sending}
+                  />
+                  <Button onClick={handleSend} disabled={!newMessage.trim() || sending}>
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </motion.div>
         ) : (
