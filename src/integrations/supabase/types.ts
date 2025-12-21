@@ -515,6 +515,7 @@ export type Database = {
         Args: { _document_id: string; _user_id: string }
         Returns: boolean
       }
+      get_user_co_parent_id: { Args: { user_uuid: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
