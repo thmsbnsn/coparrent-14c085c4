@@ -61,23 +61,6 @@ export const SocialLoginButtons = () => {
         )}
         Continue with Google
       </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={() => handleSocialLogin("apple")}
-        disabled={loadingProvider !== null}
-      >
-        {loadingProvider === "apple" ? (
-          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-        ) : (
-          <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.52-3.23 0-1.44.64-2.2.52-3.06-.4C3.79 16.16 4.36 9.78 8.64 9.5c1.3.06 2.2.74 2.98.79 1.14-.23 2.23-.89 3.45-.78 1.47.13 2.57.73 3.27 1.85-3.01 1.8-2.29 5.77.56 6.88-.48 1.24-1.12 2.46-1.85 3.04zM12.07 9.38c-.15-2.49 1.82-4.54 4.12-4.71.32 2.65-2.33 4.82-4.12 4.71z" />
-          </svg>
-        )}
-        Continue with Apple
-      </Button>
     </div>
   );
 };
