@@ -9,8 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Search, Shield, ArrowLeft, RefreshCw, Loader2 } from "lucide-react";
+import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AdminLawLibraryManager } from "@/components/admin/AdminLawLibraryManager";
 
 interface UserProfile {
   id: string;
@@ -52,6 +54,7 @@ const AdminDashboard = () => {
     newValue: boolean;
   }>({ open: false, user: null, newValue: false });
   const [editingReason, setEditingReason] = useState<{ id: string; value: string } | null>(null);
+  const [activeTab, setActiveTab] = useState("users");
 
   // Check if user is admin
   useEffect(() => {
@@ -237,131 +240,154 @@ const AdminDashboard = () => {
                 <Shield className="h-6 w-6 text-primary" />
                 Admin Dashboard
               </h1>
-              <p className="text-muted-foreground">Manage user subscription overrides</p>
+              <p className="text-muted-foreground">Manage users and content</p>
             </div>
           </div>
-          <Button variant="outline" onClick={fetchUsers} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
-            <CardDescription>
-              Toggle free premium access for promotional or partner accounts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4 mb-6">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by email or name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && fetchUsers()}
-                  className="pl-10"
-                />
-              </div>
-              <Button onClick={fetchUsers} disabled={loading}>
-                Search
-              </Button>
-            </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              User Management
+            </TabsTrigger>
+            <TabsTrigger value="law-library" className="flex items-center gap-2">
+              <Scale className="h-4 w-4" />
+              Law Library
+            </TabsTrigger>
+          </TabsList>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <LoadingSpinner size="lg" />
-              </div>
-            ) : users.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                No users found
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Stripe Status</TableHead>
-                      <TableHead>Free Access</TableHead>
-                      <TableHead>Access Reason</TableHead>
-                      <TableHead>Joined</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((profile) => (
-                      <TableRow key={profile.id}>
-                        <TableCell className="font-medium">{profile.email}</TableCell>
-                        <TableCell>{profile.full_name || "-"}</TableCell>
-                        <TableCell>
-                          {profile.stripe_status === "active" ? (
-                            <Badge variant="default" className="bg-green-500">Active</Badge>
-                          ) : profile.stripe_status === "inactive" ? (
-                            <Badge variant="secondary">Inactive</Badge>
-                          ) : (
-                            <Badge variant="outline">None</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={profile.free_premium_access}
-                              onCheckedChange={(checked) => handleToggle(profile, checked)}
-                              disabled={updating === profile.id}
-                            />
-                            {updating === profile.id && (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[200px]">
-                          {editingReason?.id === profile.id ? (
-                            <div className="flex gap-2">
-                              <Input
-                                value={editingReason.value}
-                                onChange={(e) => setEditingReason({ id: profile.id, value: e.target.value })}
-                                className="h-8 text-sm"
-                                maxLength={255}
-                              />
-                              <Button
-                                size="sm"
-                                onClick={() => handleReasonSave(profile, editingReason.value)}
-                                disabled={updating === profile.id}
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setEditingReason(null)}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          ) : (
-                            <span
-                              className="cursor-pointer hover:underline text-sm truncate block"
-                              onClick={() => setEditingReason({ id: profile.id, value: profile.access_reason || "" })}
-                              title={profile.access_reason || "Click to add reason"}
-                            >
-                              {profile.access_reason || <span className="text-muted-foreground italic">Add reason...</span>}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(profile.created_at).toLocaleDateString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>
+                      Toggle free premium access for promotional or partner accounts
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" onClick={fetchUsers} disabled={loading}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4 mb-6">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by email or name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && fetchUsers()}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button onClick={fetchUsers} disabled={loading}>
+                    Search
+                  </Button>
+                </div>
+
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <LoadingSpinner size="lg" />
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    No users found
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Stripe Status</TableHead>
+                          <TableHead>Free Access</TableHead>
+                          <TableHead>Access Reason</TableHead>
+                          <TableHead>Joined</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((profile) => (
+                          <TableRow key={profile.id}>
+                            <TableCell className="font-medium">{profile.email}</TableCell>
+                            <TableCell>{profile.full_name || "-"}</TableCell>
+                            <TableCell>
+                              {profile.stripe_status === "active" ? (
+                                <Badge variant="default" className="bg-green-500">Active</Badge>
+                              ) : profile.stripe_status === "inactive" ? (
+                                <Badge variant="secondary">Inactive</Badge>
+                              ) : (
+                                <Badge variant="outline">None</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={profile.free_premium_access}
+                                  onCheckedChange={(checked) => handleToggle(profile, checked)}
+                                  disabled={updating === profile.id}
+                                />
+                                {updating === profile.id && (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-[200px]">
+                              {editingReason?.id === profile.id ? (
+                                <div className="flex gap-2">
+                                  <Input
+                                    value={editingReason.value}
+                                    onChange={(e) => setEditingReason({ id: profile.id, value: e.target.value })}
+                                    className="h-8 text-sm"
+                                    maxLength={255}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleReasonSave(profile, editingReason.value)}
+                                    disabled={updating === profile.id}
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setEditingReason(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span
+                                  className="cursor-pointer hover:underline text-sm truncate block"
+                                  onClick={() => setEditingReason({ id: profile.id, value: profile.access_reason || "" })}
+                                  title={profile.access_reason || "Click to add reason"}
+                                >
+                                  {profile.access_reason || <span className="text-muted-foreground italic">Add reason...</span>}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(profile.created_at).toLocaleDateString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="law-library">
+            <AdminLawLibraryManager />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog({ open: false, user: null, newValue: false })}>
