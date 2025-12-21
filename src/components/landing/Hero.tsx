@@ -62,7 +62,7 @@ export const Hero = () => {
               className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-display font-bold leading-tight mb-6 text-foreground drop-shadow-[0_2px_4px_rgba(255,255,255,0.3)]"
             >
               Co-parenting made{" "}
-              <span className="text-[hsl(174,60%,70%)]">clear & simple</span>
+              <span className="text-[#21B0FE]">clear & simple</span>
             </motion.h1>
 
             {/* Subheadline */}
