@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, BellOff, Smartphone, Mail, Check, AlertCircle } from "lucide-react";
+import { Bell, BellOff, Smartphone, Mail, Check, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -221,11 +221,50 @@ export const NotificationSettings = () => {
           <NotificationToggle
             id="upcoming_exchanges"
             title="Upcoming Exchanges"
-            description="Reminders before custody exchanges"
+            description="Master toggle for custody exchange reminders"
             checked={preferences.upcoming_exchanges}
             disabled={!preferences.enabled || saving}
             onChange={(checked) => handleTogglePreference("upcoming_exchanges", checked)}
           />
+
+          {/* Granular Exchange Reminder Intervals */}
+          {preferences.upcoming_exchanges && (
+            <div className="ml-6 pl-4 border-l-2 border-secondary/30 space-y-1">
+              <div className="flex items-center gap-2 py-2">
+                <Clock className="w-4 h-4 text-secondary" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Reminder Intervals
+                </span>
+              </div>
+              
+              <NotificationToggle
+                id="exchange_reminder_24h"
+                title="24 Hours Before"
+                description="Get reminded a day before the exchange"
+                checked={preferences.exchange_reminder_24h}
+                disabled={!preferences.enabled || !preferences.upcoming_exchanges || saving}
+                onChange={(checked) => handleTogglePreference("exchange_reminder_24h", checked)}
+              />
+              
+              <NotificationToggle
+                id="exchange_reminder_2h"
+                title="2 Hours Before"
+                description="Get reminded 2 hours before the exchange"
+                checked={preferences.exchange_reminder_2h}
+                disabled={!preferences.enabled || !preferences.upcoming_exchanges || saving}
+                onChange={(checked) => handleTogglePreference("exchange_reminder_2h", checked)}
+              />
+              
+              <NotificationToggle
+                id="exchange_reminder_30min"
+                title="30 Minutes Before"
+                description="Get a final reminder 30 minutes before"
+                checked={preferences.exchange_reminder_30min}
+                disabled={!preferences.enabled || !preferences.upcoming_exchanges || saving}
+                onChange={(checked) => handleTogglePreference("exchange_reminder_30min", checked)}
+              />
+            </div>
+          )}
 
           <NotificationToggle
             id="document_uploads"
