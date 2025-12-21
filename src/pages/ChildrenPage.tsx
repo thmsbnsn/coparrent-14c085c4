@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { cn } from "@/lib/utils";
 import { useRealtimeChildren } from "@/hooks/useRealtimeChildren";
 import type { Child } from "@/hooks/useChildren";
@@ -141,7 +142,7 @@ const ChildrenPage = () => {
     return (
       <DashboardLayout>
         <div className="h-[calc(100vh-7rem)] flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading children...</div>
+          <LoadingSpinner size="lg" message="Loading children..." />
         </div>
       </DashboardLayout>
     );
