@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { CalendarWizard, ScheduleConfig } from "@/components/calendar/CalendarWizard";
 import { ScheduleChangeRequest, ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
 import { useScheduleRequests } from "@/hooks/useScheduleRequests";
+import { useSchedulePersistence } from "@/hooks/useSchedulePersistence";
 import { cn } from "@/lib/utils";
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -51,12 +52,12 @@ const getParentForDate = (date: Date, config: ScheduleConfig | null): "A" | "B" 
 const CalendarPage = () => {
   const navigate = useNavigate();
   const { createRequest } = useScheduleRequests();
+  const { scheduleConfig, loading: scheduleLoading, saving, saveSchedule } = useSchedulePersistence();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"calendar" | "court">("calendar");
   const [showWizard, setShowWizard] = useState(false);
   const [showChangeRequest, setShowChangeRequest] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -80,9 +81,11 @@ const CalendarPage = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const handleWizardComplete = (config: ScheduleConfig) => {
-    setScheduleConfig(config);
-    setShowWizard(false);
+  const handleWizardComplete = async (config: ScheduleConfig) => {
+    const success = await saveSchedule(config);
+    if (success) {
+      setShowWizard(false);
+    }
   };
 
   const handleDateClick = (date: Date) => {
@@ -147,15 +150,31 @@ const CalendarPage = () => {
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-            <Button size="sm" onClick={() => setShowWizard(true)}>
-              <Settings2 className="w-4 h-4 mr-2" />
+            <Button size="sm" onClick={() => setShowWizard(true)} disabled={saving}>
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Settings2 className="w-4 h-4 mr-2" />
+              )}
               {scheduleConfig ? "Edit Schedule" : "Setup Schedule"}
             </Button>
           </div>
         </motion.div>
 
+        {/* Loading State */}
+        {scheduleLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center justify-center py-12"
+          >
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">Loading schedule...</span>
+          </motion.div>
+        )}
+
         {/* Current Schedule Info */}
-        {scheduleConfig && (
+        {!scheduleLoading && scheduleConfig && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -186,29 +205,32 @@ const CalendarPage = () => {
         )}
 
         {/* View Toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex gap-2"
-        >
-          <Button
-            variant={viewMode === "calendar" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("calendar")}
+        {!scheduleLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex gap-2"
           >
-            Calendar View
-          </Button>
-          <Button
-            variant={viewMode === "court" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("court")}
-          >
-            Court View
-          </Button>
-        </motion.div>
+            <Button
+              variant={viewMode === "calendar" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("calendar")}
+            >
+              Calendar View
+            </Button>
+            <Button
+              variant={viewMode === "court" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("court")}
+            >
+              Court View
+            </Button>
+          </motion.div>
+        )}
 
         {/* Legend */}
+        {!scheduleLoading && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -224,8 +246,9 @@ const CalendarPage = () => {
             <span className="text-sm">Co-Parent's Time (Parent B)</span>
           </div>
         </motion.div>
+        )}
 
-        {viewMode === "calendar" ? (
+        {!scheduleLoading && viewMode === "calendar" ? (
           /* Calendar View */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -303,7 +326,7 @@ const CalendarPage = () => {
               })}
             </div>
           </motion.div>
-        ) : (
+        ) : !scheduleLoading ? (
           /* Court View */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -368,7 +391,7 @@ const CalendarPage = () => {
               </div>
             </div>
           </motion.div>
-        )}
+        ) : null}
       </div>
 
       {/* Calendar Wizard Modal */}
