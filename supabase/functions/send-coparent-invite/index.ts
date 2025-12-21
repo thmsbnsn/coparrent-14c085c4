@@ -1,15 +1,22 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface InviteRequest {
-  inviteeEmail: string;
-  inviterName: string;
-  token: string;
-}
+// Zod schema for input validation
+const InviteRequestSchema = z.object({
+  inviteeEmail: z.string().email("Invalid email address").max(255, "Email too long"),
+  inviterName: z.string().min(1, "Inviter name required").max(100, "Name too long"),
+  token: z.string().uuid("Invalid token format"),
+});
+
+const logStep = (step: string, details?: Record<string, unknown>) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[SEND-COPARENT-INVITE] ${step}${detailsStr}`);
+};
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
@@ -18,9 +25,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { inviteeEmail, inviterName, token }: InviteRequest = await req.json();
+    logStep("Function started");
 
-    console.log("Sending invite email to:", inviteeEmail);
+    // Parse and validate request body
+    const rawBody = await req.json();
+    const parseResult = InviteRequestSchema.safeParse(rawBody);
+    
+    if (!parseResult.success) {
+      logStep("Validation failed", { errors: parseResult.error.flatten() });
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid request data" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const { inviteeEmail, inviterName, token } = parseResult.data;
+    logStep("Input validated", { inviteeEmail });
 
     // Get the app URL from the request origin or use a default
     const origin = req.headers.get("origin") || "https://coparrent.com";
@@ -28,7 +48,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY is not configured");
+      logStep("ERROR: RESEND_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ success: false, error: "Email service unavailable" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -91,20 +115,24 @@ const handler = async (req: Request): Promise<Response> => {
     const result = await emailResponse.json();
 
     if (!emailResponse.ok) {
-      console.error("Resend API error:", result);
-      throw new Error(result.message || "Failed to send email");
+      logStep("Resend API error", { status: emailResponse.status, error: result });
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to send invitation email" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
-    console.log("Email sent successfully:", result);
+    logStep("Email sent successfully", { messageId: result.id });
 
-    return new Response(JSON.stringify({ success: true, data: result }), {
+    return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-  } catch (error: any) {
-    console.error("Error sending invite email:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message: errorMessage });
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: "An unexpected error occurred" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

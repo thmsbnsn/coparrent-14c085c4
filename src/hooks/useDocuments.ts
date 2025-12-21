@@ -115,9 +115,9 @@ export const useDocuments = () => {
 
       if (!profile) throw new Error('Profile not found');
 
-      // Upload file to storage
+      // Upload file to storage with cryptographically secure filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
