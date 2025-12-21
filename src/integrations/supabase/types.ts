@@ -458,36 +458,45 @@ export type Database = {
       step_parents: {
         Row: {
           created_at: string
+          expires_at: string | null
           id: string
+          invitation_token: string | null
+          invitee_email: string | null
           other_parent_approved: boolean | null
           other_parent_id: string | null
           primary_parent_approved: boolean | null
           primary_parent_id: string
           status: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
+          expires_at?: string | null
           id?: string
+          invitation_token?: string | null
+          invitee_email?: string | null
           other_parent_approved?: boolean | null
           other_parent_id?: string | null
           primary_parent_approved?: boolean | null
           primary_parent_id: string
           status?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
+          expires_at?: string | null
           id?: string
+          invitation_token?: string | null
+          invitee_email?: string | null
           other_parent_approved?: boolean | null
           other_parent_id?: string | null
           primary_parent_approved?: boolean | null
           primary_parent_id?: string
           status?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -511,9 +520,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_coparent_invitation: {
+        Args: { _acceptor_user_id: string; _token: string }
+        Returns: Json
+      }
       can_access_document: {
         Args: { _document_id: string; _user_id: string }
         Returns: boolean
+      }
+      get_invitation_by_token: {
+        Args: { _token: string }
+        Returns: {
+          created_at: string
+          expires_at: string
+          id: string
+          invitee_email: string
+          inviter_email: string
+          inviter_id: string
+          inviter_name: string
+          status: string
+        }[]
       }
       get_user_co_parent_id: { Args: { user_uuid: string }; Returns: string }
     }
