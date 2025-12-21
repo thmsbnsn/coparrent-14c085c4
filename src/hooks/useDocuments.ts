@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useNotificationService } from '@/hooks/useNotificationService';
 
 export interface Document {
   id: string;
@@ -38,9 +39,30 @@ export const DOCUMENT_CATEGORIES = [
 
 export const useDocuments = () => {
   const { user } = useAuth();
+  const { notifyDocumentUpload } = useNotificationService();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ id: string; full_name: string | null; co_parent_id: string | null } | null>(null);
+
+  // Fetch user profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, full_name, co_parent_id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (profile) {
+        setUserProfile(profile);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   const fetchDocuments = useCallback(async () => {
     if (!user) return;
@@ -74,20 +96,12 @@ export const useDocuments = () => {
   }, [fetchDocuments]);
 
   const logAccess = async (documentId: string, action: string) => {
-    if (!user) return;
+    if (!user || !userProfile) return;
 
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) return;
-
       await supabase.from('document_access_logs').insert({
         document_id: documentId,
-        accessed_by: profile.id,
+        accessed_by: userProfile.id,
         action,
         user_agent: navigator.userAgent,
       });
@@ -103,18 +117,10 @@ export const useDocuments = () => {
     category: string,
     childId?: string
   ) => {
-    if (!user) return null;
+    if (!user || !userProfile) return null;
     setUploading(true);
 
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) throw new Error('Profile not found');
-
       // Upload file to storage with cryptographically secure filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -137,7 +143,7 @@ export const useDocuments = () => {
           file_type: file.type,
           file_size: file.size,
           child_id: childId || null,
-          uploaded_by: profile.id,
+          uploaded_by: userProfile.id,
           category,
         })
         .select()
@@ -147,6 +153,12 @@ export const useDocuments = () => {
 
       // Log the upload
       await logAccess(doc.id, 'upload');
+
+      // Notify co-parent about the upload
+      if (userProfile.co_parent_id) {
+        const uploaderName = userProfile.full_name || 'Your co-parent';
+        await notifyDocumentUpload(userProfile.co_parent_id, uploaderName, title);
+      }
 
       toast.success('Document uploaded successfully');
       await fetchDocuments();
