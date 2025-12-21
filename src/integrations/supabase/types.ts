@@ -305,6 +305,66 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          child_id: string | null
+          created_at: string
+          created_by: string
+          description: string
+          expense_date: string
+          id: string
+          notes: string | null
+          receipt_path: string | null
+          split_percentage: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string
+          child_id?: string | null
+          created_at?: string
+          created_by: string
+          description: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          receipt_path?: string | null
+          split_percentage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          child_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          receipt_path?: string | null
+          split_percentage?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           created_at: string
@@ -622,6 +682,70 @@ export type Database = {
             columns: ["co_parent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reimbursement_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          expense_id: string
+          id: string
+          message: string | null
+          recipient_id: string
+          requester_id: string
+          responded_at: string | null
+          response_message: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expense_id: string
+          id?: string
+          message?: string | null
+          recipient_id: string
+          requester_id: string
+          responded_at?: string | null
+          response_message?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expense_id?: string
+          id?: string
+          message?: string | null
+          recipient_id?: string
+          requester_id?: string
+          responded_at?: string | null
+          response_message?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_recipient"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_requester"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reimbursement_requests_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
         ]

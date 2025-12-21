@@ -1,0 +1,303 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+
+export interface Expense {
+  id: string;
+  created_by: string;
+  child_id: string | null;
+  category: string;
+  amount: number;
+  description: string;
+  expense_date: string;
+  receipt_path: string | null;
+  split_percentage: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  creator?: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+  };
+  child?: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface ReimbursementRequest {
+  id: string;
+  expense_id: string;
+  requester_id: string;
+  recipient_id: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
+  message: string | null;
+  response_message: string | null;
+  responded_at: string | null;
+  created_at: string;
+  expense?: Expense;
+  requester?: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+  };
+}
+
+export const EXPENSE_CATEGORIES = [
+  { value: 'medical', label: 'Medical/Health' },
+  { value: 'education', label: 'Education/School' },
+  { value: 'childcare', label: 'Childcare' },
+  { value: 'clothing', label: 'Clothing' },
+  { value: 'activities', label: 'Activities/Sports' },
+  { value: 'food', label: 'Food/Groceries' },
+  { value: 'transportation', label: 'Transportation' },
+  { value: 'entertainment', label: 'Entertainment' },
+  { value: 'other', label: 'Other' },
+];
+
+export function useExpenses() {
+  const { user } = useAuth();
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [reimbursementRequests, setReimbursementRequests] = useState<ReimbursementRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<{ id: string; co_parent_id: string | null } | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (profile) {
+      fetchExpenses();
+      fetchReimbursementRequests();
+    }
+  }, [profile]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, co_parent_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    setProfile(data);
+  };
+
+  const fetchExpenses = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          creator:profiles!fk_created_by(id, full_name, email),
+          child:children(id, name)
+        `)
+        .order('expense_date', { ascending: false });
+
+      if (error) throw error;
+      setExpenses(data || []);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      toast.error("Failed to load expenses");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchReimbursementRequests = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('reimbursement_requests')
+        .select(`
+          *,
+          expense:expenses(*),
+          requester:profiles!fk_requester(id, full_name, email)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setReimbursementRequests((data || []) as ReimbursementRequest[]);
+    } catch (error) {
+      console.error('Error fetching reimbursement requests:', error);
+    }
+  };
+
+  const addExpense = async (expense: {
+    category: string;
+    amount: number;
+    description: string;
+    expense_date: string;
+    child_id?: string;
+    receipt_path?: string;
+    split_percentage?: number;
+    notes?: string;
+  }) => {
+    if (!profile) return { error: 'No profile found' };
+
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .insert({
+          ...expense,
+          created_by: profile.id,
+        });
+
+      if (error) throw error;
+      
+      await fetchExpenses();
+      return { error: null };
+    } catch (error: any) {
+      console.error('Error adding expense:', error);
+      return { error: error.message };
+    }
+  };
+
+  const deleteExpense = async (expenseId: string) => {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', expenseId);
+
+      if (error) throw error;
+      await fetchExpenses();
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  };
+
+  const requestReimbursement = async (expenseId: string, amount: number, message?: string) => {
+    if (!profile?.co_parent_id) {
+      return { error: 'No co-parent linked' };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('reimbursement_requests')
+        .insert({
+          expense_id: expenseId,
+          requester_id: profile.id,
+          recipient_id: profile.co_parent_id,
+          amount,
+          message,
+        });
+
+      if (error) throw error;
+      
+      await fetchReimbursementRequests();
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  };
+
+  const respondToReimbursement = async (
+    requestId: string, 
+    status: 'approved' | 'rejected' | 'paid',
+    responseMessage?: string
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('reimbursement_requests')
+        .update({
+          status,
+          response_message: responseMessage,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+      
+      await fetchReimbursementRequests();
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  };
+
+  const uploadReceipt = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from('receipts')
+      .upload(fileName, file);
+
+    if (error) {
+      console.error('Error uploading receipt:', error);
+      toast.error("Failed to upload receipt");
+      return null;
+    }
+
+    return fileName;
+  };
+
+  const getReceiptUrl = (path: string) => {
+    const { data } = supabase.storage.from('receipts').getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const getSignedReceiptUrl = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from('receipts')
+      .createSignedUrl(path, 3600); // 1 hour
+    
+    if (error) {
+      console.error('Error getting signed URL:', error);
+      return null;
+    }
+    return data.signedUrl;
+  };
+
+  // Calculate totals
+  const getTotals = () => {
+    const myExpenses = expenses.filter(e => e.created_by === profile?.id);
+    const coParentExpenses = expenses.filter(e => e.created_by !== profile?.id);
+
+    const myTotal = myExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    const coParentTotal = coParentExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
+    const pendingRequests = reimbursementRequests.filter(r => r.status === 'pending');
+    const pendingFromMe = pendingRequests.filter(r => r.requester_id === profile?.id);
+    const pendingToMe = pendingRequests.filter(r => r.recipient_id === profile?.id);
+
+    return {
+      myTotal,
+      coParentTotal,
+      grandTotal: myTotal + coParentTotal,
+      pendingFromMe: pendingFromMe.reduce((sum, r) => sum + Number(r.amount), 0),
+      pendingToMe: pendingToMe.reduce((sum, r) => sum + Number(r.amount), 0),
+      pendingRequestsToMe: pendingToMe,
+    };
+  };
+
+  return {
+    expenses,
+    reimbursementRequests,
+    loading,
+    profile,
+    addExpense,
+    deleteExpense,
+    requestReimbursement,
+    respondToReimbursement,
+    uploadReceipt,
+    getReceiptUrl,
+    getSignedReceiptUrl,
+    getTotals,
+    refetch: fetchExpenses,
+  };
+}
