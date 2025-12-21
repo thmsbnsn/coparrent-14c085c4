@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
@@ -24,8 +25,38 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Create Supabase client
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+  );
+
   try {
     logStep("Function started");
+
+    // Authenticate the user (JWT is verified by Supabase with verify_jwt=true)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      logStep("No authorization header");
+      return new Response(
+        JSON.stringify({ success: false, error: "Authentication required" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    if (authError || !userData.user) {
+      logStep("Authentication failed");
+      return new Response(
+        JSON.stringify({ success: false, error: "Authentication failed" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const authUser = userData.user;
+    logStep("User authenticated", { userId: authUser.id });
 
     // Parse and validate request body
     const rawBody = await req.json();
@@ -39,12 +70,66 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { inviteeEmail, inviterName, token } = parseResult.data;
+    const { inviteeEmail, inviterName, token: inviteToken } = parseResult.data;
     logStep("Input validated", { inviteeEmail });
+
+    // Get the user's profile ID first
+    const { data: userProfile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      logStep("User profile not found");
+      return new Response(
+        JSON.stringify({ success: false, error: "User profile not found" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Verify the invitation exists and belongs to the authenticated user
+    const { data: invitation, error: inviteError } = await supabaseClient
+      .from('invitations')
+      .select('id, inviter_id, status')
+      .eq('token', inviteToken)
+      .eq('inviter_id', userProfile.id)
+      .single();
+
+    if (inviteError || !invitation) {
+      logStep("Invitation not found or unauthorized", { token: inviteToken });
+      return new Response(
+        JSON.stringify({ success: false, error: "Invitation not found or you are not authorized" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Verify the invitation belongs to the authenticated user
+    if (invitation.inviter_id !== userProfile.id) {
+      logStep("Unauthorized - invitation does not belong to user", { 
+        inviterId: invitation.inviter_id, 
+        userProfileId: userProfile.id 
+      });
+      return new Response(
+        JSON.stringify({ success: false, error: "You are not authorized to send this invitation" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Check invitation status
+    if (invitation.status !== 'pending') {
+      logStep("Invitation already processed", { status: invitation.status });
+      return new Response(
+        JSON.stringify({ success: false, error: "This invitation has already been processed" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    logStep("Invitation verified", { invitationId: invitation.id });
 
     // Get the app URL from the request origin or use a default
     const origin = req.headers.get("origin") || "https://coparrent.com";
-    const inviteLink = `${origin}/accept-invite?token=${token}`;
+    const inviteLink = `${origin}/accept-invite?token=${inviteToken}`;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {

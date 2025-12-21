@@ -24,6 +24,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Create Supabase client with service role for profile updates
+  // JWT is verified by Supabase with verify_jwt=true
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -43,6 +45,7 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
+    // Authenticate user (JWT already verified by Supabase)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       logStep("No authorization header");

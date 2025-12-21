@@ -23,6 +23,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Create Supabase client (JWT is verified by Supabase with verify_jwt=true)
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? ""
@@ -31,21 +32,7 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    // Parse and validate request body
-    const rawBody = await req.json();
-    const parseResult = CheckoutRequestSchema.safeParse(rawBody);
-    
-    if (!parseResult.success) {
-      logStep("Validation failed", { errors: parseResult.error.flatten() });
-      return new Response(
-        JSON.stringify({ error: "Invalid request data" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
-    }
-
-    const { priceId } = parseResult.data;
-    logStep("Price ID received", { priceId });
-
+    // Authenticate user (JWT already verified by Supabase)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       logStep("No authorization header");
@@ -68,6 +55,21 @@ serve(async (req) => {
 
     const user = data.user;
     logStep("User authenticated", { userId: user.id });
+
+    // Parse and validate request body
+    const rawBody = await req.json();
+    const parseResult = CheckoutRequestSchema.safeParse(rawBody);
+    
+    if (!parseResult.success) {
+      logStep("Validation failed", { errors: parseResult.error.flatten() });
+      return new Response(
+        JSON.stringify({ error: "Invalid request data" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    const { priceId } = parseResult.data;
+    logStep("Price ID received", { priceId });
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {
