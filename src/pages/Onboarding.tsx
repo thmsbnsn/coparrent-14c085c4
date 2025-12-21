@@ -343,7 +343,7 @@ const Onboarding = () => {
                 <div className="text-center">
                   <h1 className="text-2xl font-display font-bold mb-2">Invite your co-parent</h1>
                   <p className="text-muted-foreground">
-                    They'll receive an invitation to join ClearNest
+                    They'll receive an invitation to join CoParrent
                   </p>
                 </div>
 

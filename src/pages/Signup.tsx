@@ -301,7 +301,7 @@ const Signup = () => {
             transition={{ delay: 0.3 }}
             className="text-primary-foreground/80"
           >
-            ClearNest is trusted by co-parents and family law professionals 
+            CoParrent is trusted by co-parents and family law professionals 
             who believe in putting children first.
           </motion.p>
         </div>

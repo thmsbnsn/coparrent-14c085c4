@@ -76,7 +76,7 @@ export const Features = () => {
             transition={{ delay: 0.2 }}
             className="text-lg text-muted-foreground"
           >
-            From scheduling to documentation, ClearNest helps you focus on what matters most—your children.
+            From scheduling to documentation, CoParrent helps you focus on what matters most—your children.
           </motion.p>
         </div>
 

@@ -227,7 +227,7 @@ const Login = () => {
             transition={{ delay: 0.3 }}
             className="text-primary-foreground/80"
           >
-            ClearNest helps you focus on what matters most—giving your children 
+            CoParrent helps you focus on what matters most—giving your children 
             stability, love, and the support they need to thrive.
           </motion.p>
         </div>
