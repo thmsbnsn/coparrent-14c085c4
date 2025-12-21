@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useChildren, Child } from "@/hooks/useChildren";
+import { useRealtimeChildren } from "@/hooks/useRealtimeChildren";
+import type { Child } from "@/hooks/useChildren";
 import {
   Dialog,
   DialogContent,
@@ -44,7 +45,7 @@ const formatDate = (dateString: string | null) => {
 };
 
 const ChildrenPage = () => {
-  const { children, loading, addChild, updateChild } = useChildren();
+  const { children, loading, addChild, updateChild } = useRealtimeChildren();
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
