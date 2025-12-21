@@ -9,13 +9,25 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
+interface InvitationData {
+  id: string;
+  inviter_id: string;
+  invitee_email: string;
+  status: string;
+  expires_at: string;
+  created_at: string;
+  inviter_name: string | null;
+  inviter_email: string | null;
+}
+
 const AcceptInvite = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const [status, setStatus] = useState<"loading" | "valid" | "invalid" | "expired" | "accepted">("loading");
+  const [status, setStatus] = useState<"loading" | "valid" | "invalid" | "expired" | "accepted" | "wrong_email">("loading");
   const [inviterName, setInviterName] = useState<string>("");
+  const [inviteeEmail, setInviteeEmail] = useState<string>("");
   const [isAccepting, setIsAccepting] = useState(false);
 
   const token = searchParams.get("token");
@@ -30,16 +42,17 @@ const AcceptInvite = () => {
 
   const checkInvitation = async () => {
     try {
-      const { data: invitation, error } = await supabase
-        .from("invitations")
-        .select("*, inviter:profiles!invitations_inviter_id_fkey(full_name, email)")
-        .eq("token", token)
-        .maybeSingle();
+      // Use secure RPC function instead of direct table query
+      const { data, error } = await supabase.rpc("get_invitation_by_token", {
+        _token: token,
+      });
 
-      if (error || !invitation) {
+      if (error || !data || data.length === 0) {
         setStatus("invalid");
         return;
       }
+
+      const invitation = data[0] as InvitationData;
 
       if (invitation.status === "accepted") {
         setStatus("accepted");
@@ -51,9 +64,8 @@ const AcceptInvite = () => {
         return;
       }
 
-      // Type assertion since we know the structure
-      const inviter = invitation.inviter as { full_name: string | null; email: string | null } | null;
-      setInviterName(inviter?.full_name || inviter?.email || "Your co-parent");
+      setInviterName(invitation.inviter_name || invitation.inviter_email || "Your co-parent");
+      setInviteeEmail(invitation.invitee_email);
       setStatus("valid");
     } catch (error) {
       console.error("Error checking invitation:", error);
@@ -72,48 +84,31 @@ const AcceptInvite = () => {
     setIsAccepting(true);
 
     try {
-      // Get current user's profile
-      const { data: myProfile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
+      // Use secure RPC function that validates email server-side
+      const { data, error } = await supabase.rpc("accept_coparent_invitation", {
+        _token: token,
+        _acceptor_user_id: user.id,
+      });
 
-      if (profileError || !myProfile) {
-        throw new Error("Could not find your profile");
+      if (error) {
+        throw new Error("Failed to accept invitation");
       }
 
-      // Get invitation details
-      const { data: invitation, error: inviteError } = await supabase
-        .from("invitations")
-        .select("inviter_id")
-        .eq("token", token)
-        .single();
+      const result = data as { success: boolean; error?: string };
 
-      if (inviteError || !invitation) {
-        throw new Error("Invalid invitation");
+      if (!result.success) {
+        // Handle specific error for wrong email
+        if (result.error?.includes("different email")) {
+          setStatus("wrong_email");
+          toast({
+            title: "Email mismatch",
+            description: result.error,
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(result.error || "Failed to accept invitation");
       }
-
-      // Link the co-parents (both directions)
-      const { error: linkError1 } = await supabase
-        .from("profiles")
-        .update({ co_parent_id: invitation.inviter_id })
-        .eq("id", myProfile.id);
-
-      if (linkError1) throw linkError1;
-
-      const { error: linkError2 } = await supabase
-        .from("profiles")
-        .update({ co_parent_id: myProfile.id })
-        .eq("id", invitation.inviter_id);
-
-      if (linkError2) throw linkError2;
-
-      // Update invitation status
-      await supabase
-        .from("invitations")
-        .update({ status: "accepted" })
-        .eq("token", token);
 
       // Clear pending invite token
       localStorage.removeItem("pendingInviteToken");
@@ -211,6 +206,18 @@ const AcceptInvite = () => {
                 </CardDescription>
               </>
             )}
+
+            {status === "wrong_email" && (
+              <>
+                <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                  <XCircle className="w-8 h-8 text-destructive" />
+                </div>
+                <CardTitle>Wrong Account</CardTitle>
+                <CardDescription>
+                  This invitation was sent to {inviteeEmail}. Please sign in with that email address to accept.
+                </CardDescription>
+              </>
+            )}
           </CardHeader>
 
           <CardContent className="space-y-4">
@@ -255,6 +262,18 @@ const AcceptInvite = () => {
                   </p>
                 )}
               </>
+            )}
+
+            {status === "wrong_email" && (
+              <Button 
+                onClick={() => {
+                  localStorage.setItem("pendingInviteToken", token || "");
+                  navigate("/login");
+                }} 
+                className="w-full"
+              >
+                Sign in with different account
+              </Button>
             )}
 
             {(status === "invalid" || status === "expired" || status === "accepted") && (
