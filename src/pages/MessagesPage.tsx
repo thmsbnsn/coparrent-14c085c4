@@ -5,10 +5,9 @@ import { Send, Download, Info, FileText, Calendar, Check, X, Clock, ArrowRightLe
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
 import { useMessages } from "@/hooks/useMessages";
+import { useScheduleRequests } from "@/hooks/useScheduleRequests";
 import { Link } from "react-router-dom";
 
 const formatDate = (dateString: string) => {
@@ -48,34 +47,19 @@ const getRequestTypeLabel = (type: string) => {
 
 const MessagesPage = () => {
   const location = useLocation();
-  const { toast } = useToast();
   const { messages, coParent, userProfile, loading, sendMessage } = useMessages();
-  const [pendingRequests, setPendingRequests] = useState<ScheduleChangeRequestData[]>([]);
+  const { pendingRequests, respondToRequest } = useScheduleRequests();
   const [newMessage, setNewMessage] = useState("");
   const [viewMode, setViewMode] = useState<"chat" | "court">("chat");
   const [sending, setSending] = useState(false);
 
-  // Load pending requests from localStorage (for schedule requests)
-  useEffect(() => {
-    const stored = localStorage.getItem("scheduleRequests");
-    if (stored) {
-      setPendingRequests(JSON.parse(stored).filter((r: ScheduleChangeRequestData) => r.status === "pending"));
-    }
-  }, []);
-
-  // Handle new schedule request from navigation
+  // Handle new schedule request from navigation (legacy support)
   useEffect(() => {
     if (location.state?.newScheduleRequest) {
-      const request = location.state.newScheduleRequest as ScheduleChangeRequestData;
-      
-      // Send as a message
-      const messageContent = `[Schedule Request] ${getRequestTypeLabel(request.type)}: ${formatDate(request.originalDate)}${request.proposedDate ? ` → ${formatDate(request.proposedDate)}` : ""}. Reason: ${request.reason}`;
-      sendMessage(messageContent);
-      
-      // Clear the navigation state
+      // Clear the navigation state - request is now stored in DB
       window.history.replaceState({}, document.title);
     }
-  }, [location.state, sendMessage]);
+  }, [location.state]);
 
   const handleSend = async () => {
     if (newMessage.trim() && !sending) {
@@ -88,25 +72,10 @@ const MessagesPage = () => {
     }
   };
 
-  const handleRequestResponse = (requestId: string, response: "accepted" | "declined") => {
-    // Update local storage
-    const stored = JSON.parse(localStorage.getItem("scheduleRequests") || "[]");
-    const updated = stored.map((r: ScheduleChangeRequestData) =>
-      r.id === requestId ? { ...r, status: response } : r
-    );
-    localStorage.setItem("scheduleRequests", JSON.stringify(updated));
-
-    // Update pending requests
-    setPendingRequests((prev) => prev.filter((r) => r.id !== requestId));
-
-    toast({
-      title: response === "accepted" ? "Request Accepted" : "Request Declined",
-      description:
-        response === "accepted"
-          ? "The schedule change has been approved."
-          : "The schedule change has been declined.",
-    });
+  const handleRequestResponse = async (requestId: string, response: "accepted" | "declined") => {
+    await respondToRequest(requestId, response);
   };
+
 
   if (loading) {
     return (

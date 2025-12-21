@@ -75,8 +75,8 @@ const AcceptInvite = () => {
 
   const handleAcceptInvitation = async () => {
     if (!user) {
-      // Store token and redirect to signup
-      localStorage.setItem("pendingInviteToken", token || "");
+      // Store token in sessionStorage (more secure than localStorage, clears on tab close)
+      sessionStorage.setItem("pendingInviteToken", token || "");
       navigate("/signup");
       return;
     }
@@ -111,6 +111,8 @@ const AcceptInvite = () => {
       }
 
       // Clear pending invite token
+      // Clear token from both storage types to be safe
+      sessionStorage.removeItem("pendingInviteToken");
       localStorage.removeItem("pendingInviteToken");
 
       toast({
@@ -253,7 +255,7 @@ const AcceptInvite = () => {
                       variant="link" 
                       className="p-0 h-auto"
                       onClick={() => {
-                        localStorage.setItem("pendingInviteToken", token || "");
+                        sessionStorage.setItem("pendingInviteToken", token || "");
                         navigate("/login");
                       }}
                     >
@@ -267,9 +269,9 @@ const AcceptInvite = () => {
             {status === "wrong_email" && (
               <Button 
                 onClick={() => {
-                  localStorage.setItem("pendingInviteToken", token || "");
+                  sessionStorage.setItem("pendingInviteToken", token || "");
                   navigate("/login");
-                }} 
+                }}
                 className="w-full"
               >
                 Sign in with different account

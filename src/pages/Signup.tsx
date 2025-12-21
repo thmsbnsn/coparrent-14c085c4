@@ -34,8 +34,8 @@ const Signup = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      // Check for pending invite token
-      const pendingToken = localStorage.getItem("pendingInviteToken");
+      // Check for pending invite token (check both session and local storage)
+      const pendingToken = sessionStorage.getItem("pendingInviteToken") || localStorage.getItem("pendingInviteToken");
       if (pendingToken) {
         navigate(`/accept-invite?token=${pendingToken}`);
       } else {
