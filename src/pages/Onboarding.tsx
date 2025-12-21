@@ -143,7 +143,7 @@ const Onboarding = () => {
   };
 
   const saveChildrenToDatabase = async () => {
-    if (!user || !profileId) {
+    if (!user) {
       toast({
         title: "Error",
         description: "You must be logged in to save children",
@@ -154,34 +154,22 @@ const Onboarding = () => {
 
     setSaving(true);
     try {
-      // Save each child with a name
+      // Save each child using the secure RPC function
       for (const child of children) {
         if (child.name.trim()) {
-          // Create child
-          const { data: newChild, error: childError } = await supabase
-            .from("children")
-            .insert({
-              name: child.name.trim(),
-              date_of_birth: child.dob || null,
-            })
-            .select()
-            .single();
+          const { data, error } = await supabase.rpc("create_child_with_link", {
+            _name: child.name.trim(),
+            _date_of_birth: child.dob || null,
+          });
 
-          if (childError) {
-            console.error("Error creating child:", childError);
+          if (error) {
+            console.error("Error creating child:", error);
             continue;
           }
 
-          // Link child to parent
-          const { error: linkError } = await supabase
-            .from("parent_children")
-            .insert({
-              parent_id: profileId,
-              child_id: newChild.id,
-            });
-
-          if (linkError) {
-            console.error("Error linking child:", linkError);
+          const result = data as { success: boolean; error?: string };
+          if (!result.success) {
+            console.error("Failed to create child:", result.error);
           }
         }
       }
