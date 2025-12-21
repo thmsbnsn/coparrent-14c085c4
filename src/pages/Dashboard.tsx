@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, MessageSquare, Users, ArrowRight, Clock } from "lucide-react";
+import { Calendar, MessageSquare, Users, ArrowRight, Clock, BookHeart } from "lucide-react";
 import { Link } from "react-router-dom";
-import { format, differenceInYears } from "date-fns";
+import { format, differenceInYears, isToday, isTomorrow, parseISO } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ExchangeCheckin } from "@/components/exchange/ExchangeCheckin";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
 type Message = Tables<"messages">;
+type CustodySchedule = Tables<"custody_schedules">;
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -22,7 +24,9 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [coParent, setCoParent] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<(Message & { sender?: Profile })[]>([]);
+  const [schedule, setSchedule] = useState<CustodySchedule | null>(null);
   const [loading, setLoading] = useState(true);
+  const [journalCount, setJournalCount] = useState(0);
 
   // Map children with age
   const children = realtimeChildren.map(child => ({
@@ -85,10 +89,57 @@ const Dashboard = () => {
           setMessages(messagesWithSenders);
         }
       }
+
+      // Fetch custody schedule if profile exists
+      if (profileData) {
+        const { data: scheduleData } = await supabase
+          .from("custody_schedules")
+          .select("*")
+          .or(`parent_a_id.eq.${profileData.id},parent_b_id.eq.${profileData.id}`)
+          .maybeSingle();
+        setSchedule(scheduleData);
+
+        // Fetch journal entry count for this month
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+        
+        const { count } = await supabase
+          .from("journal_entries")
+          .select("*", { count: 'exact', head: true })
+          .eq("user_id", user.id)
+          .gte("created_at", startOfMonth.toISOString());
+        
+        setJournalCount(count || 0);
+      }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Check if today is an exchange day based on schedule pattern
+  const isExchangeDay = () => {
+    if (!schedule) return false;
+    const today = new Date();
+    const startDate = parseISO(schedule.start_date);
+    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Simple exchange detection based on pattern
+    switch (schedule.pattern) {
+      case "weekly":
+        return daysSinceStart % 7 === 0;
+      case "biweekly":
+        return daysSinceStart % 14 === 0;
+      case "2-2-3":
+        return [0, 2, 4].includes(daysSinceStart % 7);
+      case "3-4-4-3":
+        return [0, 3].includes(daysSinceStart % 7);
+      case "5-2":
+        return daysSinceStart % 7 === 0 || daysSinceStart % 7 === 5;
+      default:
+        return daysSinceStart % 7 === 0;
     }
   };
 
@@ -192,6 +243,22 @@ const Dashboard = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Exchange Check-in (only show if it's an exchange day and schedule exists) */}
+        {schedule && isExchangeDay() && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <ExchangeCheckin 
+              exchangeDate={new Date()} 
+              scheduleId={schedule.id}
+            />
+          </motion.div>
+        )}
+
+        {/* Quick Stats Grid */}
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -308,6 +375,31 @@ const Dashboard = () => {
             </div>
             <Button variant="ghost" className="w-full mt-3" asChild>
               <Link to="/dashboard/children">Manage Child Info</Link>
+            </Button>
+          </motion.div>
+
+          {/* Journal Quick Access */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="rounded-2xl border border-border bg-card p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-semibold">Private Journal</h3>
+              <BookHeart className="w-5 h-5 text-[#21B0FE]" />
+            </div>
+            <div className="text-center py-3">
+              <p className="text-2xl font-bold text-[#21B0FE]">{journalCount}</p>
+              <p className="text-sm text-muted-foreground">entries this month</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                {journalCount > 0 
+                  ? "Great job staying grounded! 🌟" 
+                  : "Try journaling after exchanges"}
+              </p>
+            </div>
+            <Button variant="ghost" className="w-full mt-3" asChild>
+              <Link to="/dashboard/journal">Open Journal</Link>
             </Button>
           </motion.div>
 

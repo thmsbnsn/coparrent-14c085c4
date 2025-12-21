@@ -267,6 +267,44 @@ export type Database = {
           },
         ]
       }
+      exchange_checkins: {
+        Row: {
+          checked_in_at: string
+          created_at: string
+          exchange_date: string
+          id: string
+          note: string | null
+          schedule_id: string | null
+          user_id: string
+        }
+        Insert: {
+          checked_in_at?: string
+          created_at?: string
+          exchange_date: string
+          id?: string
+          note?: string | null
+          schedule_id?: string | null
+          user_id: string
+        }
+        Update: {
+          checked_in_at?: string
+          created_at?: string
+          exchange_date?: string
+          id?: string
+          note?: string | null
+          schedule_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_checkins_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "custody_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           created_at: string
@@ -304,6 +342,60 @@ export type Database = {
             columns: ["inviter_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          child_id: string | null
+          content: string
+          created_at: string
+          exchange_checkin_id: string | null
+          id: string
+          mood: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          child_id?: string | null
+          content: string
+          created_at?: string
+          exchange_checkin_id?: string | null
+          id?: string
+          mood?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          child_id?: string | null
+          content?: string
+          created_at?: string
+          exchange_checkin_id?: string | null
+          id?: string
+          mood?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_exchange_checkin_id_fkey"
+            columns: ["exchange_checkin_id"]
+            isOneToOne: false
+            referencedRelation: "exchange_checkins"
             referencedColumns: ["id"]
           },
         ]

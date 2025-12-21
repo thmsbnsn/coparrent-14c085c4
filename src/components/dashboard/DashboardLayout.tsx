@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
+  BookHeart,
   Menu,
   BookOpen,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const parentNavItems = [
   { icon: Users, label: "Child Info", href: "/dashboard/children" },
   { icon: MessageSquare, label: "Messages", href: "/dashboard/messages" },
   { icon: FileText, label: "Documents", href: "/dashboard/documents" },
+  { icon: BookHeart, label: "Journal", href: "/dashboard/journal" },
   { icon: Scale, label: "Law Library", href: "/dashboard/law-library" },
   { icon: BookOpen, label: "Blog", href: "/dashboard/blog" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
