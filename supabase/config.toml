@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.ai-schedule-suggest]
 verify_jwt = true
+
+[functions.ai-message-assist]
+verify_jwt = true
