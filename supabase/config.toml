@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.send-notification]
 verify_jwt = true
+
+[functions.exchange-reminders]
+verify_jwt = false
