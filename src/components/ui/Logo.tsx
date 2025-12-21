@@ -24,7 +24,7 @@ export const Logo = ({ className, showText = true, size = "md" }: LogoProps) => 
       {showText && (
         <span className={cn("font-display font-bold tracking-tight", sizes[size].text)}>
           <span className="text-primary">Co</span>
-          <span className="text-gradient bg-gradient-accent">Parrent</span>
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-[hsl(174,42%,35%)] to-[hsl(150,45%,45%)]">Parrent</span>
         </span>
       )}
     </div>

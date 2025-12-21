@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Calendar, MessageSquare, Users, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import heroIllustration from "@/assets/hero-illustration.png";
 
 const features = [
@@ -42,10 +43,15 @@ export const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur-sm text-foreground text-sm font-medium mb-8 shadow-md"
+              className="mb-8"
             >
-              <span className="w-2 h-2 rounded-full bg-gradient-accent animate-pulse" />
-              Trusted by 10,000+ co-parents
+              <Badge 
+                variant="secondary" 
+                className="px-4 py-2 bg-secondary/80 backdrop-blur-sm text-secondary-foreground border border-secondary-foreground/10 shadow-sm"
+              >
+                <span className="w-2 h-2 rounded-full bg-[hsl(150,45%,45%)] animate-pulse mr-2" />
+                Join families finding clearer co-parenting
+              </Badge>
             </motion.div>
 
             {/* Headline */}
@@ -53,10 +59,10 @@ export const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-display font-bold leading-tight mb-6 text-white drop-shadow-lg"
+              className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-display font-bold leading-tight mb-6 text-foreground drop-shadow-[0_2px_4px_rgba(255,255,255,0.3)]"
             >
               Co-parenting made{" "}
-              <span className="text-[hsl(174,60%,70%)]">clear & simple</span>
+              <span className="text-gradient bg-gradient-accent">clear & simple</span>
             </motion.h1>
 
             {/* Subheadline */}
@@ -64,7 +70,7 @@ export const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-lg sm:text-xl text-white/90 max-w-xl mx-auto lg:mx-0 mb-10 drop-shadow-sm"
+              className="text-lg sm:text-xl text-foreground/80 max-w-xl mx-auto lg:mx-0 mb-10"
             >
               The modern custody toolkit that helps parents stay organized, communicate clearly, 
               and keep their children's well-being at the center of every decision.
@@ -145,38 +151,6 @@ export const Hero = () => {
               </Card>
             </motion.div>
 
-            {/* Floating decorative elements */}
-            <motion.div
-              animate={{ 
-                y: [0, -8, 0],
-                rotate: [0, 5, 0]
-              }}
-              transition={{ 
-                duration: 4, 
-                repeat: Infinity, 
-                ease: "easeInOut",
-                delay: 0.5
-              }}
-              className="absolute -top-4 -left-4 lg:left-0 p-3 rounded-2xl bg-white/90 backdrop-blur-sm shadow-lg"
-            >
-              <Calendar className="w-6 h-6 text-primary" />
-            </motion.div>
-
-            <motion.div
-              animate={{ 
-                y: [0, -10, 0],
-                rotate: [0, -5, 0]
-              }}
-              transition={{ 
-                duration: 4.5, 
-                repeat: Infinity, 
-                ease: "easeInOut",
-                delay: 1
-              }}
-              className="absolute -bottom-2 -right-2 lg:right-4 p-3 rounded-2xl bg-white/90 backdrop-blur-sm shadow-lg"
-            >
-              <MessageSquare className="w-6 h-6 text-[hsl(150,45%,45%)]" />
-            </motion.div>
           </motion.div>
         </div>
       </div>
