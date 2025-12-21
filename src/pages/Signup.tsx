@@ -38,7 +38,30 @@ const Signup = () => {
       if (pendingToken) {
         navigate(`/accept-invite?token=${pendingToken}`);
       } else {
-        navigate("/dashboard");
+        // Check if user has completed onboarding by checking if they have children
+        const checkOnboarding = async () => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          
+          if (profile) {
+            const { count } = await supabase
+              .from("parent_children")
+              .select("*", { count: "exact", head: true })
+              .eq("parent_id", profile.id);
+            
+            if (count && count > 0) {
+              navigate("/dashboard");
+            } else {
+              navigate("/onboarding");
+            }
+          } else {
+            navigate("/onboarding");
+          }
+        };
+        checkOnboarding();
       }
     }
   }, [user, loading, navigate]);
@@ -92,13 +115,8 @@ const Signup = () => {
       description: "Let's set up your profile.",
     });
     
-    // Check for pending invite token
-    const pendingToken = localStorage.getItem("pendingInviteToken");
-    if (pendingToken) {
-      navigate(`/accept-invite?token=${pendingToken}`);
-    } else {
-      navigate("/onboarding");
-    }
+    // Navigation will be handled by the useEffect that watches the user state
+    // This ensures the user is fully authenticated before redirecting
   };
 
   if (loading) {

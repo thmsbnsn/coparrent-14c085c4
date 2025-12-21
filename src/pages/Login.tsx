@@ -29,7 +29,30 @@ const Login = () => {
       if (pendingToken) {
         navigate(`/accept-invite?token=${pendingToken}`);
       } else {
-        navigate("/dashboard");
+        // Check if user has completed onboarding
+        const checkOnboarding = async () => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          
+          if (profile) {
+            const { count } = await supabase
+              .from("parent_children")
+              .select("*", { count: "exact", head: true })
+              .eq("parent_id", profile.id);
+            
+            if (count && count > 0) {
+              navigate("/dashboard");
+            } else {
+              navigate("/onboarding");
+            }
+          } else {
+            navigate("/onboarding");
+          }
+        };
+        checkOnboarding();
       }
     }
   }, [user, loading, navigate]);
@@ -59,13 +82,7 @@ const Login = () => {
       description: "You've successfully signed in.",
     });
     
-    // Check for pending invite token
-    const pendingToken = localStorage.getItem("pendingInviteToken");
-    if (pendingToken) {
-      navigate(`/accept-invite?token=${pendingToken}`);
-    } else {
-      navigate("/dashboard");
-    }
+    // Navigation handled by useEffect watching user state
   };
 
   if (loading) {

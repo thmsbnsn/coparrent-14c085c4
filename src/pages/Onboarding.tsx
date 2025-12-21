@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ArrowLeft, Users, Baby, Mail, Check } from "lucide-react";
+import { ArrowRight, ArrowLeft, Users, Baby, Mail, Check, Loader2 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,18 +22,51 @@ const roles = ["Father", "Mother", "Guardian", "Other"];
 
 const Onboarding = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [role, setRole] = useState("");
   const [children, setChildren] = useState([{ name: "", dob: "" }]);
   const [coParentEmail, setCoParentEmail] = useState("");
   const [saving, setSaving] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/signup");
+    }
+  }, [user, authLoading, navigate]);
+
+  // Get user profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (profile) {
+        setProfileId(profile.id);
+        setUserName(profile.full_name || user.email || "");
+      }
+    };
+    
+    fetchProfile();
+  }, [user]);
 
   const nextStep = async () => {
     // Save children data when moving from step 2 to 3
     if (currentStep === 2) {
       await saveChildrenToDatabase();
+    }
+    // Send co-parent invite when moving from step 3 to 4
+    if (currentStep === 3 && coParentEmail.trim()) {
+      await sendCoParentInvite();
     }
     setCurrentStep((s) => Math.min(s + 1, 4));
   };
@@ -49,8 +82,68 @@ const Onboarding = () => {
     setChildren(updated);
   };
 
+  const sendCoParentInvite = async () => {
+    if (!profileId || !coParentEmail.trim()) return;
+
+    setSaving(true);
+    try {
+      // Create invitation in database
+      const { data: invitation, error: insertError } = await supabase
+        .from("invitations")
+        .insert({
+          inviter_id: profileId,
+          invitee_email: coParentEmail.toLowerCase().trim(),
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        if (insertError.code === "23505") {
+          toast({
+            title: "Invitation already sent",
+            description: "You've already invited this email address.",
+          });
+        } else {
+          throw insertError;
+        }
+        return;
+      }
+
+      // Send email via edge function
+      const { error: emailError } = await supabase.functions.invoke("send-coparent-invite", {
+        body: {
+          inviteeEmail: coParentEmail.toLowerCase().trim(),
+          inviterName: userName || "Your co-parent",
+          token: invitation.token,
+        },
+      });
+
+      if (emailError) {
+        console.error("Email error:", emailError);
+        toast({
+          title: "Invitation created",
+          description: "The invitation was created. Share the link with your co-parent.",
+        });
+      } else {
+        toast({
+          title: "Invitation sent!",
+          description: `An invitation has been sent to ${coParentEmail}.`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error sending invitation:", error);
+      toast({
+        title: "Failed to send invitation",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveChildrenToDatabase = async () => {
-    if (!user) {
+    if (!user || !profileId) {
       toast({
         title: "Error",
         description: "You must be logged in to save children",
@@ -61,17 +154,6 @@ const Onboarding = () => {
 
     setSaving(true);
     try {
-      // Get user's profile
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (profileError || !profile) {
-        throw new Error("Could not find your profile");
-      }
-
       // Save each child with a name
       for (const child of children) {
         if (child.name.trim()) {
@@ -94,7 +176,7 @@ const Onboarding = () => {
           const { error: linkError } = await supabase
             .from("parent_children")
             .insert({
-              parent_id: profile.id,
+              parent_id: profileId,
               child_id: newChild.id,
             });
 
@@ -119,6 +201,14 @@ const Onboarding = () => {
       setSaving(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
