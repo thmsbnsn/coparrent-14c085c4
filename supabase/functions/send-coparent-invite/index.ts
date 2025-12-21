@@ -147,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "CoParrent <onboarding@resend.dev>",
+        from: "CoParrent <noreply@coparrent.com>",
         to: [inviteeEmail],
         subject: `${inviterName} invited you to co-parent on CoParrent`,
         html: `
