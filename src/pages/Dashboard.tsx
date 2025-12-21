@@ -8,23 +8,27 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeChildren } from "@/hooks/useRealtimeChildren";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
 type Message = Tables<"messages">;
-type Child = Tables<"children">;
-
-interface ChildWithAge extends Child {
-  age: number | null;
-}
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { children: realtimeChildren, loading: childrenLoading } = useRealtimeChildren();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [coParent, setCoParent] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<(Message & { sender?: Profile })[]>([]);
-  const [children, setChildren] = useState<ChildWithAge[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Map children with age
+  const children = realtimeChildren.map(child => ({
+    ...child,
+    age: child.date_of_birth 
+      ? differenceInYears(new Date(), new Date(child.date_of_birth))
+      : null
+  }));
 
   useEffect(() => {
     if (user) {
@@ -77,30 +81,6 @@ const Dashboard = () => {
             sender: senderProfiles?.find(p => p.id === msg.sender_id)
           }));
           setMessages(messagesWithSenders);
-        }
-
-        // Fetch children linked to this parent
-        const { data: parentChildren } = await supabase
-          .from("parent_children")
-          .select("child_id")
-          .eq("parent_id", profileData.id);
-
-        if (parentChildren && parentChildren.length > 0) {
-          const childIds = parentChildren.map(pc => pc.child_id);
-          const { data: childrenData } = await supabase
-            .from("children")
-            .select("*")
-            .in("id", childIds);
-
-          if (childrenData) {
-            const childrenWithAge = childrenData.map(child => ({
-              ...child,
-              age: child.date_of_birth 
-                ? differenceInYears(new Date(), new Date(child.date_of_birth))
-                : null
-            }));
-            setChildren(childrenWithAge);
-          }
         }
       }
     } catch (error) {
