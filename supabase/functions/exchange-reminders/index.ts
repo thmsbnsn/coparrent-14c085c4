@@ -20,11 +20,11 @@ interface UpcomingExchange {
   pattern: string;
 }
 
-// Reminder intervals in minutes
+// Reminder intervals in minutes with preference keys
 const REMINDER_INTERVALS = [
-  { minutes: 1440, label: "24 hours" },  // 24 hours
-  { minutes: 120, label: "2 hours" },    // 2 hours
-  { minutes: 30, label: "30 minutes" },  // 30 minutes
+  { minutes: 1440, label: "24 hours", prefKey: "exchange_reminder_24h" },
+  { minutes: 120, label: "2 hours", prefKey: "exchange_reminder_2h" },
+  { minutes: 30, label: "30 minutes", prefKey: "exchange_reminder_30min" },
 ];
 
 const getEmailHtml = (
@@ -206,7 +206,8 @@ const handler = async (req: Request): Promise<Response> => {
                 schedule.exchange_time,
                 schedule.exchange_location,
                 childNames,
-                interval.label
+                interval.label,
+                interval.prefKey
               );
 
               if (result.success) {
@@ -339,7 +340,8 @@ async function sendExchangeReminder(
   exchangeTime: string | null,
   location: string | null,
   childNames: string[],
-  reminderLabel: string
+  reminderLabel: string,
+  reminderPrefKey: string
 ): Promise<{ success: boolean; sent: boolean }> {
   try {
     // Get parent profile and preferences
@@ -356,9 +358,21 @@ async function sendExchangeReminder(
 
     const preferences = profile.notification_preferences as Record<string, boolean> | null;
 
-    // Check if notifications and exchange reminders are enabled
-    if (preferences && (!preferences.enabled || !preferences.upcoming_exchanges)) {
+    // Check if notifications are enabled globally
+    if (preferences && !preferences.enabled) {
+      console.log(`All notifications disabled for ${profile.email}`);
+      return { success: true, sent: false };
+    }
+
+    // Check if exchange reminders are enabled
+    if (preferences && !preferences.upcoming_exchanges) {
       console.log(`Exchange reminders disabled for ${profile.email}`);
+      return { success: true, sent: false };
+    }
+
+    // Check specific interval preference
+    if (preferences && preferences[reminderPrefKey] === false) {
+      console.log(`${reminderPrefKey} reminder disabled for ${profile.email}`);
       return { success: true, sent: false };
     }
 

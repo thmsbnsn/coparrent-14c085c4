@@ -7,6 +7,9 @@ export interface NotificationPreferences {
   schedule_changes: boolean;
   new_messages: boolean;
   upcoming_exchanges: boolean;
+  exchange_reminder_24h: boolean;
+  exchange_reminder_2h: boolean;
+  exchange_reminder_30min: boolean;
   document_uploads: boolean;
   child_info_updates: boolean;
 }
@@ -16,6 +19,9 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   schedule_changes: true,
   new_messages: true,
   upcoming_exchanges: true,
+  exchange_reminder_24h: true,
+  exchange_reminder_2h: true,
+  exchange_reminder_30min: true,
   document_uploads: true,
   child_info_updates: true,
 };
@@ -110,6 +116,9 @@ export const useNotifications = () => {
       schedule_changes: enabled,
       new_messages: enabled,
       upcoming_exchanges: enabled,
+      exchange_reminder_24h: enabled,
+      exchange_reminder_2h: enabled,
+      exchange_reminder_30min: enabled,
       document_uploads: enabled,
       child_info_updates: enabled,
     });
