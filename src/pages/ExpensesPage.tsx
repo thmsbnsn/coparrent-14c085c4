@@ -39,8 +39,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { useExpenses, EXPENSE_CATEGORIES, Expense, ReimbursementRequest } from "@/hooks/useExpenses";
 import { useChildren } from "@/hooks/useChildren";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from "date-fns";
 
 export default function ExpensesPage() {
   const { 
@@ -89,6 +90,12 @@ export default function ExpensesPage() {
 
   // Receipt viewer
   const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
+  
+  // Court report generator
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportStartDate, setReportStartDate] = useState(format(subMonths(new Date(), 6), 'yyyy-MM-dd'));
+  const [reportEndDate, setReportEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   const totals = getTotals();
 
@@ -221,6 +228,82 @@ export default function ExpensesPage() {
     toast.success("Expenses exported");
   };
 
+  const generateCourtReport = async () => {
+    setIsGeneratingReport(true);
+    
+    try {
+      // Get profile details
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, co_parent_id')
+        .eq('id', profile?.id)
+        .maybeSingle();
+      
+      let coParentData = null;
+      if (profileData?.co_parent_id) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', profileData.co_parent_id)
+          .maybeSingle();
+        coParentData = data;
+      }
+
+      // Filter expenses by date range
+      const startDate = parseISO(reportStartDate);
+      const endDate = parseISO(reportEndDate);
+      
+      const filteredForReport = expenses.filter(e => {
+        const expDate = parseISO(e.expense_date);
+        return expDate >= startDate && expDate <= endDate;
+      });
+
+      // Filter reimbursements by date range
+      const filteredReimbursements = reimbursementRequests.filter(r => {
+        const reqDate = parseISO(r.created_at);
+        return reqDate >= startDate && reqDate <= endDate;
+      });
+
+      const reportData = {
+        expenses: filteredForReport,
+        reimbursementRequests: filteredReimbursements,
+        profile: profileData || { full_name: null, email: null },
+        coParent: coParentData,
+        dateRange: { start: reportStartDate, end: reportEndDate },
+        children: children.map(c => ({ id: c.id, name: c.name })),
+      };
+
+      const { data: htmlContent, error } = await supabase.functions.invoke('generate-expense-report', {
+        body: reportData,
+      });
+
+      if (error) throw error;
+
+      // Open in new window for printing
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        
+        // Auto-trigger print dialog after content loads
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+        
+        toast.success("Report generated - use browser print to save as PDF");
+      } else {
+        toast.error("Please allow popups to generate the report");
+      }
+      
+      setIsReportDialogOpen(false);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast.error("Failed to generate report");
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   // Filter expenses
   const filteredExpenses = expenses.filter(expense => {
     const matchesSearch = !searchQuery || 
@@ -278,10 +361,77 @@ export default function ExpensesPage() {
             </p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Court Report
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Generate Court Report
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Generate a professional, court-ready expense report with all transactions, 
+                    reimbursement history, and financial summaries.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Start Date</Label>
+                      <Input
+                        type="date"
+                        value={reportStartDate}
+                        onChange={(e) => setReportStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>End Date</Label>
+                      <Input
+                        type="date"
+                        value={reportEndDate}
+                        onChange={(e) => setReportEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                    <p className="font-medium mb-1">Report includes:</p>
+                    <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                      <li>All expenses in date range</li>
+                      <li>Category breakdown with totals</li>
+                      <li>Reimbursement request history</li>
+                      <li>Financial summary by parent</li>
+                      <li>Receipt indicators</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsReportDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={generateCourtReport}
+                    disabled={isGeneratingReport}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    {isGeneratingReport ? "Generating..." : "Generate & Print"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
             <Button variant="outline" onClick={exportToCSV}>
               <Download className="h-4 w-4 mr-2" />
-              Export CSV
+              CSV
             </Button>
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
