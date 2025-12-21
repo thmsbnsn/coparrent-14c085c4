@@ -10,8 +10,8 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  Bell,
   Menu,
+  BookOpen,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -31,6 +32,7 @@ const parentNavItems = [
   { icon: Users, label: "Child Info", href: "/dashboard/children" },
   { icon: MessageSquare, label: "Messages", href: "/dashboard/messages" },
   { icon: FileText, label: "Documents", href: "/dashboard/documents" },
+  { icon: BookOpen, label: "Blog", href: "/dashboard/blog" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
@@ -187,10 +189,7 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
           <div className="flex-1" />
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
-            </Button>
+            <NotificationDropdown />
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
               {userInitials || "U"}
             </div>

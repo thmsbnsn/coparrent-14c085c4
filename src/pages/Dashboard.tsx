@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeChildren } from "@/hooks/useRealtimeChildren";
+import { BlogDashboardCard } from "@/components/dashboard/BlogDashboardCard";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
@@ -308,6 +309,9 @@ const Dashboard = () => {
               <Link to="/dashboard/children">Manage Child Info</Link>
             </Button>
           </motion.div>
+
+          {/* Blog Card */}
+          <BlogDashboardCard />
         </div>
       </div>
     </DashboardLayout>
