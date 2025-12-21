@@ -26,12 +26,15 @@ interface DashboardLayoutProps {
   userRole?: "parent" | "lawoffice";
 }
 
+import { Scale } from "lucide-react";
+
 const parentNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Calendar, label: "Parenting Calendar", href: "/dashboard/calendar" },
   { icon: Users, label: "Child Info", href: "/dashboard/children" },
   { icon: MessageSquare, label: "Messages", href: "/dashboard/messages" },
   { icon: FileText, label: "Documents", href: "/dashboard/documents" },
+  { icon: Scale, label: "Law Library", href: "/dashboard/law-library" },
   { icon: BookOpen, label: "Blog", href: "/dashboard/blog" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
