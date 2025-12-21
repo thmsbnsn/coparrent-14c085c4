@@ -337,10 +337,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_reason: string | null
           avatar_url: string | null
           co_parent_id: string | null
           created_at: string
           email: string | null
+          free_premium_access: boolean
           full_name: string | null
           id: string
           notification_preferences: Json | null
@@ -352,10 +354,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_reason?: string | null
           avatar_url?: string | null
           co_parent_id?: string | null
           created_at?: string
           email?: string | null
+          free_premium_access?: boolean
           full_name?: string | null
           id?: string
           notification_preferences?: Json | null
@@ -367,10 +371,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_reason?: string | null
           avatar_url?: string | null
           co_parent_id?: string | null
           created_at?: string
           email?: string | null
+          free_premium_access?: boolean
           full_name?: string | null
           id?: string
           notification_preferences?: Json | null
@@ -515,6 +521,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -546,9 +573,17 @@ export type Database = {
         }[]
       }
       get_user_co_parent_id: { Args: { user_uuid: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -675,6 +710,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const

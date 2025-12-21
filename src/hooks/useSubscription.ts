@@ -9,6 +9,8 @@ interface SubscriptionStatus {
   tier: StripeTier | "free";
   subscriptionEnd: string | null;
   loading: boolean;
+  freeAccess: boolean;
+  accessReason: string | null;
 }
 
 export const useSubscription = () => {
@@ -19,11 +21,13 @@ export const useSubscription = () => {
     tier: "free",
     subscriptionEnd: null,
     loading: true,
+    freeAccess: false,
+    accessReason: null,
   });
 
   const checkSubscription = useCallback(async () => {
     if (!user) {
-      setStatus({ subscribed: false, tier: "free", subscriptionEnd: null, loading: false });
+      setStatus({ subscribed: false, tier: "free", subscriptionEnd: null, loading: false, freeAccess: false, accessReason: null });
       return;
     }
 
@@ -33,10 +37,12 @@ export const useSubscription = () => {
       if (error) throw error;
 
       setStatus({
-        subscribed: data.subscribed,
+        subscribed: data.subscribed || data.free_access,
         tier: data.tier || "free",
         subscriptionEnd: data.subscription_end,
         loading: false,
+        freeAccess: data.free_access || false,
+        accessReason: data.access_reason || null,
       });
     } catch (error) {
       console.error("Error checking subscription:", error);
@@ -102,8 +108,12 @@ export const useSubscription = () => {
     }
   };
 
+  // Helper to check if user has premium access (either paid or free)
+  const hasPremiumAccess = status.subscribed || status.freeAccess;
+
   return {
     ...status,
+    hasPremiumAccess,
     checkSubscription,
     createCheckout,
     openCustomerPortal,

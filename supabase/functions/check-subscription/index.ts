@@ -25,7 +25,6 @@ serve(async (req) => {
   }
 
   // Create Supabase client with service role for profile updates
-  // JWT is verified by Supabase with verify_jwt=true
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -45,7 +44,7 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
-    // Authenticate user (JWT already verified by Supabase)
+    // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       logStep("No authorization header");
@@ -69,6 +68,38 @@ serve(async (req) => {
     const user = userData.user;
     logStep("User authenticated", { userId: user.id });
 
+    // Check for free premium access first (promotional/admin access)
+    const { data: profileData } = await supabaseClient
+      .from("profiles")
+      .select("free_premium_access, access_reason")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (profileData?.free_premium_access === true) {
+      logStep("User has free premium access", { reason: profileData.access_reason });
+      
+      // Update profile to reflect premium status
+      await supabaseClient
+        .from("profiles")
+        .update({ 
+          subscription_status: "active", 
+          subscription_tier: "premium" 
+        })
+        .eq("user_id", user.id);
+
+      return new Response(JSON.stringify({
+        subscribed: true,
+        tier: "premium",
+        free_access: true,
+        access_reason: profileData.access_reason,
+        subscription_end: null
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Check Stripe subscription
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
