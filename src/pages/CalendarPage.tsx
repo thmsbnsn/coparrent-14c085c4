@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { CalendarWizard, ScheduleConfig } from "@/components/calendar/CalendarWizard";
 import { ScheduleChangeRequest, ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
-import { useToast } from "@/hooks/use-toast";
+import { useScheduleRequests } from "@/hooks/useScheduleRequests";
 import { cn } from "@/lib/utils";
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -50,7 +50,7 @@ const getParentForDate = (date: Date, config: ScheduleConfig | null): "A" | "B" 
 
 const CalendarPage = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { createRequest } = useScheduleRequests();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"calendar" | "court">("calendar");
   const [showWizard, setShowWizard] = useState(false);
@@ -90,30 +90,22 @@ const CalendarPage = () => {
     setShowChangeRequest(true);
   };
 
-  const handleScheduleChangeRequest = (
+  const handleScheduleChangeRequest = async (
     request: Omit<ScheduleChangeRequestData, "id" | "status" | "createdAt" | "fromParent">
   ) => {
-    // Create the request object
-    const fullRequest: ScheduleChangeRequestData = {
-      ...request,
-      id: Date.now().toString(),
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      fromParent: "A",
-    };
-
-    // Store in localStorage for demo (would be database in production)
-    const existingRequests = JSON.parse(localStorage.getItem("scheduleRequests") || "[]");
-    localStorage.setItem("scheduleRequests", JSON.stringify([...existingRequests, fullRequest]));
-
-    setShowChangeRequest(false);
-    toast({
-      title: "Request Sent",
-      description: "Your schedule change request has been sent to your co-parent.",
+    // Store in database using the hook
+    const result = await createRequest({
+      request_type: request.type,
+      original_date: request.originalDate,
+      proposed_date: request.proposedDate,
+      reason: request.reason,
     });
 
-    // Navigate to messages with the request
-    navigate("/messages", { state: { newScheduleRequest: fullRequest } });
+    if (result) {
+      setShowChangeRequest(false);
+      // Navigate to messages to show the request
+      navigate("/messages");
+    }
   };
 
   const getPatternName = () => {

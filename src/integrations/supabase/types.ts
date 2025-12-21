@@ -528,6 +528,10 @@ export type Database = {
         Args: { _document_id: string; _user_id: string }
         Returns: boolean
       }
+      create_child_with_link: {
+        Args: { _date_of_birth?: string; _name: string }
+        Returns: Json
+      }
       get_invitation_by_token: {
         Args: { _token: string }
         Returns: {

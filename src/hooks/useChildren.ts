@@ -144,18 +144,25 @@ export const useChildren = () => {
       return null;
     }
 
-    // Create the child
-    const { data: newChild, error: childError } = await supabase
-      .from("children")
-      .insert({
-        name,
-        date_of_birth: dateOfBirth || null,
-      })
-      .select()
-      .single();
+    // Validate name length on client side too
+    const trimmedName = name.trim();
+    if (trimmedName.length < 1 || trimmedName.length > 100) {
+      toast({
+        title: "Error",
+        description: "Child name must be between 1 and 100 characters",
+        variant: "destructive",
+      });
+      return null;
+    }
 
-    if (childError) {
-      console.error("Error creating child:", childError);
+    // Use secure RPC function for atomic child creation with linking
+    const { data, error } = await supabase.rpc("create_child_with_link", {
+      _name: trimmedName,
+      _date_of_birth: dateOfBirth || null,
+    });
+
+    if (error) {
+      console.error("Error creating child:", error);
       toast({
         title: "Error",
         description: "Failed to add child",
@@ -164,43 +171,28 @@ export const useChildren = () => {
       return null;
     }
 
-    // Link child to parent
-    const { error: linkError } = await supabase.from("parent_children").insert({
-      parent_id: userProfileId,
-      child_id: newChild.id,
-    });
+    // Safely cast the result
+    const result = data as unknown as { success: boolean; error?: string; child?: Child };
 
-    if (linkError) {
-      console.error("Error linking child:", linkError);
+    if (!result.success) {
       toast({
         title: "Error",
-        description: "Failed to link child to your profile",
+        description: result.error || "Failed to add child",
         variant: "destructive",
       });
       return null;
     }
 
-    // Also link to co-parent if exists
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("co_parent_id")
-      .eq("id", userProfileId)
-      .single();
-
-    if (profile?.co_parent_id) {
-      await supabase.from("parent_children").insert({
-        parent_id: profile.co_parent_id,
-        child_id: newChild.id,
+    if (result.child) {
+      setChildren((prev) => [...prev, result.child as Child]);
+      toast({
+        title: "Success",
+        description: `${trimmedName} has been added`,
       });
+      return result.child as Child;
     }
 
-    setChildren((prev) => [...prev, newChild as Child]);
-    toast({
-      title: "Success",
-      description: `${name} has been added`,
-    });
-
-    return newChild as Child;
+    return null;
   };
 
   const updateChild = async (
