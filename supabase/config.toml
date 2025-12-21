@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.exchange-reminders]
 verify_jwt = false
+
+[functions.ai-schedule-suggest]
+verify_jwt = true

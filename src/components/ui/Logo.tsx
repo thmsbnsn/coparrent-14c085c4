@@ -24,7 +24,7 @@ export const Logo = ({ className, showText = true, size = "md" }: LogoProps) => 
       {showText && (
         <span className={cn("font-display font-bold tracking-tight", sizes[size].text)}>
           <span className="text-primary">Co</span>
-          <span className="text-[hsl(174,50%,40%)]">Parrent</span>
+          <span className="text-[#21B0FE]">Parrent</span>
         </span>
       )}
     </div>
