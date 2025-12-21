@@ -140,6 +140,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    const fromAddress = "CoParrent <noreply@coparrent.com>";
+    logStep("Sending email", { from: fromAddress, to: inviteeEmail, origin });
+
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -147,7 +150,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "CoParrent <noreply@coparrent.com>",
+        from: fromAddress,
         to: [inviteeEmail],
         subject: `${inviterName} invited you to co-parent on CoParrent`,
         html: `
