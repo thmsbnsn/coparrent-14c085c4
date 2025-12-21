@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const steps = [
   { id: 1, title: "Your Role", icon: Users },
@@ -19,12 +22,21 @@ const roles = ["Father", "Mother", "Guardian", "Other"];
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [role, setRole] = useState("");
   const [children, setChildren] = useState([{ name: "", dob: "" }]);
   const [coParentEmail, setCoParentEmail] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const nextStep = () => setCurrentStep((s) => Math.min(s + 1, 4));
+  const nextStep = async () => {
+    // Save children data when moving from step 2 to 3
+    if (currentStep === 2) {
+      await saveChildrenToDatabase();
+    }
+    setCurrentStep((s) => Math.min(s + 1, 4));
+  };
   const prevStep = () => setCurrentStep((s) => Math.max(s - 1, 1));
 
   const addChild = () => {
@@ -35,6 +47,77 @@ const Onboarding = () => {
     const updated = [...children];
     updated[index][field] = value;
     setChildren(updated);
+  };
+
+  const saveChildrenToDatabase = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to save children",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Get user's profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        throw new Error("Could not find your profile");
+      }
+
+      // Save each child with a name
+      for (const child of children) {
+        if (child.name.trim()) {
+          // Create child
+          const { data: newChild, error: childError } = await supabase
+            .from("children")
+            .insert({
+              name: child.name.trim(),
+              date_of_birth: child.dob || null,
+            })
+            .select()
+            .single();
+
+          if (childError) {
+            console.error("Error creating child:", childError);
+            continue;
+          }
+
+          // Link child to parent
+          const { error: linkError } = await supabase
+            .from("parent_children")
+            .insert({
+              parent_id: profile.id,
+              child_id: newChild.id,
+            });
+
+          if (linkError) {
+            console.error("Error linking child:", linkError);
+          }
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: "Children saved successfully",
+      });
+    } catch (error) {
+      console.error("Error saving children:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save children",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -163,9 +246,9 @@ const Onboarding = () => {
                     <ArrowLeft className="mr-2 w-4 h-4" />
                     Back
                   </Button>
-                  <Button className="flex-1" onClick={nextStep} disabled={!children[0].name}>
-                    Continue
-                    <ArrowRight className="ml-2 w-4 h-4" />
+                  <Button className="flex-1" onClick={nextStep} disabled={!children[0].name || saving}>
+                    {saving ? "Saving..." : "Continue"}
+                    {!saving && <ArrowRight className="ml-2 w-4 h-4" />}
                   </Button>
                 </div>
               </motion.div>
