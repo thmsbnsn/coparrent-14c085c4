@@ -43,7 +43,7 @@ export interface Child {
 }
 
 export const useChildren = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,21 +52,37 @@ export const useChildren = () => {
   // Fetch user's profile ID
   useEffect(() => {
     const fetchProfileId = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      try {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-      if (profile) {
-        setUserProfileId(profile.id);
+        if (error) {
+          console.error("Error fetching profile:", error);
+        }
+
+        if (profile) {
+          setUserProfileId(profile.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        setLoading(false);
       }
     };
 
-    fetchProfileId();
-  }, [user]);
+    if (!authLoading) {
+      fetchProfileId();
+    }
+  }, [user, authLoading]);
 
   // Fetch children
   useEffect(() => {

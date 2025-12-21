@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -43,12 +44,39 @@ const lawOfficeNavItems = [
 export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [userInitials, setUserInitials] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { toast } = useToast();
 
   const navItems = userRole === "lawoffice" ? lawOfficeNavItems : parentNavItems;
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (profile?.full_name) {
+        const names = profile.full_name.split(" ");
+        const initials = names.length >= 2 
+          ? `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
+          : profile.full_name.substring(0, 2).toUpperCase();
+        setUserInitials(initials);
+      } else if (profile?.email) {
+        setUserInitials(profile.email.substring(0, 2).toUpperCase());
+      } else if (user.email) {
+        setUserInitials(user.email.substring(0, 2).toUpperCase());
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -164,7 +192,7 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
             </Button>
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-              JD
+              {userInitials || "U"}
             </div>
           </div>
         </header>
