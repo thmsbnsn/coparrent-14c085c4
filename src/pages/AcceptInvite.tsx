@@ -168,7 +168,7 @@ const AcceptInvite = () => {
                 </div>
                 <CardTitle>Co-Parent Invitation</CardTitle>
                 <CardDescription>
-                  {inviterName} has invited you to co-parent on ClearNest
+                  {inviterName} has invited you to co-parent on CoParrent
                 </CardDescription>
               </>
             )}
