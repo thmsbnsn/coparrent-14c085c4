@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BookOpen, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -49,9 +50,8 @@ export const BlogDashboardCard = () => {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          <div className="h-16 bg-muted animate-pulse rounded-lg" />
-          <div className="h-16 bg-muted animate-pulse rounded-lg" />
+        <div className="flex justify-center py-6">
+          <LoadingSpinner size="sm" />
         </div>
       ) : latestPosts.length > 0 ? (
         <div className="space-y-3">

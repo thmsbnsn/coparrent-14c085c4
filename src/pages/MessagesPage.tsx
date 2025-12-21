@@ -5,6 +5,7 @@ import { Send, Download, Info, FileText, Calendar, Check, X, Clock, ArrowRightLe
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { cn } from "@/lib/utils";
 import { useMessages } from "@/hooks/useMessages";
 import { useScheduleRequests } from "@/hooks/useScheduleRequests";
@@ -81,7 +82,7 @@ const MessagesPage = () => {
     return (
       <DashboardLayout>
         <div className="h-[calc(100vh-7rem)] flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading messages...</div>
+          <LoadingSpinner size="lg" message="Loading messages..." />
         </div>
       </DashboardLayout>
     );

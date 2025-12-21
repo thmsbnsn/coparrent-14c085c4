@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Document, DocumentAccessLog } from '@/hooks/useDocuments';
 
 interface DocumentAccessLogDialogProps {
@@ -83,16 +83,8 @@ export const DocumentAccessLogDialog = ({
 
           <ScrollArea className="h-[300px] pr-4">
             {loading ? (
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="w-8 h-8 rounded-full" />
-                    <div className="flex-1 space-y-1">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-3 w-32" />
-                    </div>
-                  </div>
-                ))}
+              <div className="flex justify-center py-8">
+                <LoadingSpinner size="md" />
               </div>
             ) : logs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">

@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Shield, ArrowLeft, RefreshCw } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Search, Shield, ArrowLeft, RefreshCw, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -194,11 +195,7 @@ const AdminDashboard = () => {
 
   // Loading state
   if (authLoading || isAdmin === null) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingSpinner fullScreen message="Checking access..." />;
   }
 
   // Not authenticated or not admin
@@ -275,7 +272,7 @@ const AdminDashboard = () => {
 
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <LoadingSpinner size="lg" />
               </div>
             ) : users.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">

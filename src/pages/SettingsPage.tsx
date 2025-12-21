@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { CoParentInvite } from "@/components/settings/CoParentInvite";
 import { TrialStatus } from "@/components/settings/TrialStatus";
 import { StepParentManager } from "@/components/settings/StepParentManager";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications, NotificationPreferences } from "@/hooks/useNotifications";
@@ -143,7 +144,7 @@ const SettingsPage = () => {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <LoadingSpinner size="lg" />
         </div>
       </DashboardLayout>
     );
