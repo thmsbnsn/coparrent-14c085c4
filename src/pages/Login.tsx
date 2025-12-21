@@ -18,10 +18,17 @@ const Login = () => {
   const { user, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+  const [rememberMe, setRememberMe] = useState(() => {
+    // Check if user previously selected "Remember me"
+    return localStorage.getItem("rememberMe") === "true";
+  });
+  const [formData, setFormData] = useState(() => {
+    // Pre-fill email if "Remember me" was checked
+    const savedEmail = localStorage.getItem("rememberedEmail");
+    return {
+      email: savedEmail || "",
+      password: "",
+    };
   });
 
   // Redirect if already logged in
@@ -78,6 +85,15 @@ const Login = () => {
         variant: "destructive",
       });
       return;
+    }
+
+    // Save "Remember me" preference
+    if (rememberMe) {
+      localStorage.setItem("rememberMe", "true");
+      localStorage.setItem("rememberedEmail", formData.email);
+    } else {
+      localStorage.removeItem("rememberMe");
+      localStorage.removeItem("rememberedEmail");
     }
 
     toast({
