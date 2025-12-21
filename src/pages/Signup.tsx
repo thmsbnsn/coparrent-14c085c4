@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 
 type AccountType = "parent" | "lawoffice";
 
@@ -250,6 +251,17 @@ const Signup = () => {
                 {!isLoading && <ArrowRight className="ml-2 w-4 h-4" />}
               </Button>
             </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            <SocialLoginButtons />
 
             <p className="mt-6 text-xs text-center text-muted-foreground">
               By creating an account, you agree to our{" "}
