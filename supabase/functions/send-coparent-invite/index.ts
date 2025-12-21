@@ -127,9 +127,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     logStep("Invitation verified", { invitationId: invitation.id });
 
-    // Get the app URL from the request origin or use a default
-    const origin = req.headers.get("origin") || "https://coparrent.com";
-    const inviteLink = `${origin}/accept-invite?token=${inviteToken}`;
+    // Always use production domain for invite links
+    const appUrl = "https://coparrent.com";
+    const inviteLink = `${appUrl}/accept-invite?token=${inviteToken}`;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
@@ -141,7 +141,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const fromAddress = "CoParrent <noreply@coparrent.com>";
-    logStep("Sending email", { from: fromAddress, to: inviteeEmail, origin });
+    logStep("Sending email", { from: fromAddress, to: inviteeEmail, appUrl });
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
