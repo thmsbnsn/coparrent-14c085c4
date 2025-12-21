@@ -9,7 +9,8 @@ export type NotificationType =
   | 'schedule_response'
   | 'document_upload'
   | 'child_update'
-  | 'exchange_reminder';
+  | 'exchange_reminder'
+  | 'expense_request';
 
 interface SendNotificationParams {
   type: NotificationType;
