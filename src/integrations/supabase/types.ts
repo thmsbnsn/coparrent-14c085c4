@@ -308,6 +308,54 @@ export type Database = {
           },
         ]
       }
+      law_library_resources: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          last_verified_at: string
+          source_url: string | null
+          state: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          last_verified_at?: string
+          source_url?: string | null
+          state: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          last_verified_at?: string
+          source_url?: string | null
+          state?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
