@@ -1,0 +1,264 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+
+export interface Document {
+  id: string;
+  title: string;
+  description: string | null;
+  file_path: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  child_id: string | null;
+  uploaded_by: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentAccessLog {
+  id: string;
+  document_id: string;
+  accessed_by: string;
+  action: string;
+  user_agent: string | null;
+  created_at: string;
+}
+
+export const DOCUMENT_CATEGORIES = [
+  { value: 'legal', label: 'Legal Documents' },
+  { value: 'medical', label: 'Medical Records' },
+  { value: 'school', label: 'School Records' },
+  { value: 'financial', label: 'Financial Documents' },
+  { value: 'custody', label: 'Custody Agreements' },
+  { value: 'other', label: 'Other' },
+] as const;
+
+export const useDocuments = () => {
+  const { user } = useAuth();
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  const fetchDocuments = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) return;
+
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      toast.error('Failed to load documents');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
+
+  const logAccess = async (documentId: string, action: string) => {
+    if (!user) return;
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) return;
+
+      await supabase.from('document_access_logs').insert({
+        document_id: documentId,
+        accessed_by: profile.id,
+        action,
+        user_agent: navigator.userAgent,
+      });
+    } catch (error) {
+      console.error('Error logging access:', error);
+    }
+  };
+
+  const uploadDocument = async (
+    file: File,
+    title: string,
+    description: string,
+    category: string,
+    childId?: string
+  ) => {
+    if (!user) return null;
+    setUploading(true);
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) throw new Error('Profile not found');
+
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Create document record
+      const { data: doc, error: docError } = await supabase
+        .from('documents')
+        .insert({
+          title,
+          description: description || null,
+          file_path: filePath,
+          file_name: file.name,
+          file_type: file.type,
+          file_size: file.size,
+          child_id: childId || null,
+          uploaded_by: profile.id,
+          category,
+        })
+        .select()
+        .single();
+
+      if (docError) throw docError;
+
+      // Log the upload
+      await logAccess(doc.id, 'upload');
+
+      toast.success('Document uploaded successfully');
+      await fetchDocuments();
+      return doc;
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error('Failed to upload document');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const downloadDocument = async (document: Document) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(document.file_path);
+
+      if (error) throw error;
+
+      // Log the download
+      await logAccess(document.id, 'download');
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = window.document.createElement('a');
+      a.href = url;
+      a.download = document.file_name;
+      window.document.body.appendChild(a);
+      a.click();
+      window.document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('Document downloaded');
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast.error('Failed to download document');
+    }
+  };
+
+  const viewDocument = async (document: Document) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(document.file_path, 60 * 60); // 1 hour
+
+      if (error) throw error;
+
+      // Log the view
+      await logAccess(document.id, 'view');
+
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      toast.error('Failed to view document');
+    }
+  };
+
+  const deleteDocument = async (document: Document) => {
+    try {
+      // Log deletion before removing
+      await logAccess(document.id, 'delete');
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('documents')
+        .remove([document.file_path]);
+
+      if (storageError) throw storageError;
+
+      // Delete record
+      const { error: docError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', document.id);
+
+      if (docError) throw docError;
+
+      toast.success('Document deleted');
+      await fetchDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error('Failed to delete document');
+    }
+  };
+
+  const getAccessLogs = async (documentId: string): Promise<DocumentAccessLog[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('document_access_logs')
+        .select('*')
+        .eq('document_id', documentId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching access logs:', error);
+      return [];
+    }
+  };
+
+  return {
+    documents,
+    loading,
+    uploading,
+    uploadDocument,
+    downloadDocument,
+    viewDocument,
+    deleteDocument,
+    getAccessLogs,
+    refetch: fetchDocuments,
+  };
+};
