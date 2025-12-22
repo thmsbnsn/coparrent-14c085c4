@@ -114,20 +114,22 @@ The application is designed with a **calm, professional, court-friendly aestheti
 ### Integrated Services
 | Service | Purpose | Status |
 |---------|---------|--------|
-| **Supabase Auth** | User authentication (Email, Google OAuth) | ✅ Active |
-| **Supabase Storage** | Document storage with access logging | ✅ Active |
+| **Lovable Cloud Auth** | User authentication (Email, Google, Apple OAuth) | ✅ Active |
+| **Lovable Cloud Storage** | Document storage with access logging | ✅ Active |
 | **Stripe** | Subscription payments & billing | ✅ Active |
-| **Resend** | Transactional emails (invitations) | ✅ Active |
+| **Resend** | Transactional emails (invitations, notifications) | ✅ Active |
 | **hCaptcha** | Bot protection on auth forms | ✅ Active |
 | **Google OAuth** | Social login | ✅ Active |
+| **Apple OAuth** | Social login | ✅ Active |
+| **Lovable AI Gateway** | AI-powered message tone assistance & schedule suggestions | ✅ Active |
 
 ### Environment Variables (Secrets)
-- `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `STRIPE_SECRET_KEY`
 - `RESEND_API_KEY`
+- `LOVABLE_API_KEY` (AI Gateway)
 - `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET`
 - `HCAPTCHA_SECRET_KEY`
-- `GOOGLE_UNRESTRICTED_API_KEY`
 
 ---
 
@@ -175,40 +177,68 @@ The application is designed with a **calm, professional, court-friendly aestheti
 ### 6. Messaging
 | Feature | Components | Description |
 |---------|------------|-------------|
-| Message Thread | `MessagesPage` | Secure co-parent messaging |
-| Message History | `useMessages` | Message data management |
-| Read Receipts | Timestamp tracking | Message read confirmation |
+| **Message Thread** | `MessagesPage` | Secure co-parent messaging |
+| **AI Tone Assistant** | `MessageToneAssistant` | AI-powered message tone suggestions |
+| **Message History** | `useMessages` | Message data management |
+| **Read Receipts** | Timestamp tracking | Message read confirmation |
 
 ### 7. Documents
 | Feature | Components | Description |
 |---------|------------|-------------|
-| Document Library | `DocumentsPage`, `DocumentCard` | File organization by category |
-| Upload | `DocumentUploadDialog` | Drag-and-drop file upload |
-| Access Logging | `DocumentAccessLogDialog` | Court-ready access trail |
-| Secure Storage | `useDocuments` | Supabase Storage integration |
+| **Document Library** | `DocumentsPage`, `DocumentCard` | File organization by category |
+| **Upload** | `DocumentUploadDialog` | Drag-and-drop file upload |
+| **Access Logging** | `DocumentAccessLogDialog` | Court-ready access trail |
+| **Secure Storage** | `useDocuments` | Cloud storage integration |
 
-### 8. Settings & Account
+### 8. Expenses
 | Feature | Components | Description |
 |---------|------------|-------------|
-| Settings Page | `SettingsPage` | Account management hub |
-| Co-Parent Invite | `CoParentInvite` | Email invitation system |
-| Step-Parent Manager | `StepParentManager` | Dual-approval step-parent access |
-| Trial Status | `TrialStatus` | Subscription/trial tracking |
-| Notifications | `NotificationSettings` | Notification preferences |
-| Subscription | `useSubscription` | Stripe subscription management |
+| **Expense List** | `ExpensesPage` | Shared expense tracking |
+| **Expense Categories** | Category filtering | Medical, education, activities, etc. |
+| **Reimbursement Requests** | Request workflow | Formal reimbursement approval system |
+| **Expense Reports** | PDF generation | Court-ready expense documentation |
 
-### 9. Admin
+### 9. Journal
 | Feature | Components | Description |
 |---------|------------|-------------|
-| Admin Dashboard | `AdminDashboard` | User management, analytics |
-| User Roles | Role-based access control | admin, moderator, user roles |
+| **Journal Entries** | `JournalPage` | Private journaling for custody notes |
+| **Mood Tracking** | Mood indicators | Track emotional state during exchanges |
+| **Exchange Notes** | Linked entries | Journal entries tied to exchange check-ins |
+| **Tags** | Tag system | Organize entries with custom tags |
 
-### 10. UI Components (shadcn/ui + Custom)
+### 10. Law Library
+| Feature | Components | Description |
+|---------|------------|-------------|
+| **Legal Resources** | `LawLibraryPage`, `LawLibraryCard` | State-specific legal documents |
+| **State Filtering** | Filter by state | Find jurisdiction-relevant resources |
+| **Category Organization** | Legal categories | Custody, support, visitation, etc. |
+| **Disclaimer** | `LawLibraryDisclaimer` | Legal information disclaimer |
+
+### 11. Settings & Account
+| Feature | Components | Description |
+|---------|------------|-------------|
+| **Settings Page** | `SettingsPage` | Account management hub |
+| **Co-Parent Invite** | `CoParentInvite` | Email invitation system |
+| **Step-Parent Manager** | `StepParentManager` | Dual-approval step-parent access |
+| **Trial Status** | `TrialStatus` | Subscription/trial tracking |
+| **Notifications** | `NotificationSettings` | Notification preferences |
+| **Subscription** | `useSubscription` | Stripe subscription management |
+
+### 12. Admin
+| Feature | Components | Description |
+|---------|------------|-------------|
+| **Admin Dashboard** | `AdminDashboard` | User management, analytics |
+| **User Roles** | Role-based access control | admin, moderator, user roles |
+| **Law Library Manager** | `AdminLawLibraryManager` | Upload and manage legal resources |
+| **Blog Management** | Blog CRUD | Create and edit blog posts |
+
+### 13. UI Components (shadcn/ui + Custom)
 | Component | Variants/Features |
 |-----------|-------------------|
 | `Button` | default, destructive, outline, secondary, ghost, link |
 | `Card` | Standard card with header, content, footer |
 | `Dialog` / `AlertDialog` | Modal dialogs |
+| `Drawer` / `Sheet` | Slide-out panels |
 | `Input` / `Textarea` | Form inputs |
 | `Select` / `Checkbox` / `Switch` | Form controls |
 | `Tabs` | Tab navigation |
@@ -220,8 +250,9 @@ The application is designed with a **calm, professional, court-friendly aestheti
 | `Avatar` | User avatars |
 | `Badge` | Status indicators |
 | `Tooltip` / `Popover` | Contextual info |
+| `Logo` | Animated brand logo |
 
-### 11. Custom Hooks
+### 14. Custom Hooks
 | Hook | Purpose |
 |------|---------|
 | `useAuth` | Authentication state management |
@@ -229,9 +260,14 @@ The application is designed with a **calm, professional, court-friendly aestheti
 | `useRealtimeChildren` | Realtime children updates |
 | `useDocuments` | Document management |
 | `useMessages` | Messaging functionality |
+| `useExpenses` | Expense tracking and reimbursements |
+| `useLawLibrary` | Law library resource access |
+| `useAdminLawLibrary` | Admin law library management |
 | `useNotifications` | Notification management |
+| `useNotificationService` | Notification dispatch service |
 | `usePushNotifications` | Browser push notifications |
 | `useRealtimeSchedule` | Live schedule updates |
+| `useSchedulePersistence` | Schedule data persistence |
 | `useScheduleRequests` | Schedule change requests |
 | `useSubscription` | Stripe subscription status |
 | `useMobile` | Responsive breakpoint detection |
@@ -400,17 +436,22 @@ CoParrent Application
 ### Core Tables
 | Table | Description |
 |-------|-------------|
-| `profiles` | User profiles linked to auth.users |
-| `children` | Child information |
+| `profiles` | User profiles with subscription and co-parent linking |
+| `children` | Child information (medical, school, emergency contacts) |
 | `parent_children` | Junction table linking parents to children |
 | `custody_schedules` | Custody patterns and schedule definitions |
 | `schedule_requests` | Schedule change requests |
+| `exchange_checkins` | Exchange confirmation records |
 | `messages` | Co-parent messages |
 | `documents` | Document metadata |
 | `document_access_logs` | Document access audit trail |
+| `expenses` | Shared expense tracking |
+| `reimbursement_requests` | Expense reimbursement workflows |
+| `journal_entries` | Private journal entries |
 | `notifications` | User notifications |
 | `invitations` | Co-parent invitations |
 | `step_parents` | Step-parent access with dual approval |
+| `law_library_resources` | State-specific legal documents |
 | `blog_posts` | Blog content |
 | `user_roles` | Role-based access (admin, moderator, user) |
 
@@ -418,10 +459,15 @@ CoParrent Application
 | Function | Purpose |
 |----------|---------|
 | `admin-manage-users` | Admin user management |
+| `ai-message-assist` | AI-powered message tone suggestions |
+| `ai-schedule-suggest` | AI-powered schedule recommendations |
 | `check-subscription` | Verify Stripe subscription status |
 | `create-checkout` | Create Stripe checkout session |
 | `customer-portal` | Stripe customer portal access |
+| `exchange-reminders` | Automated exchange reminder notifications |
+| `generate-expense-report` | PDF expense report generation |
 | `send-coparent-invite` | Send invitation emails via Resend |
+| `send-notification` | Push notification delivery |
 
 ---
 
@@ -460,8 +506,8 @@ The `.env` file is auto-configured by Lovable Cloud with:
 ## 📝 Incomplete Tasks / TODO
 
 ### High Priority
-- [ ] **Calendar Integration**: Implement visual calendar with custody pattern display
-- [ ] **Schedule Pattern Engine**: Complete pattern-based schedule generation (week-on/week-off, 2-2-3, etc.)
+- [x] ~~**Calendar Integration**: Implement visual calendar with custody pattern display~~ ✅ Implemented
+- [x] ~~**Schedule Pattern Engine**: Complete pattern-based schedule generation~~ ✅ Implemented
 - [ ] **Push Notifications**: Complete browser push notification implementation
 - [ ] **Email Notifications**: Send emails for messages, schedule changes, etc.
 - [ ] **Court Export**: Generate court-ready PDF exports of communications and schedules
@@ -476,10 +522,18 @@ The `.env` file is auto-configured by Lovable Cloud with:
 ### Low Priority / Nice to Have
 - [ ] **Dark Mode Toggle**: UI toggle for dark/light mode (CSS ready)
 - [ ] **Multiple Children Calendars**: Per-child schedule overrides
-- [ ] **Expense Tracking**: Shared expense management
+- [x] ~~**Expense Tracking**: Shared expense management~~ ✅ Implemented
 - [ ] **Mileage Tracking**: Exchange location distance tracking
 - [ ] **Integration with Family Law Portals**: Direct court filing integration
-- [ ] **AI-Powered Conflict Detection**: Analyze messages for tone issues
+- [x] ~~**AI-Powered Message Assistance**: Analyze messages for tone issues~~ ✅ Implemented
+
+### Completed Features
+- [x] **Expense Tracking & Reimbursements**: Full expense management with categories and reimbursement requests
+- [x] **Journal/Notes**: Private journaling with mood tracking and exchange notes
+- [x] **Law Library**: State-specific legal resources with admin management
+- [x] **AI Message Tone Assistant**: AI-powered suggestions for professional communication
+- [x] **Exchange Check-ins**: Custody exchange confirmation and logging
+- [x] **Real-time Updates**: Live data synchronization for schedules and children
 
 ### Technical Debt
 - [ ] **Unit Tests**: Add comprehensive test coverage
@@ -487,13 +541,11 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [ ] **Error Boundaries**: Add React error boundaries
 - [ ] **Accessibility Audit**: Full WCAG compliance review
 - [ ] **Performance Optimization**: Lazy loading for routes, image optimization
-- [ ] **Analytics Integration**: Add usage analytics (Posthog, Mixpanel)
 
 ### Bug Fixes Needed
 - [ ] Verify step-parent approval flow works end-to-end
 - [ ] Test subscription webhook handling with Stripe
 - [ ] Validate realtime subscriptions cleanup on unmount
-- [ ] Check document upload size limits
 
 ---
 
