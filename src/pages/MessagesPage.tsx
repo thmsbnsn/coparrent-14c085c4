@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Download, Info, FileText, Calendar, Check, X, Clock, ArrowRightLeft, UserPlus, Sparkles } from "lucide-react";
+import { Send, Download, Info, FileText, Calendar, Check, X, Clock, ArrowRightLeft, UserPlus, Sparkles, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { useMessages } from "@/hooks/useMessages";
 import { useScheduleRequests } from "@/hooks/useScheduleRequests";
 import { MessageToneAssistant } from "@/components/messages/MessageToneAssistant";
 import { Link } from "react-router-dom";
+import { exportMessagesToPDF } from "@/lib/pdfExport";
+import { toast } from "sonner";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -56,6 +58,20 @@ const MessagesPage = () => {
   const [viewMode, setViewMode] = useState<"chat" | "court">("chat");
   const [sending, setSending] = useState(false);
   const [useExpandedInput, setUseExpandedInput] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      exportMessagesToPDF(messages, userProfile, coParent);
+      toast.success("Messages exported to PDF!");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Handle new schedule request from navigation (legacy support)
   useEffect(() => {
@@ -194,9 +210,9 @@ const MessagesPage = () => {
                   <p className="text-xs text-muted-foreground">Co-Parent</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export
+              <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isExporting || messages.length === 0}>
+                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                Export PDF
               </Button>
             </div>
 
@@ -308,8 +324,8 @@ const MessagesPage = () => {
               </div>
 
               <div className="flex justify-end mb-6">
-                <Button variant="outline">
-                  <Download className="w-4 h-4 mr-2" />
+                <Button variant="outline" onClick={handleExportPDF} disabled={isExporting || messages.length === 0}>
+                  {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                   Export as PDF
                 </Button>
               </div>
