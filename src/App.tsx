@@ -10,6 +10,7 @@ import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import FeaturesPage from "./pages/FeaturesPage";
 import HelpCenter from "./pages/HelpCenter";
+import CourtRecordsPage from "./pages/CourtRecordsPage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/features" element={<FeaturesPage />} />
             <Route path="/help" element={<HelpCenter />} />
+            <Route path="/court-records" element={<CourtRecordsPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

@@ -56,7 +56,7 @@ const helpCategories = [
     icon: Scale,
     title: "Court & Legal Use",
     description: "Prepare records for legal proceedings",
-    href: "/help/legal",
+    href: "/court-records",
   },
   {
     icon: User,
@@ -75,7 +75,7 @@ const helpCategories = [
 const popularArticles = [
   {
     title: "How CoParrent records are used in court",
-    href: "/help/legal/court-records",
+    href: "/court-records",
   },
   {
     title: "What happens when a trial ends",
