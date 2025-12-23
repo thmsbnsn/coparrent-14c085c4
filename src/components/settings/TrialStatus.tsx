@@ -16,11 +16,12 @@ interface TrialStatusProps {
 
 export const TrialStatus = ({ trialStartedAt, trialEndsAt, subscriptionStatus }: TrialStatusProps) => {
   const navigate = useNavigate();
-  const { tier, subscribed, loading, openCustomerPortal, subscriptionEnd } = useSubscription();
+  const { tier, subscribed, loading, portalLoading, freeAccess, accessReason, openCustomerPortal, subscriptionEnd } = useSubscription();
 
   const tierLabel = tier === "free" ? "Free" : STRIPE_TIERS[tier]?.name || tier;
 
-  if (subscribed && subscriptionStatus === "active") {
+  // Show active subscription status (paid or free access)
+  if (subscribed || freeAccess) {
     return (
       <Card>
         <CardHeader>
@@ -36,15 +37,22 @@ export const TrialStatus = ({ trialStartedAt, trialEndsAt, subscriptionStatus }:
               <span className="text-sm">Full access to all features</span>
             </div>
           </div>
-          {subscriptionEnd && (
+          {freeAccess && accessReason && (
+            <p className="text-xs text-muted-foreground">
+              {accessReason}
+            </p>
+          )}
+          {subscriptionEnd && !freeAccess && (
             <p className="text-xs text-muted-foreground">
               Renews on {format(new Date(subscriptionEnd), "MMM d, yyyy")}
             </p>
           )}
-          <Button variant="outline" onClick={openCustomerPortal} disabled={loading}>
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ExternalLink className="w-4 h-4 mr-2" />}
-            Manage Subscription
-          </Button>
+          {!freeAccess && (
+            <Button variant="outline" onClick={openCustomerPortal} disabled={loading || portalLoading}>
+              {portalLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ExternalLink className="w-4 h-4 mr-2" />}
+              Manage Subscription
+            </Button>
+          )}
         </CardContent>
       </Card>
     );

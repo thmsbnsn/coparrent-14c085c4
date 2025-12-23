@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { User, Bell, Shield, LogOut, Users, BellOff } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications, NotificationPreferences } from "@/hooks/useNotifications";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Profile {
@@ -46,6 +48,8 @@ interface Invitation {
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const { checkSubscription } = useSubscription();
   const { 
     preferences: notificationPrefs, 
     permissionState, 
@@ -62,6 +66,18 @@ const SettingsPage = () => {
     fullName: "",
     email: "",
   });
+
+  // Handle successful checkout redirect
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      toast({
+        title: "Subscription activated!",
+        description: "Thank you for subscribing. Your account has been upgraded.",
+      });
+      // Refresh subscription status
+      checkSubscription();
+    }
+  }, [searchParams, toast, checkSubscription]);
 
   useEffect(() => {
     if (user) {

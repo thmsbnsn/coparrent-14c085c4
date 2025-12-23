@@ -90,7 +90,7 @@ const Pricing = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { tier: currentTier, subscribed, loading, createCheckout } = useSubscription();
+  const { tier: currentTier, subscribed, loading, checkoutLoading, createCheckout } = useSubscription();
 
   useEffect(() => {
     if (searchParams.get("canceled") === "true") {
@@ -103,11 +103,22 @@ const Pricing = () => {
 
   const handleSubscribe = async (tier: typeof tiers[number]) => {
     if (!tier.stripeTier) {
-      navigate("/signup");
+      if (!user) {
+        navigate("/signup");
+      } else {
+        toast({
+          title: "You're on the free plan",
+          description: "Upgrade to access premium features.",
+        });
+      }
       return;
     }
 
     if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in or create an account to subscribe.",
+      });
       navigate("/signup");
       return;
     }
@@ -123,6 +134,12 @@ const Pricing = () => {
   const isCurrentPlan = (tier: typeof tiers[number]) => {
     if (!tier.stripeTier && currentTier === "free" && !subscribed) return true;
     if (tier.stripeTier === currentTier && subscribed) return true;
+    return false;
+  };
+
+  const isButtonDisabled = (tier: typeof tiers[number]) => {
+    if (loading || checkoutLoading) return true;
+    if (isCurrentPlan(tier)) return true;
     return false;
   };
 
@@ -196,9 +213,9 @@ const Pricing = () => {
                   variant={isCurrentPlan(tier) ? "outline" : tier.variant}
                   className={cn("w-full", isCurrentPlan(tier) && "border-success text-success")}
                   onClick={() => handleSubscribe(tier)}
-                  disabled={loading || isCurrentPlan(tier)}
+                  disabled={isButtonDisabled(tier)}
                 >
-                  {loading ? (
+                  {(loading || checkoutLoading) ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : isCurrentPlan(tier) ? (
                     "Current Plan"
