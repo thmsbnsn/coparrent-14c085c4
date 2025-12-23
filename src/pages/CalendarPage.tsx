@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft, Loader2, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { CalendarWizard, ScheduleConfig } from "@/components/calendar/CalendarWizard";
+import { CalendarExportDialog } from "@/components/calendar/CalendarExportDialog";
 import { ScheduleChangeRequest, ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
 import { useScheduleRequests } from "@/hooks/useScheduleRequests";
 import { useSchedulePersistence } from "@/hooks/useSchedulePersistence";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -51,13 +54,48 @@ const getParentForDate = (date: Date, config: ScheduleConfig | null): "A" | "B" 
 
 const CalendarPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { createRequest } = useScheduleRequests();
   const { scheduleConfig, loading: scheduleLoading, saving, saveSchedule } = useSchedulePersistence();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"calendar" | "court">("calendar");
   const [showWizard, setShowWizard] = useState(false);
   const [showChangeRequest, setShowChangeRequest] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [userProfile, setUserProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
+  const [coParent, setCoParent] = useState<{ full_name: string | null; email: string | null } | null>(null);
+
+  // Fetch user profile and co-parent info
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, co_parent_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profile) {
+        setUserProfile({ full_name: profile.full_name, email: profile.email });
+
+        if (profile.co_parent_id) {
+          const { data: coParentData } = await supabase
+            .from("profiles")
+            .select("full_name, email")
+            .eq("id", profile.co_parent_id)
+            .maybeSingle();
+
+          if (coParentData) {
+            setCoParent(coParentData);
+          }
+        }
+      }
+    };
+
+    fetchProfiles();
+  }, [user]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -142,13 +180,13 @@ const CalendarPage = () => {
               <ArrowRightLeft className="w-4 h-4 mr-2" />
               Request Change
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Printer className="w-4 h-4 mr-2" />
               Print
             </Button>
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              Export
+            <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
+              <Calendar className="w-4 h-4 mr-2" />
+              Sync Calendar
             </Button>
             <Button size="sm" onClick={() => setShowWizard(true)} disabled={saving}>
               {saving ? (
@@ -414,6 +452,15 @@ const CalendarPage = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* Calendar Export Dialog */}
+      <CalendarExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        scheduleConfig={scheduleConfig}
+        userProfile={userProfile}
+        coParent={coParent}
+      />
     </DashboardLayout>
   );
 };

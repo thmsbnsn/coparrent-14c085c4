@@ -49,7 +49,7 @@ export const Hero = () => {
                 variant="secondary" 
                 className="px-4 py-2 bg-secondary/80 backdrop-blur-sm text-secondary-foreground border border-secondary-foreground/10 shadow-sm"
               >
-                <span className="w-2 h-2 rounded-full bg-[hsl(150,45%,45%)] animate-pulse mr-2" />
+                <span className="w-2 h-2 rounded-full bg-[#21B0FE] animate-pulse mr-2" />
                 Join families finding clearer co-parenting
               </Badge>
             </motion.div>
