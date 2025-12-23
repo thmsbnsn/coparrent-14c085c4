@@ -2,21 +2,21 @@
 export const STRIPE_TIERS = {
   premium: {
     name: "Premium",
-    price: "$12",
+    price: "$5",
     period: "per month",
     priceId: "price_1SgZlqHpttmwwVs1qra7Wfew",
     productId: "prod_TdrUhvfZzXYDTT",
   },
   mvp: {
     name: "MVP",
-    price: "$24",
+    price: "$10",
     period: "per month",
     priceId: "price_1SgZlwHpttmwwVs1Tf2hv4p7",
     productId: "prod_TdrUORgbP3ko1q",
   },
   law_office: {
     name: "Law Office",
-    price: "$99",
+    price: "$49",
     period: "per month",
     priceId: "price_1SgZlyHpttmwwVs14IW8cBth",
     productId: "prod_TdrUXgQVj7yCqw",
