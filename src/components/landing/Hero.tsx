@@ -47,7 +47,7 @@ export const Hero = () => {
             >
               <Badge 
                 variant="secondary" 
-                className="px-4 py-2 bg-secondary/80 backdrop-blur-sm text-secondary-foreground border border-secondary-foreground/10 shadow-sm"
+                className="px-4 py-2 bg-[#21B0FE]/80 backdrop-blur-sm text-white border border-white/20 shadow-sm"
               >
                 <span className="w-2 h-2 rounded-full bg-[#21B0FE] animate-pulse mr-2" />
                 Join families finding clearer co-parenting
