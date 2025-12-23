@@ -7,10 +7,10 @@ const footerLinks = {
     { label: "Pricing", href: "/pricing" },
     { label: "For Law Offices", href: "/signup?type=lawoffice" },
   ],
-  Company: [
-    { label: "About", href: "/about" },
+  Support: [
+    { label: "Help Center", href: "/help" },
     { label: "Contact", href: "/contact" },
-    { label: "Careers", href: "/careers" },
+    { label: "About", href: "/about" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "/privacy" },
