@@ -37,13 +37,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { useExpenses, EXPENSE_CATEGORIES, Expense, ReimbursementRequest } from "@/hooks/useExpenses";
 import { useChildren } from "@/hooks/useChildren";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from "date-fns";
 
-export default function ExpensesPage() {
+function ExpensesPageContent() {
   const { 
     expenses, 
     reimbursementRequests,
@@ -917,5 +918,13 @@ export default function ExpensesPage() {
         </AlertDialog>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function ExpensesPage() {
+  return (
+    <ErrorBoundary>
+      <ExpensesPageContent />
+    </ErrorBoundary>
   );
 }

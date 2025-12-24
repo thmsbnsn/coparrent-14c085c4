@@ -19,11 +19,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useDocuments, DOCUMENT_CATEGORIES } from '@/hooks/useDocuments';
 import { DocumentUploadDialog } from '@/components/documents/DocumentUploadDialog';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 
-const DocumentsPage = () => {
+const DocumentsPageContent = () => {
   const {
     documents,
     loading,
@@ -219,5 +220,11 @@ const DocumentsPage = () => {
     </DashboardLayout>
   );
 };
+
+const DocumentsPage = () => (
+  <ErrorBoundary>
+    <DocumentsPageContent />
+  </ErrorBoundary>
+);
 
 export default DocumentsPage;
