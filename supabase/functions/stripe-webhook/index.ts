@@ -31,7 +31,16 @@ const TIER_DB_VALUES: Record<string, string> = {
   "prod_TdrUXgQVj7yCqw": "law_office",
 };
 
-async function sendEmail(to: string, subject: string, html: string) {
+type EmailType = "welcome" | "update" | "support" | "cancel";
+
+const EMAIL_FROM: Record<EmailType, string> = {
+  welcome: "CoParrent <hello@coparrent.com>",
+  update: "CoParrent <noreply@coparrent.com>",
+  support: "CoParrent <support@coparrent.com>",
+  cancel: "CoParrent <hello@coparrent.com>",
+};
+
+async function sendEmail(to: string, subject: string, html: string, type: EmailType = "update") {
   if (!RESEND_API_KEY) {
     logStep("RESEND_API_KEY not configured, skipping email");
     return null;
@@ -45,7 +54,7 @@ async function sendEmail(to: string, subject: string, html: string) {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "CoParrent <notifications@resend.dev>",
+        from: EMAIL_FROM[type],
         to: [to],
         subject,
         html,
@@ -118,10 +127,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
             <li>Document storage and sharing</li>
             <li>Expense tracking and reports</li>
           </ul>
-          <p>If you have any questions, feel free to reach out to our support team.</p>
+          <p>If you have any questions, feel free to reach out to our support team at <a href="mailto:support@coparrent.com">support@coparrent.com</a>.</p>
           <p>Best regards,<br>The CoParrent Team</p>
         </div>
-      `
+      `,
+      "welcome"
     );
   }
 }
@@ -189,7 +199,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   await updateProfileSubscription(email, status, tier);
 
   if (shouldSendEmail) {
-    await sendEmail(email, emailSubject, emailHtml);
+    const emailType: EmailType = status === "past_due" ? "support" : "update";
+    await sendEmail(email, emailSubject, emailHtml, emailType);
   }
 }
 
@@ -222,10 +233,11 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         <p>Your CoParrent subscription has been canceled.</p>
         <p>We're sorry to see you go! Your premium features will remain active until the end of your current billing period.</p>
         <p>If you change your mind, you can resubscribe at any time from your account settings.</p>
-        <p>We'd love to hear your feedback on how we can improve. Feel free to reach out to our support team.</p>
+        <p>We'd love to hear your feedback on how we can improve. Feel free to reach out to us at <a href="mailto:hello@coparrent.com">hello@coparrent.com</a>.</p>
         <p>Best regards,<br>The CoParrent Team</p>
       </div>
-    `
+    `,
+    "cancel"
   );
 }
 
@@ -255,10 +267,11 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
           <li>Card declined by your bank</li>
         </ul>
         <p>You can update your payment details by visiting your account settings and clicking "Manage Subscription".</p>
-        <p>If you need assistance, please contact our support team.</p>
+        <p>If you need assistance, please contact us at <a href="mailto:support@coparrent.com">support@coparrent.com</a>.</p>
         <p>Best regards,<br>The CoParrent Team</p>
       </div>
-    `
+    `,
+    "support"
   );
 }
 
