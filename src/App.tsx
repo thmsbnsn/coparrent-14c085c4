@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import Index from "./pages/Index";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
@@ -36,46 +37,48 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/features" element={<FeaturesPage />} />
-            <Route path="/help" element={<HelpCenter />} />
-            <Route path="/court-records" element={<CourtRecordsPage />} />
-            <Route path="/blog" element={<BlogPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/payment-success" element={<PaymentSuccess />} />
-            <Route path="/accept-invite" element={<AcceptInvite />} />
-            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/dashboard/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
-            <Route path="/dashboard/children" element={<ProtectedRoute><ChildrenPage /></ProtectedRoute>} />
-            <Route path="/dashboard/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-            <Route path="/dashboard/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
-            <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-            <Route path="/dashboard/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-            <Route path="/dashboard/law-library" element={<ProtectedRoute><LawLibraryPage /></ProtectedRoute>} />
-            <Route path="/dashboard/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
-            <Route path="/dashboard/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
-            <Route path="/dashboard/blog" element={<ProtectedRoute><BlogPage /></ProtectedRoute>} />
-            <Route path="/dashboard/blog/:slug" element={<ProtectedRoute><BlogPostPage /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/features" element={<FeaturesPage />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/court-records" element={<CourtRecordsPage />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/accept-invite" element={<AcceptInvite />} />
+              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+              <Route path="/dashboard/children" element={<ProtectedRoute><ChildrenPage /></ProtectedRoute>} />
+              <Route path="/dashboard/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+              <Route path="/dashboard/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+              <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/dashboard/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+              <Route path="/dashboard/law-library" element={<ProtectedRoute><LawLibraryPage /></ProtectedRoute>} />
+              <Route path="/dashboard/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
+              <Route path="/dashboard/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
+              <Route path="/dashboard/blog" element={<ProtectedRoute><BlogPage /></ProtectedRoute>} />
+              <Route path="/dashboard/blog/:slug" element={<ProtectedRoute><BlogPostPage /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
