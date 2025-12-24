@@ -12,16 +12,55 @@ const supabaseAdmin = createClient(
   { auth: { persistSession: false } }
 );
 
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
 const PRODUCT_TIERS: Record<string, string> = {
+  "prod_TdrUhvfZzXYDTT": "Premium",
+  "prod_TdrUORgbP3ko1q": "MVP",
+  "prod_TdrUXgQVj7yCqw": "Law Office",
+};
+
+const TIER_DB_VALUES: Record<string, string> = {
   "prod_TdrUhvfZzXYDTT": "premium",
   "prod_TdrUORgbP3ko1q": "mvp",
   "prod_TdrUXgQVj7yCqw": "law_office",
 };
+
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!RESEND_API_KEY) {
+    logStep("RESEND_API_KEY not configured, skipping email");
+    return null;
+  }
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: "CoParrent <notifications@resend.dev>",
+        to: [to],
+        subject,
+        html,
+      }),
+    });
+
+    const data = await response.json();
+    logStep("Email sent", { to, subject, response: data });
+    return data;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("Email send error", { error: errorMessage });
+    return null;
+  }
+}
 
 async function updateProfileSubscription(
   email: string,
@@ -55,15 +94,35 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
-  // Get subscription details
   if (session.subscription) {
     const subscription = await stripe.subscriptions.retrieve(
       session.subscription as string
     );
     const productId = subscription.items.data[0]?.price?.product as string;
-    const tier = PRODUCT_TIERS[productId] || null;
+    const tier = TIER_DB_VALUES[productId] || null;
+    const tierName = PRODUCT_TIERS[productId] || "Premium";
     
     await updateProfileSubscription(customerEmail, "active", tier);
+
+    await sendEmail(
+      customerEmail,
+      "Welcome to CoParrent " + tierName + "! 🎉",
+      `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #6366f1;">Welcome to CoParrent ${tierName}!</h1>
+          <p>Thank you for subscribing to CoParrent. Your ${tierName} subscription is now active.</p>
+          <p>You now have access to all premium features including:</p>
+          <ul>
+            <li>Unlimited messaging with tone analysis</li>
+            <li>Shared calendar and scheduling</li>
+            <li>Document storage and sharing</li>
+            <li>Expense tracking and reports</li>
+          </ul>
+          <p>If you have any questions, feel free to reach out to our support team.</p>
+          <p>Best regards,<br>The CoParrent Team</p>
+        </div>
+      `
+    );
   }
 }
 
@@ -73,7 +132,6 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     status: subscription.status 
   });
 
-  // Get customer email
   const customer = await stripe.customers.retrieve(
     subscription.customer as string
   );
@@ -90,19 +148,49 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   }
 
   const productId = subscription.items.data[0]?.price?.product as string;
-  const tier = PRODUCT_TIERS[productId] || null;
+  const tier = TIER_DB_VALUES[productId] || null;
+  const tierName = PRODUCT_TIERS[productId] || "Premium";
   
-  // Map Stripe status to our status
   let status = subscription.status;
+  let shouldSendEmail = false;
+  let emailSubject = "";
+  let emailHtml = "";
+
   if (status === "active" || status === "trialing") {
     status = "active";
+    shouldSendEmail = true;
+    emailSubject = `Your CoParrent plan has been updated to ${tierName}`;
+    emailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #6366f1;">Plan Updated!</h1>
+        <p>Your CoParrent subscription has been updated to the <strong>${tierName}</strong> plan.</p>
+        <p>Your new features are now active. Thank you for being a valued member!</p>
+        <p>Best regards,<br>The CoParrent Team</p>
+      </div>
+    `;
   } else if (status === "past_due") {
     status = "past_due";
+    shouldSendEmail = true;
+    emailSubject = "⚠️ Action Required: Payment Issue with Your CoParrent Subscription";
+    emailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #f59e0b;">Payment Issue</h1>
+        <p>We were unable to process your latest payment for your CoParrent subscription.</p>
+        <p>Please update your payment method to avoid service interruption.</p>
+        <p>You can update your payment details by visiting your account settings.</p>
+        <p>If you have any questions, please contact our support team.</p>
+        <p>Best regards,<br>The CoParrent Team</p>
+      </div>
+    `;
   } else if (status === "canceled" || status === "unpaid") {
     status = "canceled";
   }
 
   await updateProfileSubscription(email, status, tier);
+
+  if (shouldSendEmail) {
+    await sendEmail(email, emailSubject, emailHtml);
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -124,6 +212,21 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
 
   await updateProfileSubscription(email, "canceled", null);
+
+  await sendEmail(
+    email,
+    "Your CoParrent subscription has been canceled",
+    `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #6366f1;">Subscription Canceled</h1>
+        <p>Your CoParrent subscription has been canceled.</p>
+        <p>We're sorry to see you go! Your premium features will remain active until the end of your current billing period.</p>
+        <p>If you change your mind, you can resubscribe at any time from your account settings.</p>
+        <p>We'd love to hear your feedback on how we can improve. Feel free to reach out to our support team.</p>
+        <p>Best regards,<br>The CoParrent Team</p>
+      </div>
+    `
+  );
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
@@ -135,8 +238,28 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     return;
   }
 
-  // Update status to past_due
   await updateProfileSubscription(customerEmail, "past_due", null);
+
+  await sendEmail(
+    customerEmail,
+    "⚠️ Payment Failed - Action Required",
+    `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #ef4444;">Payment Failed</h1>
+        <p>We were unable to process your payment of $${((invoice.amount_due || 0) / 100).toFixed(2)} for your CoParrent subscription.</p>
+        <p>Please update your payment method as soon as possible to avoid losing access to premium features.</p>
+        <p>Common reasons for payment failure:</p>
+        <ul>
+          <li>Expired credit card</li>
+          <li>Insufficient funds</li>
+          <li>Card declined by your bank</li>
+        </ul>
+        <p>You can update your payment details by visiting your account settings and clicking "Manage Subscription".</p>
+        <p>If you need assistance, please contact our support team.</p>
+        <p>Best regards,<br>The CoParrent Team</p>
+      </div>
+    `
+  );
 }
 
 serve(async (req) => {
