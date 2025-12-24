@@ -12,11 +12,16 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Product ID to tier mapping
+// Product ID to tier mapping (both live and test mode)
 const PRODUCT_TIERS: Record<string, string> = {
+  // Live mode
   "prod_TdrUhvfZzXYDTT": "premium",
   "prod_TdrUORgbP3ko1q": "mvp",
   "prod_TdrUXgQVj7yCqw": "law_office",
+  // Test mode
+  "prod_Tf1Qq9jGVEyUOM": "premium",
+  "prod_Tf1QUUhL8Tx1Ks": "mvp",
+  "prod_Tf1QG2gr5j0a3z": "law_office",
 };
 
 serve(async (req) => {
@@ -134,10 +139,13 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      productId = subscription.items.data[0].price.product as string;
+      const endTimestamp = subscription.current_period_end;
+      if (endTimestamp && typeof endTimestamp === 'number') {
+        subscriptionEnd = new Date(endTimestamp * 1000).toISOString();
+      }
+      productId = subscription.items.data[0]?.price?.product as string;
       tier = PRODUCT_TIERS[productId] || "premium";
-      logStep("Active subscription found", { tier });
+      logStep("Active subscription found", { tier, productId });
 
       // Update profile with subscription info
       await supabaseClient
