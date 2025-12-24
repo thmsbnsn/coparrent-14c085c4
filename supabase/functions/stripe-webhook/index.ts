@@ -19,16 +19,27 @@ const logStep = (step: string, details?: any) => {
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
+// Product IDs for both live and test mode
 const PRODUCT_TIERS: Record<string, string> = {
+  // Live mode
   "prod_TdrUhvfZzXYDTT": "Premium",
   "prod_TdrUORgbP3ko1q": "MVP",
   "prod_TdrUXgQVj7yCqw": "Law Office",
+  // Test mode
+  "prod_Tf1Qq9jGVEyUOM": "Premium",
+  "prod_Tf1QUUhL8Tx1Ks": "MVP",
+  "prod_Tf1QG2gr5j0a3z": "Law Office",
 };
 
 const TIER_DB_VALUES: Record<string, string> = {
+  // Live mode
   "prod_TdrUhvfZzXYDTT": "premium",
   "prod_TdrUORgbP3ko1q": "mvp",
   "prod_TdrUXgQVj7yCqw": "law_office",
+  // Test mode
+  "prod_Tf1Qq9jGVEyUOM": "premium",
+  "prod_Tf1QUUhL8Tx1Ks": "mvp",
+  "prod_Tf1QG2gr5j0a3z": "law_office",
 };
 
 type EmailType = "welcome" | "update" | "support" | "cancel";
