@@ -22,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import { TrialBadge } from "@/components/dashboard/TrialBadge";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -100,9 +101,12 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
     <>
       {/* Logo */}
       <div className="p-4 border-b border-sidebar-border">
-        <Link to="/dashboard">
-          <Logo size="md" showText={!sidebarCollapsed} className="[&_span]:text-sidebar-foreground" />
-        </Link>
+        <div className="flex items-center justify-between gap-2">
+          <Link to="/dashboard">
+            <Logo size="md" showText={!sidebarCollapsed} className="[&_span]:text-sidebar-foreground" />
+          </Link>
+          <TrialBadge collapsed={sidebarCollapsed} />
+        </div>
       </div>
 
       {/* Navigation */}
