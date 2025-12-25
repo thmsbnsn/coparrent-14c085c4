@@ -164,17 +164,14 @@ export const useRealtimeChildren = () => {
       return null;
     }
 
-    const { data: newChild, error: childError } = await supabase
-      .from("children")
-      .insert({
-        name,
-        date_of_birth: dateOfBirth || null,
-      })
-      .select()
-      .single();
+    // Use the secure database function to create child with proper links
+    const { data, error } = await supabase.rpc("create_child_with_link", {
+      _name: name,
+      _date_of_birth: dateOfBirth || null,
+    });
 
-    if (childError) {
-      console.error("Error creating child:", childError);
+    if (error) {
+      console.error("Error creating child:", error);
       toast({
         title: "Error",
         description: "Failed to add child",
@@ -183,33 +180,15 @@ export const useRealtimeChildren = () => {
       return null;
     }
 
-    const { error: linkError } = await supabase.from("parent_children").insert({
-      parent_id: userProfileId,
-      child_id: newChild.id,
-    });
+    const result = data as unknown as { success: boolean; error?: string; child?: Child };
 
-    if (linkError) {
-      console.error("Error linking child:", linkError);
+    if (!result.success) {
       toast({
         title: "Error",
-        description: "Failed to link child to your profile",
+        description: result.error || "Failed to add child",
         variant: "destructive",
       });
       return null;
-    }
-
-    // Also link to co-parent if exists
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("co_parent_id")
-      .eq("id", userProfileId)
-      .single();
-
-    if (profile?.co_parent_id) {
-      await supabase.from("parent_children").insert({
-        parent_id: profile.co_parent_id,
-        child_id: newChild.id,
-      });
     }
 
     toast({
@@ -217,7 +196,10 @@ export const useRealtimeChildren = () => {
       description: `${name} has been added`,
     });
 
-    return newChild as Child;
+    // Refetch to get the updated list
+    await fetchChildren();
+
+    return result.child || null;
   };
 
   const updateChild = async (
