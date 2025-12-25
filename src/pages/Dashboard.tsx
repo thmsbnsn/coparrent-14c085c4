@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ExchangeCheckin } from "@/components/exchange/ExchangeCheckin";
+import { SubscriptionBanner } from "@/components/dashboard/SubscriptionBanner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,6 +182,9 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Subscription Status Banner */}
+        <SubscriptionBanner />
+
         {/* Welcome Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
