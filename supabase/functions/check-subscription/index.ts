@@ -24,6 +24,24 @@ const PRODUCT_TIERS: Record<string, string> = {
   "prod_Tf1QG2gr5j0a3z": "law_office",
 };
 
+// Map Stripe subscription status to our internal status
+const mapStripeStatus = (stripeStatus: string): string => {
+  switch (stripeStatus) {
+    case "active":
+      return "active";
+    case "trialing":
+      return "trial";
+    case "past_due":
+      return "past_due";
+    case "canceled":
+    case "unpaid":
+    case "incomplete_expired":
+      return "expired";
+    default:
+      return "none";
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -43,8 +61,11 @@ serve(async (req) => {
     if (!stripeKey) {
       logStep("ERROR: STRIPE_SECRET_KEY not configured");
       return new Response(
-        JSON.stringify({ error: "Subscription service unavailable" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        JSON.stringify({ 
+          error: "Subscription service temporarily unavailable",
+          code: "SERVICE_UNAVAILABLE"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 }
       );
     }
     logStep("Stripe key verified");
@@ -52,9 +73,12 @@ serve(async (req) => {
     // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      logStep("No authorization header");
+      logStep("ERROR: No authorization header");
       return new Response(
-        JSON.stringify({ error: "Authentication required" }),
+        JSON.stringify({ 
+          error: "Authentication required",
+          code: "AUTH_REQUIRED"
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
       );
     }
@@ -63,22 +87,29 @@ serve(async (req) => {
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !userData.user?.email) {
-      logStep("Authentication failed");
+      logStep("ERROR: Authentication failed", { error: userError?.message });
       return new Response(
-        JSON.stringify({ error: "Authentication failed" }),
+        JSON.stringify({ 
+          error: "Authentication failed. Please sign in again.",
+          code: "AUTH_FAILED"
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
       );
     }
 
     const user = userData.user;
-    logStep("User authenticated", { userId: user.id });
+    logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Check for free premium access first (promotional/admin access)
-    const { data: profileData } = await supabaseClient
+    const { data: profileData, error: profileError } = await supabaseClient
       .from("profiles")
-      .select("free_premium_access, access_reason")
+      .select("id, free_premium_access, access_reason, trial_started_at, trial_ends_at, subscription_status")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    if (profileError) {
+      logStep("ERROR: Failed to fetch profile", { error: profileError.message });
+    }
 
     if (profileData?.free_premium_access === true) {
       logStep("User has free premium access", { reason: profileData.access_reason });
@@ -96,7 +127,7 @@ serve(async (req) => {
         subscribed: true,
         tier: "premium",
         free_access: true,
-        access_reason: profileData.access_reason,
+        access_reason: profileData.access_reason || "Complimentary access",
         subscription_end: null
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -106,79 +137,171 @@ serve(async (req) => {
 
     // Check Stripe subscription
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    logStep("Searching for Stripe customer");
+    
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
     if (customers.data.length === 0) {
-      logStep("No customer found");
+      logStep("No Stripe customer found");
       
-      // Update profile to reflect no subscription
-      await supabaseClient
-        .from("profiles")
-        .update({ subscription_status: "none", subscription_tier: "free" })
-        .eq("user_id", user.id);
+      // Check if user is in trial period (co-parent linked trial)
+      if (profileData?.trial_ends_at) {
+        const trialEnd = new Date(profileData.trial_ends_at);
+        const now = new Date();
+        
+        if (trialEnd > now) {
+          logStep("User is in trial period", { trialEndsAt: profileData.trial_ends_at });
+          
+          await supabaseClient
+            .from("profiles")
+            .update({ subscription_status: "trial", subscription_tier: "premium" })
+            .eq("user_id", user.id);
 
-      return new Response(JSON.stringify({ subscribed: false, tier: "free" }), {
+          return new Response(JSON.stringify({
+            subscribed: true,
+            tier: "premium",
+            trial: true,
+            trial_ends_at: profileData.trial_ends_at,
+            subscription_end: profileData.trial_ends_at
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        } else {
+          logStep("Trial has expired");
+          
+          await supabaseClient
+            .from("profiles")
+            .update({ subscription_status: "expired", subscription_tier: "free" })
+            .eq("user_id", user.id);
+        }
+      } else {
+        // Update profile to reflect no subscription
+        await supabaseClient
+          .from("profiles")
+          .update({ subscription_status: "none", subscription_tier: "free" })
+          .eq("user_id", user.id);
+      }
+
+      return new Response(JSON.stringify({ 
+        subscribed: false, 
+        tier: "free" 
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
     const customerId = customers.data[0].id;
-    logStep("Found Stripe customer");
+    logStep("Found Stripe customer", { customerId });
 
+    // Get all subscriptions (not just active) to handle various states
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      status: "active",
-      limit: 1,
+      limit: 5,
+      expand: ["data.items.data.price.product"],
     });
 
-    const hasActiveSub = subscriptions.data.length > 0;
-    let tier = "free";
-    let subscriptionEnd = null;
-    let productId = null;
+    logStep("Retrieved subscriptions", { count: subscriptions.data.length });
 
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      const endTimestamp = subscription.current_period_end;
-      if (endTimestamp && typeof endTimestamp === 'number') {
-        subscriptionEnd = new Date(endTimestamp * 1000).toISOString();
-      }
-      productId = subscription.items.data[0]?.price?.product as string;
-      tier = PRODUCT_TIERS[productId] || "premium";
-      logStep("Active subscription found", { tier, productId });
+    // Find the most relevant subscription (prioritize active, then trialing, then past_due)
+    const priorityOrder = ["active", "trialing", "past_due", "canceled"];
+    const sortedSubs = [...subscriptions.data].sort((a: Stripe.Subscription, b: Stripe.Subscription) => {
+      return priorityOrder.indexOf(a.status) - priorityOrder.indexOf(b.status);
+    });
 
-      // Update profile with subscription info
-      await supabaseClient
-        .from("profiles")
-        .update({ 
-          subscription_status: "active", 
-          subscription_tier: tier 
-        })
-        .eq("user_id", user.id);
-    } else {
-      logStep("No active subscription found");
+    const subscription = sortedSubs[0];
+    
+    if (!subscription || !["active", "trialing", "past_due"].includes(subscription.status)) {
+      logStep("No active/trialing/past_due subscription found");
       
-      // Update profile to reflect no active subscription
+      // Check local trial as fallback
+      if (profileData?.trial_ends_at) {
+        const trialEnd = new Date(profileData.trial_ends_at);
+        if (trialEnd > new Date()) {
+          await supabaseClient
+            .from("profiles")
+            .update({ subscription_status: "trial", subscription_tier: "premium" })
+            .eq("user_id", user.id);
+
+          return new Response(JSON.stringify({
+            subscribed: true,
+            tier: "premium",
+            trial: true,
+            trial_ends_at: profileData.trial_ends_at,
+            subscription_end: profileData.trial_ends_at
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        }
+      }
+      
+      // Update profile to reflect expired/no subscription
       await supabaseClient
         .from("profiles")
-        .update({ subscription_status: "none", subscription_tier: "free" })
+        .update({ subscription_status: "expired", subscription_tier: "free" })
         .eq("user_id", user.id);
+
+      return new Response(JSON.stringify({ 
+        subscribed: false, 
+        tier: "free" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
+    // Process active/trialing/past_due subscription
+    const productId = subscription.items.data[0]?.price?.product as string;
+    const tier = PRODUCT_TIERS[productId] || "premium";
+    const internalStatus = mapStripeStatus(subscription.status);
+    
+    let subscriptionEnd = null;
+    const endTimestamp = subscription.current_period_end;
+    if (endTimestamp && typeof endTimestamp === 'number') {
+      subscriptionEnd = new Date(endTimestamp * 1000).toISOString();
+    }
+
+    logStep("Subscription details", { 
+      status: subscription.status, 
+      internalStatus,
+      tier, 
+      productId,
+      endsAt: subscriptionEnd 
+    });
+
+    // Update profile with subscription info
+    await supabaseClient
+      .from("profiles")
+      .update({ 
+        subscription_status: internalStatus, 
+        subscription_tier: tier 
+      })
+      .eq("user_id", user.id);
+
+    logStep("Profile updated successfully");
+
     return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
+      subscribed: true,
       tier,
+      status: internalStatus,
       product_id: productId,
-      subscription_end: subscriptionEnd
+      subscription_end: subscriptionEnd,
+      past_due: subscription.status === "past_due"
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    logStep("ERROR: Unexpected error", { message: errorMessage });
+    
     return new Response(
-      JSON.stringify({ error: "Unable to check subscription status" }),
+      JSON.stringify({ 
+        error: "Unable to check subscription status. Please try again.",
+        code: "CHECK_FAILED"
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
