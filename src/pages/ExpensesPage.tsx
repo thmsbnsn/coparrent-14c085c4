@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   DollarSign, Plus, Search, Calendar, Filter,
   Receipt, CheckCircle, XCircle, Clock, Download,
-  Trash2, Send, Eye, FileText, Users, TrendingUp
+  Trash2, Send, Eye, FileText, Users, TrendingUp, AlertCircle
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ import { useChildren } from "@/hooks/useChildren";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from "date-fns";
+import { addExpenseSchema } from "@/lib/validations";
 
 function ExpensesPageContent() {
   const { 
@@ -77,6 +78,15 @@ function ExpensesPageContent() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Validation errors
+  const [errors, setErrors] = useState<{
+    amount?: string;
+    description?: string;
+    expenseDate?: string;
+    notes?: string;
+  }>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
   // Reimbursement dialog
   const [reimbursementExpense, setReimbursementExpense] = useState<Expense | null>(null);
   const [reimbursementAmount, setReimbursementAmount] = useState("");
@@ -100,6 +110,57 @@ function ExpensesPageContent() {
 
   const totals = getTotals();
 
+  // Validate expense form
+  const validateExpenseForm = () => {
+    const result = addExpenseSchema.safeParse({
+      amount,
+      description,
+      expenseDate,
+      category,
+      notes: notes || undefined,
+    });
+    
+    if (!result.success) {
+      const fieldErrors = result.error.flatten().fieldErrors;
+      setErrors({
+        amount: fieldErrors.amount?.[0],
+        description: fieldErrors.description?.[0],
+        expenseDate: fieldErrors.expenseDate?.[0],
+        notes: fieldErrors.notes?.[0],
+      });
+      return false;
+    }
+    
+    setErrors({});
+    return true;
+  };
+
+  // Real-time validation
+  useEffect(() => {
+    if (Object.keys(touched).length > 0) {
+      const result = addExpenseSchema.safeParse({
+        amount,
+        description,
+        expenseDate,
+        category,
+        notes: notes || undefined,
+      });
+      
+      if (!result.success) {
+        const fieldErrors = result.error.flatten().fieldErrors;
+        setErrors(prev => ({
+          ...prev,
+          ...(touched.amount && { amount: fieldErrors.amount?.[0] }),
+          ...(touched.description && { description: fieldErrors.description?.[0] }),
+          ...(touched.expenseDate && { expenseDate: fieldErrors.expenseDate?.[0] }),
+          ...(touched.notes && { notes: fieldErrors.notes?.[0] }),
+        }));
+      } else {
+        setErrors({});
+      }
+    }
+  }, [amount, description, expenseDate, notes, touched, category]);
+
   const resetForm = () => {
     setCategory("other");
     setAmount("");
@@ -109,14 +170,14 @@ function ExpensesPageContent() {
     setSplitPercentage("50");
     setNotes("");
     setReceiptFile(null);
+    setErrors({});
+    setTouched({});
     setIsAddOpen(false);
   };
 
   const handleAddExpense = async () => {
-    if (!amount || !description) {
-      toast.error("Please fill in required fields");
-      return;
-    }
+    setTouched({ amount: true, description: true, expenseDate: true, notes: true });
+    if (!validateExpenseForm()) return;
 
     setIsSaving(true);
     try {
@@ -434,7 +495,10 @@ function ExpensesPageContent() {
               <Download className="h-4 w-4 mr-2" />
               CSV
             </Button>
-            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <Dialog open={isAddOpen} onOpenChange={(open) => {
+              if (!open) resetForm();
+              setIsAddOpen(open);
+            }}>
               <DialogTrigger asChild>
                 <Button className="bg-[#21B0FE] hover:bg-[#21B0FE]/90">
                   <Plus className="h-4 w-4 mr-2" />
@@ -459,9 +523,16 @@ function ExpensesPageContent() {
                           placeholder="0.00"
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
-                          className="pl-10"
+                          onBlur={() => setTouched(prev => ({ ...prev, amount: true }))}
+                          className={`pl-10 ${errors.amount ? "border-destructive focus-visible:ring-destructive" : ""}`}
                         />
                       </div>
+                      {errors.amount && (
+                        <p className="text-sm text-destructive flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.amount}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Date *</Label>
@@ -469,7 +540,15 @@ function ExpensesPageContent() {
                         type="date"
                         value={expenseDate}
                         onChange={(e) => setExpenseDate(e.target.value)}
+                        onBlur={() => setTouched(prev => ({ ...prev, expenseDate: true }))}
+                        className={errors.expenseDate ? "border-destructive focus-visible:ring-destructive" : ""}
                       />
+                      {errors.expenseDate && (
+                        <p className="text-sm text-destructive flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {errors.expenseDate}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -495,7 +574,15 @@ function ExpensesPageContent() {
                       placeholder="What was this expense for?"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
+                      onBlur={() => setTouched(prev => ({ ...prev, description: true }))}
+                      className={errors.description ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
+                    {errors.description && (
+                      <p className="text-sm text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.description}
+                      </p>
+                    )}
                   </div>
 
                   {children.length > 0 && (
@@ -548,7 +635,15 @@ function ExpensesPageContent() {
                       placeholder="Any additional details..."
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
+                      onBlur={() => setTouched(prev => ({ ...prev, notes: true }))}
+                      className={errors.notes ? "border-destructive focus-visible:ring-destructive" : ""}
                     />
+                    {errors.notes && (
+                      <p className="text-sm text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.notes}
+                      </p>
+                    )}
                   </div>
                 </div>
                 
@@ -556,7 +651,7 @@ function ExpensesPageContent() {
                   <Button variant="outline" onClick={resetForm}>Cancel</Button>
                   <Button 
                     onClick={handleAddExpense}
-                    disabled={!amount || !description || isSaving}
+                    disabled={isSaving || !!errors.amount || !!errors.description}
                     className="bg-[#21B0FE] hover:bg-[#21B0FE]/90"
                   >
                     {isSaving ? "Saving..." : "Add Expense"}
