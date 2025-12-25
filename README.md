@@ -584,6 +584,12 @@ CoParrent Application
   - Created `PublicLayout` component with Navbar/Footer for public pages
   - Updated `/blog` and `/blog/:slug` routes to use public layout
   - Dashboard blog routes still available at `/dashboard/blog` for authenticated users
+- **Added:** Comprehensive error boundary coverage
+  - Created `RouteErrorBoundary` for route-level errors with navigation options (Go Back, Try Again, Dashboard)
+  - Created `FeatureErrorBoundary` for feature-level errors with retry capability
+  - Wrapped all routes in `App.tsx` with `RouteErrorBoundary`
+  - Updated Documents, Expenses, and Children pages to use `FeatureErrorBoundary`
+  - Errors now render fallback UI with user feedback instead of failing silently
 
 ### YYYY-MM-DD
 
