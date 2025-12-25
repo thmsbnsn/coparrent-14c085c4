@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Edit2, Baby, Calendar, Heart, School, Phone, Droplet, AlertCircle, Pill } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -12,6 +12,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { FeatureErrorBoundary } from "@/components/ui/FeatureErrorBoundary";
 import { cn } from "@/lib/utils";
 import { useRealtimeChildren } from "@/hooks/useRealtimeChildren";
+import { addChildSchema } from "@/lib/validations";
 import type { Child } from "@/hooks/useChildren";
 import {
   Dialog,
@@ -55,6 +56,11 @@ const ChildrenPage = () => {
   const [newChildDob, setNewChildDob] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   
+  // Validation errors
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [dobError, setDobError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ name: false, dob: false });
+  
   // Edit form states
   const [editName, setEditName] = useState("");
   const [editDob, setEditDob] = useState("");
@@ -70,15 +76,61 @@ const ChildrenPage = () => {
   const [editSchoolPhone, setEditSchoolPhone] = useState("");
   const [editGrade, setEditGrade] = useState("");
 
+  // Validate form data
+  const validateForm = () => {
+    const result = addChildSchema.safeParse({
+      name: newChildName,
+      dateOfBirth: newChildDob || undefined,
+    });
+    
+    if (!result.success) {
+      const errors = result.error.flatten().fieldErrors;
+      setNameError(errors.name?.[0] || null);
+      setDobError(errors.dateOfBirth?.[0] || null);
+      return false;
+    }
+    
+    setNameError(null);
+    setDobError(null);
+    return true;
+  };
+
+  // Validate on field change when touched
+  useEffect(() => {
+    if (touched.name || touched.dob) {
+      const result = addChildSchema.safeParse({
+        name: newChildName,
+        dateOfBirth: newChildDob || undefined,
+      });
+      
+      if (!result.success) {
+        const errors = result.error.flatten().fieldErrors;
+        if (touched.name) setNameError(errors.name?.[0] || null);
+        if (touched.dob) setDobError(errors.dateOfBirth?.[0] || null);
+      } else {
+        setNameError(null);
+        setDobError(null);
+      }
+    }
+  }, [newChildName, newChildDob, touched]);
+
+  const resetAddForm = () => {
+    setNewChildName("");
+    setNewChildDob("");
+    setNameError(null);
+    setDobError(null);
+    setTouched({ name: false, dob: false });
+  };
+
   const handleAddChild = async () => {
-    if (!newChildName.trim()) return;
+    setTouched({ name: true, dob: true });
+    if (!validateForm()) return;
     
     setIsSaving(true);
     try {
       const child = await addChild(newChildName.trim(), newChildDob || undefined);
       if (child) {
-        setNewChildName("");
-        setNewChildDob("");
+        resetAddForm();
         setIsAddDialogOpen(false);
         setSelectedChild(child);
       }
@@ -177,7 +229,10 @@ const ChildrenPage = () => {
             <h1 className="text-2xl lg:text-3xl font-display font-bold">Child Information Hub</h1>
             <p className="text-muted-foreground mt-1">Keep important details organized and shared</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            if (!open) resetAddForm();
+            setIsAddDialogOpen(open);
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
@@ -193,13 +248,21 @@ const ChildrenPage = () => {
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">Name *</Label>
                   <Input
                     id="name"
                     placeholder="Child's name"
                     value={newChildName}
                     onChange={(e) => setNewChildName(e.target.value)}
+                    onBlur={() => setTouched(prev => ({ ...prev, name: true }))}
+                    className={nameError ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {nameError && (
+                    <p className="text-sm text-destructive flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {nameError}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dob">Date of Birth</Label>
@@ -208,14 +271,22 @@ const ChildrenPage = () => {
                     type="date"
                     value={newChildDob}
                     onChange={(e) => setNewChildDob(e.target.value)}
+                    onBlur={() => setTouched(prev => ({ ...prev, dob: true }))}
+                    className={dobError ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {dobError && (
+                    <p className="text-sm text-destructive flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {dobError}
+                    </p>
+                  )}
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSaving}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddChild} disabled={!newChildName.trim() || isSaving}>
+                <Button onClick={handleAddChild} disabled={isSaving || !!nameError}>
                   {isSaving ? "Adding..." : "Add Child"}
                 </Button>
               </DialogFooter>

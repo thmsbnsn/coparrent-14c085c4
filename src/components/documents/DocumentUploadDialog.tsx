@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, FileText } from 'lucide-react';
+import { Upload, X, FileText, AlertCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { DOCUMENT_CATEGORIES } from '@/hooks/useDocuments';
 import { useChildren } from '@/hooks/useChildren';
+import { documentUploadSchema } from '@/lib/validations';
 
 interface DocumentUploadDialogProps {
   open: boolean;
@@ -54,11 +55,62 @@ export const DocumentUploadDialog = ({
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('other');
   const [childId, setChildId] = useState<string>('');
+  
+  // Validation
+  const [errors, setErrors] = useState<{ title?: string; file?: string; description?: string }>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const validateForm = () => {
+    const result = documentUploadSchema.safeParse({
+      title,
+      description: description || undefined,
+      category,
+      file,
+    });
+    
+    if (!result.success) {
+      const fieldErrors = result.error.flatten().fieldErrors;
+      setErrors({
+        title: fieldErrors.title?.[0],
+        file: fieldErrors.file?.[0],
+        description: fieldErrors.description?.[0],
+      });
+      return false;
+    }
+    
+    setErrors({});
+    return true;
+  };
+
+  // Real-time validation
+  useEffect(() => {
+    if (Object.keys(touched).length > 0) {
+      const result = documentUploadSchema.safeParse({
+        title,
+        description: description || undefined,
+        category,
+        file,
+      });
+      
+      if (!result.success) {
+        const fieldErrors = result.error.flatten().fieldErrors;
+        setErrors(prev => ({
+          ...prev,
+          ...(touched.title && { title: fieldErrors.title?.[0] }),
+          ...(touched.file && { file: fieldErrors.file?.[0] }),
+          ...(touched.description && { description: fieldErrors.description?.[0] }),
+        }));
+      } else {
+        setErrors({});
+      }
+    }
+  }, [title, description, category, file, touched]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const selectedFile = acceptedFiles[0];
       setFile(selectedFile);
+      setTouched(prev => ({ ...prev, file: true }));
       if (!title) {
         setTitle(selectedFile.name.replace(/\.[^/.]+$/, ''));
       }
@@ -68,7 +120,7 @@ export const DocumentUploadDialog = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     maxFiles: 1,
-    maxSize: 20 * 1024 * 1024, // 20MB
+    maxSize: 20 * 1024 * 1024,
     accept: {
       'application/pdf': ['.pdf'],
       'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
@@ -81,7 +133,8 @@ export const DocumentUploadDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !title || !category) return;
+    setTouched({ title: true, file: true, description: true });
+    if (!validateForm() || !file) return;
 
     const result = await onUpload(
       file,
@@ -92,11 +145,7 @@ export const DocumentUploadDialog = ({
     );
 
     if (result) {
-      setFile(null);
-      setTitle('');
-      setDescription('');
-      setCategory('other');
-      setChildId('');
+      resetForm();
       onOpenChange(false);
     }
   };
@@ -107,6 +156,8 @@ export const DocumentUploadDialog = ({
     setDescription('');
     setCategory('other');
     setChildId('');
+    setErrors({});
+    setTouched({});
   };
 
   return (
@@ -126,6 +177,8 @@ export const DocumentUploadDialog = ({
             className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
               isDragActive
                 ? 'border-primary bg-primary/5'
+                : errors.file
+                ? 'border-destructive'
                 : 'border-border hover:border-primary/50'
             }`}
           >
@@ -167,6 +220,12 @@ export const DocumentUploadDialog = ({
               </>
             )}
           </div>
+          {errors.file && (
+            <p className="text-sm text-destructive flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {errors.file}
+            </p>
+          )}
 
           {/* Title */}
           <div className="space-y-2">
@@ -175,9 +234,16 @@ export const DocumentUploadDialog = ({
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => setTouched(prev => ({ ...prev, title: true }))}
               placeholder="e.g., Custody Agreement 2024"
-              required
+              className={errors.title ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.title && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {errors.title}
+              </p>
+            )}
           </div>
 
           {/* Description */}
@@ -187,9 +253,17 @@ export const DocumentUploadDialog = ({
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onBlur={() => setTouched(prev => ({ ...prev, description: true }))}
               placeholder="Optional notes about this document"
               rows={2}
+              className={errors.description ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.description && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {errors.description}
+              </p>
+            )}
           </div>
 
           {/* Category */}
@@ -242,7 +316,7 @@ export const DocumentUploadDialog = ({
             <Button
               type="submit"
               className="flex-1"
-              disabled={!file || !title || uploading}
+              disabled={!file || !title || uploading || !!errors.title || !!errors.file}
             >
               {uploading ? 'Uploading...' : 'Upload'}
             </Button>
