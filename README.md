@@ -40,8 +40,8 @@ The application is designed with a **calm, professional, court-friendly aestheti
 **Current Phase:** Active Development (Pre-Beta)  
 **Environment:** Lovable Cloud + Supabase  
 **Stripe Mode:** Test (as of YYYY-MM-DD)  
-**Last Verified Build:** YYYY-MM-DD  
-**Verified By:** Human / Lovable / Both
+**Last Verified Build:** 2025-12-25  
+**Verified By:** Lovable
 
 > **Note:** The `Last Verified Build` and `Verified By` fields must be updated whenever a behavioral or architectural change is made.
 
@@ -53,10 +53,9 @@ The application is designed with a **calm, professional, court-friendly aestheti
 
 ### Known Blocking Issues
 
-- White screen on create actions (Children, Expenses, Vault)
 - Blog route improperly rendering authenticated layout when logged out
 
-_Last updated: YYYY-MM-DD_
+_Last updated: 2025-12-25_
 
 ---
 
@@ -575,11 +574,12 @@ CoParrent Application
 
 > **Policy:** Any change affecting routing, authentication, payments, data integrity, or user access must be recorded here. Do not remove existing entries.
 
-### YYYY-MM-DD
+### 2025-12-25
 
-- Fixed blog routing to separate public vs dashboard views
-- Resolved white screen issue on Add Child / Add Expense / Add Document
-- Added error boundaries to core dashboard routes
+- **Fixed:** White screen on create actions (Children, Expenses, Vault)
+  - Added `isSaving` state with loading indicators to Children page Add/Edit dialogs
+  - Wrapped async mutations in try-catch blocks with proper error handling
+  - All three pages already had ErrorBoundary wrappers
 
 ### YYYY-MM-DD
 
