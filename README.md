@@ -37,9 +37,9 @@ The application is designed with a **calm, professional, court-friendly aestheti
 
 ## 🧭 Project State
 
-**Current Phase:** Active Development (Pre-Beta)  
+**Current Phase:** Active Development (Beta-Ready)  
 **Environment:** Lovable Cloud + Supabase  
-**Stripe Mode:** Test (as of YYYY-MM-DD)  
+**Stripe Mode:** Test  
 **Last Verified Build:** 2025-12-25  
 **Verified By:** Lovable
 
@@ -47,9 +47,9 @@ The application is designed with a **calm, professional, court-friendly aestheti
 
 ### Current Focus
 
-- Stabilizing core CRUD flows (Children, Expenses, Documents)
-- Fixing auth-gated routing inconsistencies
-- Hardening Stripe subscription lifecycle
+- Expanding Law Library with comprehensive state-by-state legal resources
+- Polishing notification and email delivery systems
+- Preparing for production Stripe integration
 
 ### Known Blocking Issues
 
@@ -288,12 +288,16 @@ These non-goals may be revisited post-beta.
 
 ### 10. Law Library
 
-| Feature                   | Components                         | Description                          |
-| ------------------------- | ---------------------------------- | ------------------------------------ |
-| **Legal Resources**       | `LawLibraryPage`, `LawLibraryCard` | State-specific legal documents       |
-| **State Filtering**       | Filter by state                    | Find jurisdiction-relevant resources |
-| **Category Organization** | Legal categories                   | Custody, support, visitation, etc.   |
-| **Disclaimer**            | `LawLibraryDisclaimer`             | Legal information disclaimer         |
+| Feature                   | Components                         | Description                                |
+| ------------------------- | ---------------------------------- | ------------------------------------------ |
+| **Legal Resources**       | `LawLibraryPage`, `LawLibraryCard` | State-specific legal documents             |
+| **State Filtering**       | Filter by state                    | Find jurisdiction-relevant resources       |
+| **Category Organization** | Legal categories                   | Parenting time, child support, custody law |
+| **Disclaimer**            | `LawLibraryDisclaimer`             | Legal information disclaimer               |
+| **Parenting Guidelines**  | All 50 states + DC                 | State parenting time guidelines            |
+| **Child Support**         | All 50 states + DC                 | Child support calculators and guidelines   |
+| **Custody Laws**          | All 50 states + DC                 | Modification and enforcement laws          |
+| **Relocation Laws**       | All 50 states + DC                 | Move-away requirements and procedures      |
 
 ### 11. Settings & Account
 
@@ -576,22 +580,26 @@ CoParrent Application
 
 ### 2025-12-25
 
-- **Fixed:** White screen on create actions (Children, Expenses, Vault)
+- **Added:** Law Library - Parenting time guidelines for 14 states (AZ, CA, CO, FL, GA, IL, NY, OH, PA, TX, WA, VA, Federal)
+- **Added:** Law Library - Child support guidelines and calculators for all 50 states + DC
+- **Added:** Law Library - Custody modification and enforcement laws for all 50 states + DC
+- **Added:** Law Library - Relocation and move-away laws for all 50 states + DC
+- **Fixed:** "Failed to add child" error - Updated `useRealtimeChildren` to use secure `create_child_with_link` RPC function instead of direct INSERT
+- **Fixed:** White screen on create actions (Children, Expenses, Documents)
   - Added `isSaving` state with loading indicators to Children page Add/Edit dialogs
   - Wrapped async mutations in try-catch blocks with proper error handling
-  - All three pages already had ErrorBoundary wrappers
+  - All three pages have ErrorBoundary wrappers
 - **Fixed:** Blog route rendering authenticated layout when logged out
   - Created `PublicLayout` component with Navbar/Footer for public pages
   - Updated `/blog` and `/blog/:slug` routes to use public layout
   - Dashboard blog routes still available at `/dashboard/blog` for authenticated users
 - **Added:** Comprehensive error boundary coverage
-  - Created `RouteErrorBoundary` for route-level errors with navigation options (Go Back, Try Again, Dashboard)
+  - Created `RouteErrorBoundary` for route-level errors with navigation options
   - Created `FeatureErrorBoundary` for feature-level errors with retry capability
   - Wrapped all routes in `App.tsx` with `RouteErrorBoundary`
   - Updated Documents, Expenses, and Children pages to use `FeatureErrorBoundary`
-  - Errors now render fallback UI with user feedback instead of failing silently
 
-### YYYY-MM-DD
+### Previous Changes
 
 - Integrated Stripe webhook via Supabase Edge Function
 - Locked webhook events to Lovable-required set
@@ -663,51 +671,66 @@ The `.env` file is auto-configured by Lovable Cloud with:
 
 ### High Priority
 
-- [x] ~~**Calendar Integration**: Implement visual calendar with custody pattern display~~ ✅ Implemented
-- [x] ~~**Schedule Pattern Engine**: Complete pattern-based schedule generation~~ ✅ Implemented
-- [ ] **Push Notifications**: Complete browser push notification implementation
-- [ ] **Email Notifications**: Send emails for messages, schedule changes, etc.
-- [ ] **Court Export**: Generate court-ready PDF exports of communications and schedules
+- [ ] **Push Notifications**: Complete browser push notification implementation with service worker
+- [ ] **Email Notifications**: Send transactional emails for messages, schedule changes, document uploads
+- [ ] **Court Export**: Generate court-ready PDF exports of communications, schedules, and expense reports
+- [ ] **Production Stripe**: Switch from test mode to live Stripe integration with proper webhooks
 
 ### Medium Priority
 
-- [ ] **Holiday Schedules**: Add holiday/special occasion override scheduling
-- [ ] **Recurring Events**: Child activities, appointments scheduling
-- [ ] **File Previews**: In-app document preview (PDF, images)
-- [ ] **Message Search**: Search through message history
+- [ ] **Holiday Schedules**: Add holiday/special occasion override scheduling with templates
+- [ ] **Recurring Events**: Child activities, doctor appointments, school events scheduling
+- [ ] **File Previews**: In-app document preview for PDFs and images without download
+- [ ] **Message Search**: Full-text search through message history
 - [ ] **Mobile App**: Native iOS/Android apps (currently PWA only)
+- [ ] **Grandparent Rights**: Add grandparent visitation laws to law library
+- [ ] **Domestic Violence Resources**: Add protective order and DV resources to law library
 
 ### Low Priority / Nice to Have
 
-- [ ] **Dark Mode Toggle**: UI toggle for dark/light mode (CSS ready)
-- [ ] **Multiple Children Calendars**: Per-child schedule overrides
-- [x] ~~**Expense Tracking**: Shared expense management~~ ✅ Implemented
-- [ ] **Mileage Tracking**: Exchange location distance tracking
+- [ ] **Dark Mode Toggle**: UI toggle for dark/light mode (CSS variables ready)
+- [ ] **Multiple Children Calendars**: Per-child schedule overrides for split custody
+- [ ] **Mileage Tracking**: Exchange location distance tracking and reimbursement
 - [ ] **Integration with Family Law Portals**: Direct court filing integration
-- [x] ~~**AI-Powered Message Assistance**: Analyze messages for tone issues~~ ✅ Implemented
+- [ ] **Mediation Scheduling**: Built-in mediation appointment booking
+- [ ] **Co-parent Activity Feed**: Shared timeline of child activities and updates
 
-### Completed Features
+### Completed Features ✅
 
-- [x] **Expense Tracking & Reimbursements**: Full expense management with categories and reimbursement requests
-- [x] **Journal/Notes**: Private journaling with mood tracking and exchange notes
-- [x] **Law Library**: State-specific legal resources with admin management
+- [x] **Visual Custody Calendar**: Interactive calendar with parent-coded days and pattern display
+- [x] **Schedule Pattern Engine**: Complete pattern-based schedule generation (weekly, bi-weekly, custom)
+- [x] **Expense Tracking & Reimbursements**: Full expense management with categories, receipts, and reimbursement requests
+- [x] **Journal/Notes**: Private journaling with mood tracking, tags, and exchange notes
+- [x] **Law Library - Parenting Time**: Guidelines for all 50 states + DC
+- [x] **Law Library - Child Support**: Calculators and guidelines for all 50 states + DC
+- [x] **Law Library - Custody Laws**: Modification and enforcement laws for all 50 states + DC
+- [x] **Law Library - Relocation Laws**: Move-away requirements for all 50 states + DC
 - [x] **AI Message Tone Assistant**: AI-powered suggestions for professional communication
 - [x] **Exchange Check-ins**: Custody exchange confirmation and logging
-- [x] **Real-time Updates**: Live data synchronization for schedules and children
+- [x] **Real-time Updates**: Live data synchronization for schedules, children, and messages
+- [x] **Document Management**: Upload, categorize, and share documents with access logging
+- [x] **Co-Parent Invitations**: Email invitation system to link co-parents
+- [x] **Step-Parent Access**: Dual-approval system for step-parent view access
+- [x] **Admin Dashboard**: User management, analytics, and content management
+- [x] **Blog System**: Full blog with categories, tags, and sharing
+- [x] **Error Boundaries**: Comprehensive error handling with fallback UIs
+- [x] **Children CRUD**: Add, edit, and manage child profiles with medical/school info
 
 ### Technical Debt
 
-- [ ] **Unit Tests**: Add comprehensive test coverage
-- [ ] **E2E Tests**: Playwright or Cypress testing
-- [ ] **Error Boundaries**: Add React error boundaries
-- [ ] **Accessibility Audit**: Full WCAG compliance review
-- [ ] **Performance Optimization**: Lazy loading for routes, image optimization
+- [ ] **Unit Tests**: Add comprehensive test coverage with Vitest
+- [ ] **E2E Tests**: Playwright or Cypress end-to-end testing
+- [ ] **Accessibility Audit**: Full WCAG 2.1 AA compliance review
+- [ ] **Performance Optimization**: Lazy loading for routes, image optimization, bundle splitting
+- [ ] **API Rate Limiting**: Add rate limiting to edge functions
+- [ ] **Audit Logging**: Comprehensive audit trail for all data changes
 
-### Bug Fixes Needed
+### Known Issues to Verify
 
-- [ ] Verify step-parent approval flow works end-to-end
-- [ ] Test subscription webhook handling with Stripe
-- [ ] Validate realtime subscriptions cleanup on unmount
+- [ ] Verify step-parent approval flow works end-to-end in production
+- [ ] Test subscription webhook handling with live Stripe events
+- [ ] Validate realtime subscriptions cleanup on component unmount
+- [ ] Test law library file downloads with actual uploaded PDFs
 
 ---
 
