@@ -39,9 +39,11 @@ The application is designed with a **calm, professional, court-friendly aestheti
 
 **Current Phase:** Active Development (Pre-Beta)  
 **Environment:** Lovable Cloud + Supabase  
-**Stripe Mode:** Test (as of YYYY-MM-DD)
+**Stripe Mode:** Test (as of YYYY-MM-DD)  
 **Last Verified Build:** YYYY-MM-DD  
 **Verified By:** Human / Lovable / Both
+
+> **Note:** The `Last Verified Build` and `Verified By` fields must be updated whenever a behavioral or architectural change is made.
 
 ### Current Focus
 
@@ -167,14 +169,15 @@ These rules should be preserved unless explicitly revised.
 
 ### Explicit Non-Goals (For Now)
 
-- Setting up PWA
+The following are explicitly out of scope and should be treated as constraints unless explicitly revised:
+
 - Real-time location tracking
 - Legal advice or court filing automation
 - Direct communication with courts
 - Financial arbitration or forced payment handling
-- Native mobile apps (beyond PWA)
+- Native mobile apps beyond PWA
 
-These may be revisited post-beta.
+These non-goals may be revisited post-beta.
 
 ## 🔌 3rd Party Connections
 
@@ -564,18 +567,19 @@ CoParrent Application
 | YYYY-MM-DD | Stripe webhooks limited to 4 events     | Reduce noise + simplify edge logic |
 | YYYY-MM-DD | Dashboard UI gated strictly behind auth | Prevent data leakage               |
 
-Add new rows instead of rewriting history.
+> **Policy:** Decision Log entries must never be rewritten; new decisions are appended only.
 
 ---
 
 ## 🔄 Change Log
+
+> **Policy:** Any change affecting routing, authentication, payments, data integrity, or user access must be recorded here. Do not remove existing entries.
 
 ### YYYY-MM-DD
 
 - Fixed blog routing to separate public vs dashboard views
 - Resolved white screen issue on Add Child / Add Expense / Add Document
 - Added error boundaries to core dashboard routes
-- **Rule:** Any change that affects routing, auth, payments, data integrity, or user access must be recorded here.
 
 ### YYYY-MM-DD
 
@@ -694,6 +698,21 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [ ] Verify step-parent approval flow works end-to-end
 - [ ] Test subscription webhook handling with Stripe
 - [ ] Validate realtime subscriptions cleanup on unmount
+
+---
+
+## 📜 README Governance
+
+The `README.md` is the **authoritative reference** for architecture, routing, authentication, and behavioral expectations for the CoParrent project.
+
+**Rules:**
+
+1. If a requested change conflicts with the README, execution should pause and request clarification before proceeding.
+2. When implementing fixes or changes, update:
+   - **Project State** if the issue is blocking
+   - **Change Log** once resolved
+3. Decision Log entries must never be rewritten; new decisions are appended only.
+4. The README should evolve incrementally, not be rewritten wholesale.
 
 ---
 
