@@ -21,12 +21,14 @@ interface BlogPost {
 interface BlogCardProps {
   post: BlogPost;
   index?: number;
+  isPublic?: boolean;
 }
 
-export const BlogCard = ({ post, index = 0 }: BlogCardProps) => {
+export const BlogCard = ({ post, index = 0, isPublic = false }: BlogCardProps) => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
-  const postUrl = `${window.location.origin}/dashboard/blog/${post.slug}`;
+  const postPath = isPublic ? `/blog/${post.slug}` : `/dashboard/blog/${post.slug}`;
+  const postUrl = `${window.location.origin}${postPath}`;
 
   return (
     <>
@@ -37,7 +39,7 @@ export const BlogCard = ({ post, index = 0 }: BlogCardProps) => {
         className="group rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg transition-shadow"
       >
         {/* Featured Image */}
-        <Link to={`/dashboard/blog/${post.slug}`}>
+        <Link to={postPath}>
           <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 relative overflow-hidden">
             {post.featured_image ? (
               <img
@@ -72,7 +74,7 @@ export const BlogCard = ({ post, index = 0 }: BlogCardProps) => {
             </Button>
           </div>
 
-          <Link to={`/dashboard/blog/${post.slug}`}>
+          <Link to={postPath}>
             <h3 className="font-display font-semibold text-lg leading-snug group-hover:text-primary transition-colors line-clamp-2">
               {post.title}
             </h3>

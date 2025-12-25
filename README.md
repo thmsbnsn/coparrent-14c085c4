@@ -53,7 +53,7 @@ The application is designed with a **calm, professional, court-friendly aestheti
 
 ### Known Blocking Issues
 
-- Blog route improperly rendering authenticated layout when logged out
+_None currently. All previously identified blocking issues have been resolved._
 
 _Last updated: 2025-12-25_
 
@@ -580,6 +580,10 @@ CoParrent Application
   - Added `isSaving` state with loading indicators to Children page Add/Edit dialogs
   - Wrapped async mutations in try-catch blocks with proper error handling
   - All three pages already had ErrorBoundary wrappers
+- **Fixed:** Blog route rendering authenticated layout when logged out
+  - Created `PublicLayout` component with Navbar/Footer for public pages
+  - Updated `/blog` and `/blog/:slug` routes to use public layout
+  - Dashboard blog routes still available at `/dashboard/blog` for authenticated users
 
 ### YYYY-MM-DD
 

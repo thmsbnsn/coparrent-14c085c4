@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, Filter, BookOpen } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { PublicLayout } from "@/components/landing/PublicLayout";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -64,29 +64,27 @@ const BlogPage = () => {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <PublicLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      </DashboardLayout>
+      </PublicLayout>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <PublicLayout>
+      <div className="space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          className="text-center max-w-2xl mx-auto"
         >
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-display font-bold">CoParrent Blog</h1>
-            <p className="text-muted-foreground mt-1">
-              Tips, insights, and resources for successful co-parenting
-            </p>
-          </div>
+          <h1 className="text-3xl lg:text-4xl font-display font-bold mb-4">CoParrent Blog</h1>
+          <p className="text-lg text-muted-foreground">
+            Tips, insights, and resources for successful co-parenting
+          </p>
         </motion.div>
 
         {/* Filters */}
@@ -94,7 +92,7 @@ const BlogPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex flex-col sm:flex-row gap-3"
+          className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto"
         >
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -140,13 +138,13 @@ const BlogPage = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPosts.map((post, index) => (
-                <BlogCard key={post.id} post={post} index={index} />
+                <BlogCard key={post.id} post={post} index={index} isPublic />
               ))}
             </div>
           )}
         </motion.div>
       </div>
-    </DashboardLayout>
+    </PublicLayout>
   );
 };
 
