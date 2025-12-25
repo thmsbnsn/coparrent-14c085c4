@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Share2, Calendar, User, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { PublicLayout } from "@/components/landing/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShareDialog } from "@/components/blog/ShareDialog";
@@ -25,9 +26,15 @@ interface BlogPost {
 
 const BlogPostPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+
+  // Determine if this is a public or dashboard route
+  const isPublicRoute = location.pathname.startsWith("/blog/");
+  const backLink = isPublicRoute ? "/blog" : "/dashboard/blog";
+  const Layout = isPublicRoute ? PublicLayout : DashboardLayout;
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -51,33 +58,33 @@ const BlogPostPage = () => {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      </DashboardLayout>
+      </Layout>
     );
   }
 
   if (!post) {
     return (
-      <DashboardLayout>
+      <Layout>
         <div className="flex flex-col items-center justify-center py-16 gap-4">
           <h2 className="text-xl font-display font-bold">Article not found</h2>
           <Button asChild>
-            <Link to="/dashboard/blog">Back to Blog</Link>
+            <Link to={backLink}>Back to Blog</Link>
           </Button>
         </div>
-      </DashboardLayout>
+      </Layout>
     );
   }
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Back Button */}
         <Button variant="ghost" asChild>
-          <Link to="/dashboard/blog">
+          <Link to={backLink}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Blog
           </Link>
@@ -179,7 +186,7 @@ const BlogPostPage = () => {
         title={post.title}
         url={window.location.href}
       />
-    </DashboardLayout>
+    </Layout>
   );
 };
 
