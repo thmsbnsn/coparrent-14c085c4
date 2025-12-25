@@ -12,6 +12,9 @@ interface SubscriptionStatus {
   freeAccess: boolean;
   accessReason: string | null;
   error: string | null;
+  trial: boolean;
+  trialEndsAt: string | null;
+  pastDue: boolean;
 }
 
 export const useSubscription = () => {
@@ -25,11 +28,15 @@ export const useSubscription = () => {
     freeAccess: false,
     accessReason: null,
     error: null,
+    trial: false,
+    trialEndsAt: null,
+    pastDue: false,
   });
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
-  const checkSubscription = useCallback(async () => {
+  const checkSubscription = useCallback(async (retry = false) => {
     if (!user) {
       setStatus({ 
         subscribed: false, 
@@ -38,7 +45,10 @@ export const useSubscription = () => {
         loading: false, 
         freeAccess: false, 
         accessReason: null,
-        error: null 
+        error: null,
+        trial: false,
+        trialEndsAt: null,
+        pastDue: false,
       });
       return;
     }
@@ -49,35 +59,61 @@ export const useSubscription = () => {
       
       if (error) {
         console.error("[useSubscription] Error checking subscription:", error);
+        
+        // Retry logic for network failures
+        if (retry && retryCount < 3) {
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => checkSubscription(true), 2000 * (retryCount + 1));
+          return;
+        }
+        
         throw error;
       }
 
       console.log("[useSubscription] Subscription data received:", data);
+      setRetryCount(0);
+
+      // Handle error responses from the function
+      if (data.error) {
+        console.warn("[useSubscription] Function returned error:", data.error);
+        setStatus(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: data.error,
+          subscribed: false,
+          tier: "free",
+        }));
+        return;
+      }
 
       setStatus({
-        subscribed: data.subscribed || data.free_access,
-        tier: data.tier || "free",
-        subscriptionEnd: data.subscription_end,
+        subscribed: data.subscribed || data.free_access || false,
+        tier: (data.tier as StripeTier | "free") || "free",
+        subscriptionEnd: data.subscription_end || null,
         loading: false,
         freeAccess: data.free_access || false,
         accessReason: data.access_reason || null,
         error: null,
+        trial: data.trial || false,
+        trialEndsAt: data.trial_ends_at || null,
+        pastDue: data.past_due || false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[useSubscription] Error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to check subscription";
       setStatus(prev => ({ 
         ...prev, 
         loading: false, 
-        error: error.message || "Failed to check subscription" 
+        error: errorMessage,
       }));
     }
-  }, [user]);
+  }, [user, retryCount]);
 
   useEffect(() => {
-    checkSubscription();
+    checkSubscription(true);
     
     // Auto-refresh every minute
-    const interval = setInterval(checkSubscription, 60000);
+    const interval = setInterval(() => checkSubscription(false), 60000);
     return () => clearInterval(interval);
   }, [checkSubscription]);
 
@@ -107,6 +143,27 @@ export const useSubscription = () => {
         throw error;
       }
 
+      // Handle specific error codes from the function
+      if (data.error) {
+        console.error("[useSubscription] Checkout function error:", data);
+        
+        // Show appropriate message based on error code
+        const errorMessages: Record<string, string> = {
+          ALREADY_SUBSCRIBED: "You already have an active subscription. Visit Settings to manage it.",
+          INVALID_PRICE: "This plan is no longer available. Please refresh the page.",
+          SERVICE_UNAVAILABLE: "Payment service is temporarily unavailable. Please try again later.",
+          AUTH_REQUIRED: "Please sign in to continue.",
+          AUTH_FAILED: "Your session has expired. Please sign in again.",
+        };
+        
+        toast({
+          title: "Unable to start checkout",
+          description: errorMessages[data.code] || data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
       console.log("[useSubscription] Checkout session created:", data);
 
       if (data.url) {
@@ -114,11 +171,12 @@ export const useSubscription = () => {
       } else {
         throw new Error("No checkout URL returned");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[useSubscription] Checkout failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unable to start checkout. Please try again.";
       toast({
         title: "Checkout failed",
-        description: error.message || "Unable to start checkout. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -147,6 +205,34 @@ export const useSubscription = () => {
         throw error;
       }
 
+      // Handle specific error codes from the function
+      if (data.error) {
+        console.error("[useSubscription] Portal function error:", data);
+        
+        if (data.action === "subscribe") {
+          toast({
+            title: "No subscription found",
+            description: "Please subscribe to a plan first to access billing management.",
+          });
+          return;
+        }
+        
+        if (data.code === "FREE_ACCESS") {
+          toast({
+            title: "Complimentary access",
+            description: "Your premium access is free and doesn't require billing management.",
+          });
+          return;
+        }
+        
+        toast({
+          title: "Portal access failed",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
       console.log("[useSubscription] Portal session created:", data);
 
       if (data.url) {
@@ -154,11 +240,12 @@ export const useSubscription = () => {
       } else {
         throw new Error("No portal URL returned");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[useSubscription] Portal failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unable to open billing portal. Please try again.";
       toast({
         title: "Portal access failed",
-        description: error.message || "Unable to open billing portal. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

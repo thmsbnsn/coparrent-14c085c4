@@ -53,7 +53,8 @@ const LIVE_MODE_TIERS = {
 };
 
 // Toggle this to switch between test and live mode
-const USE_TEST_MODE = true;
+// Set to false for production with live Stripe keys
+const USE_TEST_MODE = false;
 
 export const STRIPE_TIERS = USE_TEST_MODE ? TEST_MODE_TIERS : LIVE_MODE_TIERS;
 
