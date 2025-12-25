@@ -705,7 +705,38 @@ The `.env` file is auto-configured by Lovable Cloud with:
 
 The `README.md` is the **authoritative reference** for architecture, routing, authentication, and behavioral expectations for the CoParrent project.
 
-**Rules:**
+### Pre-Implementation Validation Checklist
+
+Before implementing any change, verify the following:
+
+- [ ] **Routing**: Does this change affect public vs protected routes? Check [Application Wire Tree](#-application-wire-tree)
+- [ ] **Auth**: Does this touch authentication flow? Review [Architectural Guardrails > Routing & Auth](#routing--auth)
+- [ ] **Payments**: Does this affect subscription or billing? Check [Architectural Guardrails > Payments](#payments)
+- [ ] **Data**: Does this modify database schema or RLS? Review [Database Schema](#-database-schema)
+- [ ] **Non-Goals**: Does this introduce a feature listed in [Explicit Non-Goals](#explicit-non-goals-for-now)? If yes, stop and clarify.
+- [ ] **Blocking Issues**: Is this related to a [Known Blocking Issue](#known-blocking-issues)? Prioritize accordingly.
+
+### Conflict Resolution
+
+If a requested change conflicts with documented architecture or guardrails:
+
+1. **Pause execution** — do not proceed with implementation
+2. **Cite the conflict** — reference the specific README section
+3. **Request clarification** — ask whether the README should be updated or the request revised
+4. **Document decision** — if proceeding, add entry to Decision Log
+
+### Post-Implementation Updates
+
+After completing changes:
+
+| Change Type                          | Update Required                         |
+| ------------------------------------ | --------------------------------------- |
+| Fixed a blocking issue               | Update **Project State** → Known Issues |
+| Changed routing, auth, payments      | Add entry to **Change Log**             |
+| Made architectural decision          | Append to **Decision Log**              |
+| Behavioral or structural change      | Update **Last Verified Build** date     |
+
+### Rules
 
 1. If a requested change conflicts with the README, execution should pause and request clarification before proceeding.
 2. When implementing fixes or changes, update:
