@@ -90,18 +90,16 @@ const AdminDashboard = () => {
     
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-manage-users", {
+      const queryParams = `?action=list${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""}`;
+      const response = await supabase.functions.invoke(`admin-manage-users${queryParams}`, {
+        method: "POST",
         body: {},
-        method: "GET",
       });
-
-      // Need to use query params for GET request
-      const response = await supabase.functions.invoke("admin-manage-users?action=list" + (searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ""));
 
       if (response.error) throw response.error;
       
       setUsers(response.data?.users || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching users:", error);
       toast({
         title: "Error",
