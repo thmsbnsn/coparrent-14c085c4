@@ -575,6 +575,7 @@ Add new rows instead of rewriting history.
 - Fixed blog routing to separate public vs dashboard views
 - Resolved white screen issue on Add Child / Add Expense / Add Document
 - Added error boundaries to core dashboard routes
+- **Rule:** Any change that affects routing, auth, payments, data integrity, or user access must be recorded here.
 
 ### YYYY-MM-DD
 
@@ -600,6 +601,12 @@ Add new rows instead of rewriting history.
 
 - Subscription state updates only after webhook receipt
 - Failed payments downgrade access correctly
+
+### SEO & Public Pages
+
+- Public routes render without auth context
+- No dashboard UI or sidebar leaks on public pages
+- Blog pages are crawlable without JavaScript auth
 
 ---
 
