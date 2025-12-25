@@ -25,6 +25,7 @@
 ## 🎯 Project Summary
 
 CoParrent helps co-parents:
+
 - **Coordinate custody schedules** with visual calendars showing each parent's time
 - **Communicate securely** through logged messaging (court-admissible)
 - **Share children's information** including medical records, school details, and emergency contacts
@@ -34,73 +35,126 @@ CoParrent helps co-parents:
 
 The application is designed with a **calm, professional, court-friendly aesthetic** using navy blue and sage green as primary colors to reduce stress during what can be a difficult time.
 
+## 🧭 Project State
+
+**Current Phase:** Active Development (Pre-Beta)  
+**Environment:** Lovable Cloud + Supabase  
+**Stripe Mode:** Test (as of YYYY-MM-DD)
+
+### Current Focus
+
+- Stabilizing core CRUD flows (Children, Expenses, Documents)
+- Fixing auth-gated routing inconsistencies
+- Hardening Stripe subscription lifecycle
+
+### Known Blocking Issues
+
+- White screen on create actions (Children, Expenses, Vault)
+- Blog route improperly rendering authenticated layout when logged out
+
+_Last updated: YYYY-MM-DD_
+
 ---
 
 ## 🛠 Tech Stack
 
 ### Frontend
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| **React** | ^18.3.1 | UI Framework |
-| **TypeScript** | - | Type Safety |
-| **Vite** | - | Build Tool & Dev Server |
-| **Tailwind CSS** | - | Utility-First Styling |
-| **shadcn/ui** | - | Component Library |
-| **Framer Motion** | ^12.23.26 | Animations |
-| **React Router DOM** | ^6.30.1 | Client-Side Routing |
-| **TanStack React Query** | ^5.83.0 | Data Fetching & Caching |
-| **React Hook Form** | ^7.61.1 | Form Management |
-| **Zod** | ^3.25.76 | Schema Validation |
-| **date-fns** | ^3.6.0 | Date Utilities |
-| **Recharts** | ^2.15.4 | Charts & Data Visualization |
-| **Lucide React** | ^0.462.0 | Icon Library |
+
+| Technology               | Version   | Purpose                     |
+| ------------------------ | --------- | --------------------------- |
+| **React**                | ^18.3.1   | UI Framework                |
+| **TypeScript**           | -         | Type Safety                 |
+| **Vite**                 | -         | Build Tool & Dev Server     |
+| **Tailwind CSS**         | -         | Utility-First Styling       |
+| **shadcn/ui**            | -         | Component Library           |
+| **Framer Motion**        | ^12.23.26 | Animations                  |
+| **React Router DOM**     | ^6.30.1   | Client-Side Routing         |
+| **TanStack React Query** | ^5.83.0   | Data Fetching & Caching     |
+| **React Hook Form**      | ^7.61.1   | Form Management             |
+| **Zod**                  | ^3.25.76  | Schema Validation           |
+| **date-fns**             | ^3.6.0    | Date Utilities              |
+| **Recharts**             | ^2.15.4   | Charts & Data Visualization |
+| **Lucide React**         | ^0.462.0  | Icon Library                |
 
 ### Backend (Lovable Cloud / Supabase)
-| Technology | Purpose |
-|------------|---------|
-| **Supabase** | Database, Auth, Storage, Edge Functions |
-| **PostgreSQL** | Relational Database |
-| **Row Level Security (RLS)** | Data Access Control |
-| **Edge Functions (Deno)** | Serverless Backend Logic |
+
+| Technology                   | Purpose                                 |
+| ---------------------------- | --------------------------------------- |
+| **Supabase**                 | Database, Auth, Storage, Edge Functions |
+| **PostgreSQL**               | Relational Database                     |
+| **Row Level Security (RLS)** | Data Access Control                     |
+| **Edge Functions (Deno)**    | Serverless Backend Logic                |
 
 ### PWA Support
-| Technology | Purpose |
-|------------|---------|
+
+| Technology          | Purpose                     |
+| ------------------- | --------------------------- |
 | **vite-plugin-pwa** | Progressive Web App Support |
-| **Service Worker** | Offline Caching |
+| **Service Worker**  | Offline Caching             |
 
 ---
+
+## 🧱 Architectural Guardrails
+
+These rules should be preserved unless explicitly revised.
+
+### Routing & Auth
+
+- Public routes must never render authenticated layouts or sidebar navigation
+- Protected routes must always be wrapped in auth guards
+- SEO-critical pages (Blog, Pricing, About) must remain publicly accessible
+
+### State & UI Safety
+
+- No route or action should ever fail silently
+- All async mutations must have loading + error states
+- White/blank screens are considered critical bugs
+
+### Payments
+
+- Stripe webhooks are the source of truth for subscription state
+- UI should never assume payment success without webhook confirmation
+
+### Data Integrity
+
+- All child-related data must be linked through parent-child junction tables
+- No destructive action without confirmation and audit logging
 
 ## 🎨 Typography & Design System
 
 ### Fonts
+
 - **Display Font**: `Outfit` (headings, titles) - Modern geometric sans-serif
 - **Body Font**: `Inter` (body text, UI) - Highly legible system font
 
 ### Color Palette
 
 #### Light Mode
-| Token | HSL Value | Usage |
-|-------|-----------|-------|
-| `--primary` | 222 47% 20% | Deep Navy Blue - Trust, Professionalism |
-| `--secondary` | 150 25% 92% | Warm Sage Green - Calm, Growth |
-| `--accent` | 174 42% 90% | Soft Teal - Clarity, Balance |
-| `--background` | 210 25% 98% | Light gray background |
-| `--foreground` | 222 47% 11% | Dark text |
+
+| Token          | HSL Value   | Usage                                   |
+| -------------- | ----------- | --------------------------------------- |
+| `--primary`    | 222 47% 20% | Deep Navy Blue - Trust, Professionalism |
+| `--secondary`  | 150 25% 92% | Warm Sage Green - Calm, Growth          |
+| `--accent`     | 174 42% 90% | Soft Teal - Clarity, Balance            |
+| `--background` | 210 25% 98% | Light gray background                   |
+| `--foreground` | 222 47% 11% | Dark text                               |
 
 #### Parent-Specific Colors
-| Token | Usage |
-|-------|-------|
-| `--parent-a` | Primary parent indicator (Blue) |
+
+| Token        | Usage                              |
+| ------------ | ---------------------------------- |
+| `--parent-a` | Primary parent indicator (Blue)    |
 | `--parent-b` | Secondary parent indicator (Green) |
 
 #### Semantic Colors
+
 - `--success`: Green for positive states
 - `--warning`: Orange for alerts
 - `--destructive`: Red for errors/deletions
 - `--info`: Blue for informational messages
 
 ### Design Utilities
+
 - `.glass` - Glassmorphism effect with blur
 - `.shadow-elegant` - Subtle professional shadows
 - `.shadow-glow` - Soft accent glow
@@ -112,18 +166,20 @@ The application is designed with a **calm, professional, court-friendly aestheti
 ## 🔌 3rd Party Connections
 
 ### Integrated Services
-| Service | Purpose | Status |
-|---------|---------|--------|
-| **Lovable Cloud Auth** | User authentication (Email, Google, Apple OAuth) | ✅ Active |
-| **Lovable Cloud Storage** | Document storage with access logging | ✅ Active |
-| **Stripe** | Subscription payments & billing | ✅ Active |
-| **Resend** | Transactional emails (invitations, notifications) | ✅ Active |
-| **hCaptcha** | Bot protection on auth forms | ✅ Active |
-| **Google OAuth** | Social login | ✅ Active |
-| **Apple OAuth** | Social login | ✅ Active |
-| **Lovable AI Gateway** | AI-powered message tone assistance & schedule suggestions | ✅ Active |
+
+| Service                   | Purpose                                                   | Status    |
+| ------------------------- | --------------------------------------------------------- | --------- |
+| **Lovable Cloud Auth**    | User authentication (Email, Google, Apple OAuth)          | ✅ Active |
+| **Lovable Cloud Storage** | Document storage with access logging                      | ✅ Active |
+| **Stripe**                | Subscription payments & billing                           | ✅ Active |
+| **Resend**                | Transactional emails (invitations, notifications)         | ✅ Active |
+| **hCaptcha**              | Bot protection on auth forms                              | ✅ Active |
+| **Google OAuth**          | Social login                                              | ✅ Active |
+| **Apple OAuth**           | Social login                                              | ✅ Active |
+| **Lovable AI Gateway**    | AI-powered message tone assistance & schedule suggestions | ✅ Active |
 
 ### Environment Variables (Secrets)
+
 - `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `STRIPE_SECRET_KEY`
 - `RESEND_API_KEY`
@@ -136,142 +192,156 @@ The application is designed with a **calm, professional, court-friendly aestheti
 ## ✨ Features & Components
 
 ### 1. Landing Pages
-| Feature | Components | Description |
-|---------|------------|-------------|
-| Homepage | `Navbar`, `Hero`, `Features`, `Footer` | Marketing landing page |
-| Pricing | `Pricing` page | Subscription tier comparison |
-| About | `About` page | Company/product information |
-| Blog | `BlogPage`, `BlogPostPage`, `BlogCard`, `ShareDialog` | Content marketing |
+
+| Feature  | Components                                            | Description                  |
+| -------- | ----------------------------------------------------- | ---------------------------- |
+| Homepage | `Navbar`, `Hero`, `Features`, `Footer`                | Marketing landing page       |
+| Pricing  | `Pricing` page                                        | Subscription tier comparison |
+| About    | `About` page                                          | Company/product information  |
+| Blog     | `BlogPage`, `BlogPostPage`, `BlogCard`, `ShareDialog` | Content marketing            |
 
 ### 2. Authentication
-| Feature | Components | Description |
-|---------|------------|-------------|
-| Login | `Login`, `SocialLoginButtons` | Email/password + Google OAuth |
-| Signup | `Signup`, `SocialLoginButtons` | User registration with trial |
-| Password Reset | `ForgotPassword`, `ResetPassword` | Password recovery flow |
-| Protected Routes | `ProtectedRoute`, `AuthContext` | Route guards |
+
+| Feature          | Components                        | Description                   |
+| ---------------- | --------------------------------- | ----------------------------- |
+| Login            | `Login`, `SocialLoginButtons`     | Email/password + Google OAuth |
+| Signup           | `Signup`, `SocialLoginButtons`    | User registration with trial  |
+| Password Reset   | `ForgotPassword`, `ResetPassword` | Password recovery flow        |
+| Protected Routes | `ProtectedRoute`, `AuthContext`   | Route guards                  |
 
 ### 3. Dashboard
-| Feature | Components | Description |
-|---------|------------|-------------|
-| Main Dashboard | `Dashboard`, `DashboardLayout` | Overview with schedule, messages, children |
-| Navigation | `NavLink`, sidebar navigation | Responsive sidebar with collapse |
-| Notifications | `NotificationDropdown`, `NotificationsPage` | Real-time notification system |
-| Blog Integration | `BlogDashboardCard` | Latest blog posts in dashboard |
+
+| Feature          | Components                                  | Description                                |
+| ---------------- | ------------------------------------------- | ------------------------------------------ |
+| Main Dashboard   | `Dashboard`, `DashboardLayout`              | Overview with schedule, messages, children |
+| Navigation       | `NavLink`, sidebar navigation               | Responsive sidebar with collapse           |
+| Notifications    | `NotificationDropdown`, `NotificationsPage` | Real-time notification system              |
+| Blog Integration | `BlogDashboardCard`                         | Latest blog posts in dashboard             |
 
 ### 4. Custody Calendar
-| Feature | Components | Description |
-|---------|------------|-------------|
-| Calendar View | `CalendarPage` | Visual custody schedule |
-| Schedule Setup | `CalendarWizard` | Pattern-based schedule creation |
-| Change Requests | `ScheduleChangeRequest` | Formal swap/cancel requests |
-| Realtime Updates | `useRealtimeSchedule` | Live schedule synchronization |
+
+| Feature          | Components              | Description                     |
+| ---------------- | ----------------------- | ------------------------------- |
+| Calendar View    | `CalendarPage`          | Visual custody schedule         |
+| Schedule Setup   | `CalendarWizard`        | Pattern-based schedule creation |
+| Change Requests  | `ScheduleChangeRequest` | Formal swap/cancel requests     |
+| Realtime Updates | `useRealtimeSchedule`   | Live schedule synchronization   |
 
 ### 5. Children Management
-| Feature | Components | Description |
-|---------|------------|-------------|
-| Children List | `ChildrenPage` | Child profile cards |
-| Child Details | Medical, school, emergency info | Comprehensive child records |
-| Realtime Sync | `useRealtimeChildren`, `useChildren` | Live data updates |
+
+| Feature       | Components                           | Description                 |
+| ------------- | ------------------------------------ | --------------------------- |
+| Children List | `ChildrenPage`                       | Child profile cards         |
+| Child Details | Medical, school, emergency info      | Comprehensive child records |
+| Realtime Sync | `useRealtimeChildren`, `useChildren` | Live data updates           |
 
 ### 6. Messaging
-| Feature | Components | Description |
-|---------|------------|-------------|
-| **Message Thread** | `MessagesPage` | Secure co-parent messaging |
+
+| Feature               | Components             | Description                         |
+| --------------------- | ---------------------- | ----------------------------------- |
+| **Message Thread**    | `MessagesPage`         | Secure co-parent messaging          |
 | **AI Tone Assistant** | `MessageToneAssistant` | AI-powered message tone suggestions |
-| **Message History** | `useMessages` | Message data management |
-| **Read Receipts** | Timestamp tracking | Message read confirmation |
+| **Message History**   | `useMessages`          | Message data management             |
+| **Read Receipts**     | Timestamp tracking     | Message read confirmation           |
 
 ### 7. Documents
-| Feature | Components | Description |
-|---------|------------|-------------|
+
+| Feature              | Components                      | Description                   |
+| -------------------- | ------------------------------- | ----------------------------- |
 | **Document Library** | `DocumentsPage`, `DocumentCard` | File organization by category |
-| **Upload** | `DocumentUploadDialog` | Drag-and-drop file upload |
-| **Access Logging** | `DocumentAccessLogDialog` | Court-ready access trail |
-| **Secure Storage** | `useDocuments` | Cloud storage integration |
+| **Upload**           | `DocumentUploadDialog`          | Drag-and-drop file upload     |
+| **Access Logging**   | `DocumentAccessLogDialog`       | Court-ready access trail      |
+| **Secure Storage**   | `useDocuments`                  | Cloud storage integration     |
 
 ### 8. Expenses
-| Feature | Components | Description |
-|---------|------------|-------------|
-| **Expense List** | `ExpensesPage` | Shared expense tracking |
-| **Expense Categories** | Category filtering | Medical, education, activities, etc. |
-| **Reimbursement Requests** | Request workflow | Formal reimbursement approval system |
-| **Expense Reports** | PDF generation | Court-ready expense documentation |
+
+| Feature                    | Components         | Description                          |
+| -------------------------- | ------------------ | ------------------------------------ |
+| **Expense List**           | `ExpensesPage`     | Shared expense tracking              |
+| **Expense Categories**     | Category filtering | Medical, education, activities, etc. |
+| **Reimbursement Requests** | Request workflow   | Formal reimbursement approval system |
+| **Expense Reports**        | PDF generation     | Court-ready expense documentation    |
 
 ### 9. Journal
-| Feature | Components | Description |
-|---------|------------|-------------|
-| **Journal Entries** | `JournalPage` | Private journaling for custody notes |
-| **Mood Tracking** | Mood indicators | Track emotional state during exchanges |
-| **Exchange Notes** | Linked entries | Journal entries tied to exchange check-ins |
-| **Tags** | Tag system | Organize entries with custom tags |
+
+| Feature             | Components      | Description                                |
+| ------------------- | --------------- | ------------------------------------------ |
+| **Journal Entries** | `JournalPage`   | Private journaling for custody notes       |
+| **Mood Tracking**   | Mood indicators | Track emotional state during exchanges     |
+| **Exchange Notes**  | Linked entries  | Journal entries tied to exchange check-ins |
+| **Tags**            | Tag system      | Organize entries with custom tags          |
 
 ### 10. Law Library
-| Feature | Components | Description |
-|---------|------------|-------------|
-| **Legal Resources** | `LawLibraryPage`, `LawLibraryCard` | State-specific legal documents |
-| **State Filtering** | Filter by state | Find jurisdiction-relevant resources |
-| **Category Organization** | Legal categories | Custody, support, visitation, etc. |
-| **Disclaimer** | `LawLibraryDisclaimer` | Legal information disclaimer |
+
+| Feature                   | Components                         | Description                          |
+| ------------------------- | ---------------------------------- | ------------------------------------ |
+| **Legal Resources**       | `LawLibraryPage`, `LawLibraryCard` | State-specific legal documents       |
+| **State Filtering**       | Filter by state                    | Find jurisdiction-relevant resources |
+| **Category Organization** | Legal categories                   | Custody, support, visitation, etc.   |
+| **Disclaimer**            | `LawLibraryDisclaimer`             | Legal information disclaimer         |
 
 ### 11. Settings & Account
-| Feature | Components | Description |
-|---------|------------|-------------|
-| **Settings Page** | `SettingsPage` | Account management hub |
-| **Co-Parent Invite** | `CoParentInvite` | Email invitation system |
-| **Step-Parent Manager** | `StepParentManager` | Dual-approval step-parent access |
-| **Trial Status** | `TrialStatus` | Subscription/trial tracking |
-| **Notifications** | `NotificationSettings` | Notification preferences |
-| **Subscription** | `useSubscription` | Stripe subscription management |
+
+| Feature                 | Components             | Description                      |
+| ----------------------- | ---------------------- | -------------------------------- |
+| **Settings Page**       | `SettingsPage`         | Account management hub           |
+| **Co-Parent Invite**    | `CoParentInvite`       | Email invitation system          |
+| **Step-Parent Manager** | `StepParentManager`    | Dual-approval step-parent access |
+| **Trial Status**        | `TrialStatus`          | Subscription/trial tracking      |
+| **Notifications**       | `NotificationSettings` | Notification preferences         |
+| **Subscription**        | `useSubscription`      | Stripe subscription management   |
 
 ### 12. Admin
-| Feature | Components | Description |
-|---------|------------|-------------|
-| **Admin Dashboard** | `AdminDashboard` | User management, analytics |
-| **User Roles** | Role-based access control | admin, moderator, user roles |
-| **Law Library Manager** | `AdminLawLibraryManager` | Upload and manage legal resources |
-| **Blog Management** | Blog CRUD | Create and edit blog posts |
+
+| Feature                 | Components                | Description                       |
+| ----------------------- | ------------------------- | --------------------------------- |
+| **Admin Dashboard**     | `AdminDashboard`          | User management, analytics        |
+| **User Roles**          | Role-based access control | admin, moderator, user roles      |
+| **Law Library Manager** | `AdminLawLibraryManager`  | Upload and manage legal resources |
+| **Blog Management**     | Blog CRUD                 | Create and edit blog posts        |
 
 ### 13. UI Components (shadcn/ui + Custom)
-| Component | Variants/Features |
-|-----------|-------------------|
-| `Button` | default, destructive, outline, secondary, ghost, link |
-| `Card` | Standard card with header, content, footer |
-| `Dialog` / `AlertDialog` | Modal dialogs |
-| `Drawer` / `Sheet` | Slide-out panels |
-| `Input` / `Textarea` | Form inputs |
-| `Select` / `Checkbox` / `Switch` | Form controls |
-| `Tabs` | Tab navigation |
-| `Table` | Data tables |
-| `Toast` / `Sonner` | Notifications |
-| `Skeleton` | shimmer, wave loading states |
-| `LoadingSpinner` | Branded video loading animation |
-| `Calendar` | Date picker |
-| `Avatar` | User avatars |
-| `Badge` | Status indicators |
-| `Tooltip` / `Popover` | Contextual info |
-| `Logo` | Animated brand logo |
+
+| Component                        | Variants/Features                                     |
+| -------------------------------- | ----------------------------------------------------- |
+| `Button`                         | default, destructive, outline, secondary, ghost, link |
+| `Card`                           | Standard card with header, content, footer            |
+| `Dialog` / `AlertDialog`         | Modal dialogs                                         |
+| `Drawer` / `Sheet`               | Slide-out panels                                      |
+| `Input` / `Textarea`             | Form inputs                                           |
+| `Select` / `Checkbox` / `Switch` | Form controls                                         |
+| `Tabs`                           | Tab navigation                                        |
+| `Table`                          | Data tables                                           |
+| `Toast` / `Sonner`               | Notifications                                         |
+| `Skeleton`                       | shimmer, wave loading states                          |
+| `LoadingSpinner`                 | Branded video loading animation                       |
+| `Calendar`                       | Date picker                                           |
+| `Avatar`                         | User avatars                                          |
+| `Badge`                          | Status indicators                                     |
+| `Tooltip` / `Popover`            | Contextual info                                       |
+| `Logo`                           | Animated brand logo                                   |
 
 ### 14. Custom Hooks
-| Hook | Purpose |
-|------|---------|
-| `useAuth` | Authentication state management |
-| `useChildren` | Children data CRUD |
-| `useRealtimeChildren` | Realtime children updates |
-| `useDocuments` | Document management |
-| `useMessages` | Messaging functionality |
-| `useExpenses` | Expense tracking and reimbursements |
-| `useLawLibrary` | Law library resource access |
-| `useAdminLawLibrary` | Admin law library management |
-| `useNotifications` | Notification management |
-| `useNotificationService` | Notification dispatch service |
-| `usePushNotifications` | Browser push notifications |
-| `useRealtimeSchedule` | Live schedule updates |
-| `useSchedulePersistence` | Schedule data persistence |
-| `useScheduleRequests` | Schedule change requests |
-| `useSubscription` | Stripe subscription status |
-| `useMobile` | Responsive breakpoint detection |
-| `useToast` | Toast notifications |
+
+| Hook                     | Purpose                             |
+| ------------------------ | ----------------------------------- |
+| `useAuth`                | Authentication state management     |
+| `useChildren`            | Children data CRUD                  |
+| `useRealtimeChildren`    | Realtime children updates           |
+| `useDocuments`           | Document management                 |
+| `useMessages`            | Messaging functionality             |
+| `useExpenses`            | Expense tracking and reimbursements |
+| `useLawLibrary`          | Law library resource access         |
+| `useAdminLawLibrary`     | Admin law library management        |
+| `useNotifications`       | Notification management             |
+| `useNotificationService` | Notification dispatch service       |
+| `usePushNotifications`   | Browser push notifications          |
+| `useRealtimeSchedule`    | Live schedule updates               |
+| `useSchedulePersistence` | Schedule data persistence           |
+| `useScheduleRequests`    | Schedule change requests            |
+| `useSubscription`        | Stripe subscription status          |
+| `useMobile`              | Responsive breakpoint detection     |
+| `useToast`               | Toast notifications                 |
 
 ---
 
@@ -434,46 +504,96 @@ CoParrent Application
 ## 🗄 Database Schema
 
 ### Core Tables
-| Table | Description |
-|-------|-------------|
-| `profiles` | User profiles with subscription and co-parent linking |
-| `children` | Child information (medical, school, emergency contacts) |
-| `parent_children` | Junction table linking parents to children |
-| `custody_schedules` | Custody patterns and schedule definitions |
-| `schedule_requests` | Schedule change requests |
-| `exchange_checkins` | Exchange confirmation records |
-| `messages` | Co-parent messages |
-| `documents` | Document metadata |
-| `document_access_logs` | Document access audit trail |
-| `expenses` | Shared expense tracking |
-| `reimbursement_requests` | Expense reimbursement workflows |
-| `journal_entries` | Private journal entries |
-| `notifications` | User notifications |
-| `invitations` | Co-parent invitations |
-| `step_parents` | Step-parent access with dual approval |
-| `law_library_resources` | State-specific legal documents |
-| `blog_posts` | Blog content |
-| `user_roles` | Role-based access (admin, moderator, user) |
+
+| Table                    | Description                                             |
+| ------------------------ | ------------------------------------------------------- |
+| `profiles`               | User profiles with subscription and co-parent linking   |
+| `children`               | Child information (medical, school, emergency contacts) |
+| `parent_children`        | Junction table linking parents to children              |
+| `custody_schedules`      | Custody patterns and schedule definitions               |
+| `schedule_requests`      | Schedule change requests                                |
+| `exchange_checkins`      | Exchange confirmation records                           |
+| `messages`               | Co-parent messages                                      |
+| `documents`              | Document metadata                                       |
+| `document_access_logs`   | Document access audit trail                             |
+| `expenses`               | Shared expense tracking                                 |
+| `reimbursement_requests` | Expense reimbursement workflows                         |
+| `journal_entries`        | Private journal entries                                 |
+| `notifications`          | User notifications                                      |
+| `invitations`            | Co-parent invitations                                   |
+| `step_parents`           | Step-parent access with dual approval                   |
+| `law_library_resources`  | State-specific legal documents                          |
+| `blog_posts`             | Blog content                                            |
+| `user_roles`             | Role-based access (admin, moderator, user)              |
 
 ### Edge Functions
-| Function | Purpose |
-|----------|---------|
-| `admin-manage-users` | Admin user management |
-| `ai-message-assist` | AI-powered message tone suggestions |
-| `ai-schedule-suggest` | AI-powered schedule recommendations |
-| `check-subscription` | Verify Stripe subscription status |
-| `create-checkout` | Create Stripe checkout session |
-| `customer-portal` | Stripe customer portal access |
-| `exchange-reminders` | Automated exchange reminder notifications |
-| `generate-expense-report` | PDF expense report generation |
-| `send-coparent-invite` | Send invitation emails via Resend |
-| `send-notification` | Push notification delivery |
+
+| Function                  | Purpose                                   |
+| ------------------------- | ----------------------------------------- |
+| `admin-manage-users`      | Admin user management                     |
+| `ai-message-assist`       | AI-powered message tone suggestions       |
+| `ai-schedule-suggest`     | AI-powered schedule recommendations       |
+| `check-subscription`      | Verify Stripe subscription status         |
+| `create-checkout`         | Create Stripe checkout session            |
+| `customer-portal`         | Stripe customer portal access             |
+| `exchange-reminders`      | Automated exchange reminder notifications |
+| `generate-expense-report` | PDF expense report generation             |
+| `send-coparent-invite`    | Send invitation emails via Resend         |
+| `send-notification`       | Push notification delivery                |
+
+---
+
+## 🧠 Decision Log
+
+| Date       | Decision                                | Reason                             |
+| ---------- | --------------------------------------- | ---------------------------------- |
+| YYYY-MM-DD | Blog kept public and SEO-indexed        | Marketing + organic discovery      |
+| YYYY-MM-DD | Stripe webhooks limited to 4 events     | Reduce noise + simplify edge logic |
+| YYYY-MM-DD | Dashboard UI gated strictly behind auth | Prevent data leakage               |
+
+Add new rows instead of rewriting history.
+
+---
+
+## 🔄 Change Log
+
+### YYYY-MM-DD
+
+- Fixed blog routing to separate public vs dashboard views
+- Resolved white screen issue on Add Child / Add Expense / Add Document
+- Added error boundaries to core dashboard routes
+
+### YYYY-MM-DD
+
+- Integrated Stripe webhook via Supabase Edge Function
+- Locked webhook events to Lovable-required set
+
+---
+
+## 🧪 QA Acceptance Checks
+
+### Auth & Routing
+
+- Logged-out users never see dashboard sidebar
+- Blog page loads publicly and is crawlable
+
+### Core CRUD
+
+- Add Child opens a form or modal and saves successfully
+- Add Expense never results in a blank page
+- Add Document renders upload UI reliably
+
+### Payments
+
+- Subscription state updates only after webhook receipt
+- Failed payments downgrade access correctly
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js (v18+)
 - npm or bun
 
@@ -496,7 +616,9 @@ npm run dev
 The app will be available at `http://localhost:8080`
 
 ### Environment Variables
+
 The `.env` file is auto-configured by Lovable Cloud with:
+
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_SUPABASE_PROJECT_ID`
@@ -506,6 +628,7 @@ The `.env` file is auto-configured by Lovable Cloud with:
 ## 📝 Incomplete Tasks / TODO
 
 ### High Priority
+
 - [x] ~~**Calendar Integration**: Implement visual calendar with custody pattern display~~ ✅ Implemented
 - [x] ~~**Schedule Pattern Engine**: Complete pattern-based schedule generation~~ ✅ Implemented
 - [ ] **Push Notifications**: Complete browser push notification implementation
@@ -513,6 +636,7 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [ ] **Court Export**: Generate court-ready PDF exports of communications and schedules
 
 ### Medium Priority
+
 - [ ] **Holiday Schedules**: Add holiday/special occasion override scheduling
 - [ ] **Recurring Events**: Child activities, appointments scheduling
 - [ ] **File Previews**: In-app document preview (PDF, images)
@@ -520,6 +644,7 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [ ] **Mobile App**: Native iOS/Android apps (currently PWA only)
 
 ### Low Priority / Nice to Have
+
 - [ ] **Dark Mode Toggle**: UI toggle for dark/light mode (CSS ready)
 - [ ] **Multiple Children Calendars**: Per-child schedule overrides
 - [x] ~~**Expense Tracking**: Shared expense management~~ ✅ Implemented
@@ -528,6 +653,7 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [x] ~~**AI-Powered Message Assistance**: Analyze messages for tone issues~~ ✅ Implemented
 
 ### Completed Features
+
 - [x] **Expense Tracking & Reimbursements**: Full expense management with categories and reimbursement requests
 - [x] **Journal/Notes**: Private journaling with mood tracking and exchange notes
 - [x] **Law Library**: State-specific legal resources with admin management
@@ -536,6 +662,7 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [x] **Real-time Updates**: Live data synchronization for schedules and children
 
 ### Technical Debt
+
 - [ ] **Unit Tests**: Add comprehensive test coverage
 - [ ] **E2E Tests**: Playwright or Cypress testing
 - [ ] **Error Boundaries**: Add React error boundaries
@@ -543,6 +670,7 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [ ] **Performance Optimization**: Lazy loading for routes, image optimization
 
 ### Bug Fixes Needed
+
 - [ ] Verify step-parent approval flow works end-to-end
 - [ ] Test subscription webhook handling with Stripe
 - [ ] Validate realtime subscriptions cleanup on unmount
