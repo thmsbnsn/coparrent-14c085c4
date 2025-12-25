@@ -121,9 +121,30 @@ export const useLawLibrary = () => {
     return data.publicUrl;
   };
 
-  const viewResource = (resource: LawLibraryResource) => {
-    const url = getPublicUrl(resource.file_path);
-    window.open(url, '_blank');
+  const viewResource = async (resource: LawLibraryResource) => {
+    try {
+      // Use signed URL for more reliable access
+      const { data, error } = await supabase.storage
+        .from('law-library')
+        .createSignedUrl(resource.file_path, 3600); // 1 hour expiry
+
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        // Fallback to public URL
+        const publicUrl = getPublicUrl(resource.file_path);
+        window.open(publicUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error viewing resource:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not open the document.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const downloadResource = async (resource: LawLibraryResource) => {
