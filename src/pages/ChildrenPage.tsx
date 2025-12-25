@@ -53,6 +53,7 @@ const ChildrenPage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newChildName, setNewChildName] = useState("");
   const [newChildDob, setNewChildDob] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   
   // Edit form states
   const [editName, setEditName] = useState("");
@@ -70,7 +71,10 @@ const ChildrenPage = () => {
   const [editGrade, setEditGrade] = useState("");
 
   const handleAddChild = async () => {
-    if (newChildName.trim()) {
+    if (!newChildName.trim()) return;
+    
+    setIsSaving(true);
+    try {
       const child = await addChild(newChildName.trim(), newChildDob || undefined);
       if (child) {
         setNewChildName("");
@@ -78,11 +82,18 @@ const ChildrenPage = () => {
         setIsAddDialogOpen(false);
         setSelectedChild(child);
       }
+    } catch (error) {
+      console.error("Error adding child:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleEditChild = async () => {
-    if (selectedChild && editName.trim()) {
+    if (!selectedChild || !editName.trim()) return;
+    
+    setIsSaving(true);
+    try {
       const success = await updateChild(selectedChild.id, {
         name: editName.trim(),
         date_of_birth: editDob || null,
@@ -117,6 +128,10 @@ const ChildrenPage = () => {
         });
         setIsEditDialogOpen(false);
       }
+    } catch (error) {
+      console.error("Error updating child:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -197,11 +212,11 @@ const ChildrenPage = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSaving}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddChild} disabled={!newChildName.trim()}>
-                  Add Child
+                <Button onClick={handleAddChild} disabled={!newChildName.trim() || isSaving}>
+                  {isSaving ? "Adding..." : "Add Child"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -637,11 +652,11 @@ const ChildrenPage = () => {
           </Tabs>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isSaving}>
               Cancel
             </Button>
-            <Button onClick={handleEditChild} disabled={!editName.trim()}>
-              Save Changes
+            <Button onClick={handleEditChild} disabled={!editName.trim() || isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
