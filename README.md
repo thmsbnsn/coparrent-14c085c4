@@ -40,6 +40,8 @@ The application is designed with a **calm, professional, court-friendly aestheti
 **Current Phase:** Active Development (Pre-Beta)  
 **Environment:** Lovable Cloud + Supabase  
 **Stripe Mode:** Test (as of YYYY-MM-DD)
+**Last Verified Build:** YYYY-MM-DD  
+**Verified By:** Human / Lovable / Both
 
 ### Current Focus
 
@@ -162,6 +164,17 @@ These rules should be preserved unless explicitly revised.
 - `.skeleton-shimmer` / `.skeleton-wave` - Loading animations
 
 ---
+
+### Explicit Non-Goals (For Now)
+
+- Setting up PWA
+- Real-time location tracking
+- Legal advice or court filing automation
+- Direct communication with courts
+- Financial arbitration or forced payment handling
+- Native mobile apps (beyond PWA)
+
+These may be revisited post-beta.
 
 ## 🔌 3rd Party Connections
 
