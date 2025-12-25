@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { FeatureErrorBoundary } from "@/components/ui/FeatureErrorBoundary";
 import { cn } from "@/lib/utils";
 import { useRealtimeChildren } from "@/hooks/useRealtimeChildren";
 import type { Child } from "@/hooks/useChildren";
@@ -665,10 +665,4 @@ const ChildrenPage = () => {
   );
 };
 
-const ChildrenPageWithErrorBoundary = () => (
-  <ErrorBoundary>
-    <ChildrenPage />
-  </ErrorBoundary>
-);
-
-export default ChildrenPageWithErrorBoundary;
+export default ChildrenPage;

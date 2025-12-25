@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { FeatureErrorBoundary } from '@/components/ui/FeatureErrorBoundary';
 import { useDocuments, DOCUMENT_CATEGORIES } from '@/hooks/useDocuments';
 import { DocumentUploadDialog } from '@/components/documents/DocumentUploadDialog';
 import { DocumentCard } from '@/components/documents/DocumentCard';
@@ -222,9 +222,9 @@ const DocumentsPageContent = () => {
 };
 
 const DocumentsPage = () => (
-  <ErrorBoundary>
+  <FeatureErrorBoundary featureName="Document Vault">
     <DocumentsPageContent />
-  </ErrorBoundary>
+  </FeatureErrorBoundary>
 );
 
 export default DocumentsPage;
