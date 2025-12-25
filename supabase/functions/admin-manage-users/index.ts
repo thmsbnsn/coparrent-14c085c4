@@ -73,8 +73,8 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
-    // GET: List all users with their subscription status
-    if (method === "GET" && action === "list") {
+    // List all users with their subscription status (supports GET and POST)
+    if (action === "list") {
       const search = url.searchParams.get("search") || "";
       
       // Get all profiles
