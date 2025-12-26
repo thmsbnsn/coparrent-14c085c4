@@ -16,6 +16,7 @@ import { StepParentManager } from "@/components/settings/StepParentManager";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { RecoveryCodes } from "@/components/auth/RecoveryCodes";
 import { SessionManager } from "@/components/auth/SessionManager";
+import { TrustedDevicesManager } from "@/components/auth/TrustedDevicesManager";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -446,6 +447,10 @@ const SettingsPage = () => {
             <TwoFactorSetup onStatusChange={setTwoFactorEnabled} />
             
             <RecoveryCodes isEnabled={twoFactorEnabled} />
+            
+            <Separator />
+            
+            <TrustedDevicesManager />
             
             <Separator />
             
