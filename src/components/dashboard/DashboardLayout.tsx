@@ -14,11 +14,13 @@ import {
   Menu,
   BookOpen,
   DollarSign,
+  Scale,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
@@ -30,26 +32,25 @@ interface DashboardLayoutProps {
   userRole?: "parent" | "lawoffice";
 }
 
-import { Scale } from "lucide-react";
-
+// Full navigation for parents/guardians
 const parentNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: Calendar, label: "Parenting Calendar", href: "/dashboard/calendar" },
-  { icon: Users, label: "Child Info", href: "/dashboard/children" },
-  { icon: MessageSquare, label: "Messages", href: "/dashboard/messages" },
-  { icon: FileText, label: "Documents", href: "/dashboard/documents" },
-  { icon: DollarSign, label: "Expenses", href: "/dashboard/expenses" },
-  { icon: BookHeart, label: "Journal", href: "/dashboard/journal" },
-  { icon: Scale, label: "Law Library", href: "/dashboard/law-library" },
-  { icon: BookOpen, label: "Blog", href: "/dashboard/blog" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true },
+  { icon: Calendar, label: "Parenting Calendar", href: "/dashboard/calendar", thirdPartyAllowed: false },
+  { icon: Users, label: "Child Info", href: "/dashboard/children", thirdPartyAllowed: false },
+  { icon: MessageSquare, label: "Messaging Hub", href: "/dashboard/messages", thirdPartyAllowed: true },
+  { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false },
+  { icon: DollarSign, label: "Expenses", href: "/dashboard/expenses", thirdPartyAllowed: false },
+  { icon: BookHeart, label: "Journal", href: "/dashboard/journal", thirdPartyAllowed: true },
+  { icon: Scale, label: "Law Library", href: "/dashboard/law-library", thirdPartyAllowed: true },
+  { icon: BookOpen, label: "Blog", href: "/dashboard/blog", thirdPartyAllowed: true },
+  { icon: Settings, label: "Settings", href: "/dashboard/settings", thirdPartyAllowed: false },
 ];
 
 const lawOfficeNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: Users, label: "Cases", href: "/dashboard/cases" },
-  { icon: FileText, label: "Documents", href: "/dashboard/documents" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true },
+  { icon: Users, label: "Cases", href: "/dashboard/cases", thirdPartyAllowed: false },
+  { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false },
+  { icon: Settings, label: "Settings", href: "/dashboard/settings", thirdPartyAllowed: false },
 ];
 
 export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayoutProps) => {
@@ -59,9 +60,14 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { isThirdParty } = useFamilyRole();
   const { toast } = useToast();
 
-  const navItems = userRole === "lawoffice" ? lawOfficeNavItems : parentNavItems;
+  // Filter nav items based on user role
+  const allNavItems = userRole === "lawoffice" ? lawOfficeNavItems : parentNavItems;
+  const navItems = isThirdParty 
+    ? allNavItems.filter(item => item.thirdPartyAllowed) 
+    : allNavItems;
 
   useEffect(() => {
     const fetchUserProfile = async () => {

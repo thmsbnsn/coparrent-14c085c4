@@ -27,11 +27,11 @@
 CoParrent helps co-parents:
 
 - **Coordinate custody schedules** with visual calendars showing each parent's time
-- **Communicate securely** through logged messaging (court-admissible)
+- **Communicate securely** through the Messaging Hub with group and direct messaging (court-admissible)
 - **Share children's information** including medical records, school details, and emergency contacts
 - **Store and share documents** with access logging for legal purposes
 - **Manage schedule changes** with formal request/approval workflows
-- **Invite step-parents** with dual-approval system
+- **Invite third-party members** (step-parents, grandparents, babysitters) via email invitation
 
 The application is designed with a **calm, professional, court-friendly aesthetic** using navy blue and sage green as primary colors to reduce stress during what can be a difficult time.
 
@@ -40,7 +40,7 @@ The application is designed with a **calm, professional, court-friendly aestheti
 **Current Phase:** Active Development (Beta-Ready)  
 **Environment:** Lovable Cloud + Supabase  
 **Stripe Mode:** Test  
-**Last Verified Build:** 2025-12-25  
+**Last Verified Build:** 2025-12-26  
 **Verified By:** Lovable
 
 > **Note:** The `Last Verified Build` and `Verified By` fields must be updated whenever a behavioral or architectural change is made.
@@ -250,14 +250,16 @@ These non-goals may be revisited post-beta.
 | Child Details | Medical, school, emergency info      | Comprehensive child records |
 | Realtime Sync | `useRealtimeChildren`, `useChildren` | Live data updates           |
 
-### 6. Messaging
+### 6. Messaging Hub
 
-| Feature               | Components             | Description                         |
-| --------------------- | ---------------------- | ----------------------------------- |
-| **Message Thread**    | `MessagesPage`         | Secure co-parent messaging          |
-| **AI Tone Assistant** | `MessageToneAssistant` | AI-powered message tone suggestions |
-| **Message History**   | `useMessages`          | Message data management             |
-| **Read Receipts**     | Timestamp tracking     | Message read confirmation           |
+| Feature               | Components           | Description                            |
+| --------------------- | -------------------- | -------------------------------------- |
+| **Family Channel**    | `MessagingHubPage`   | Group messaging for entire family      |
+| **Direct Messages**   | `MessagingHubPage`   | 1-on-1 messaging between family members |
+| **AI Tone Assistant** | `MessageToneAssistant` | AI-powered message tone suggestions  |
+| **Message History**   | `useMessagingHub`    | Thread and message data management     |
+| **Role Badges**       | Visual role indicators | Show parent/third-party role in messages |
+| **Court-Friendly**    | Immutable messages   | Messages cannot be edited or deleted   |
 
 ### 7. Documents
 
@@ -301,14 +303,15 @@ These non-goals may be revisited post-beta.
 
 ### 11. Settings & Account
 
-| Feature                 | Components             | Description                      |
-| ----------------------- | ---------------------- | -------------------------------- |
-| **Settings Page**       | `SettingsPage`         | Account management hub           |
-| **Co-Parent Invite**    | `CoParentInvite`       | Email invitation system          |
-| **Step-Parent Manager** | `StepParentManager`    | Dual-approval step-parent access |
-| **Trial Status**        | `TrialStatus`          | Subscription/trial tracking      |
-| **Notifications**       | `NotificationSettings` | Notification preferences         |
-| **Subscription**        | `useSubscription`      | Stripe subscription management   |
+| Feature                 | Components             | Description                          |
+| ----------------------- | ---------------------- | ------------------------------------ |
+| **Settings Page**       | `SettingsPage`         | Account management hub               |
+| **Co-Parent Invite**    | `CoParentInvite`       | Email invitation system              |
+| **Third-Party Manager** | `ThirdPartyManager`    | Invite step-parents, grandparents, etc. |
+| **Trial Status**        | `TrialStatus`          | Subscription/trial tracking          |
+| **Notifications**       | `NotificationSettings` | Notification preferences             |
+| **Subscription**        | `useSubscription`      | Stripe subscription management       |
+| **Role-Based Access**   | `useFamilyRole`        | Permission enforcement               |
 
 ### 12. Admin
 
@@ -345,10 +348,12 @@ These non-goals may be revisited post-beta.
 | Hook                     | Purpose                             |
 | ------------------------ | ----------------------------------- |
 | `useAuth`                | Authentication state management     |
+| `useFamilyRole`          | Family role detection (parent/third-party) |
+| `useMessagingHub`        | Messaging threads and messages      |
 | `useChildren`            | Children data CRUD                  |
 | `useRealtimeChildren`    | Realtime children updates           |
 | `useDocuments`           | Document management                 |
-| `useMessages`            | Messaging functionality             |
+| `useMessages`            | Legacy messaging functionality      |
 | `useExpenses`            | Expense tracking and reimbursements |
 | `useLawLibrary`          | Law library resource access         |
 | `useAdminLawLibrary`     | Admin law library management        |
@@ -421,9 +426,10 @@ CoParrent Application
 │   │   └── Child details (medical, school, emergency)
 │   │
 │   ├── /dashboard/messages
-│   │   ├── Message thread view
-│   │   ├── Message composer
-│   │   └── Message history
+│   │   ├── MessagingHub (tabs: Family/Direct)
+│   │   ├── Family Channel (group chat)
+│   │   ├── Direct Messages (1-on-1)
+│   │   └── Message composer with PDF export
 │   │
 │   ├── /dashboard/documents
 │   │   ├── Category tabs
@@ -434,7 +440,7 @@ CoParrent Application
 │   ├── /dashboard/settings
 │   │   ├── Account settings
 │   │   ├── CoParentInvite
-│   │   ├── StepParentManager
+│   │   ├── ThirdPartyManager
 │   │   ├── NotificationSettings
 │   │   └── TrialStatus
 │   │
@@ -529,36 +535,39 @@ CoParrent Application
 | `profiles`               | User profiles with subscription and co-parent linking   |
 | `children`               | Child information (medical, school, emergency contacts) |
 | `parent_children`        | Junction table linking parents to children              |
+| `family_members`         | Third-party family members (step-parents, grandparents) |
 | `custody_schedules`      | Custody patterns and schedule definitions               |
 | `schedule_requests`      | Schedule change requests                                |
 | `exchange_checkins`      | Exchange confirmation records                           |
-| `messages`               | Co-parent messages                                      |
+| `message_threads`        | Messaging threads (family channel + direct messages)    |
+| `thread_messages`        | Immutable messages within threads                       |
+| `messages`               | Legacy co-parent messages (deprecated)                  |
 | `documents`              | Document metadata                                       |
 | `document_access_logs`   | Document access audit trail                             |
 | `expenses`               | Shared expense tracking                                 |
 | `reimbursement_requests` | Expense reimbursement workflows                         |
 | `journal_entries`        | Private journal entries                                 |
 | `notifications`          | User notifications                                      |
-| `invitations`            | Co-parent invitations                                   |
-| `step_parents`           | Step-parent access with dual approval                   |
+| `invitations`            | Co-parent and third-party invitations                   |
 | `law_library_resources`  | State-specific legal documents                          |
 | `blog_posts`             | Blog content                                            |
 | `user_roles`             | Role-based access (admin, moderator, user)              |
 
 ### Edge Functions
 
-| Function                  | Purpose                                   |
-| ------------------------- | ----------------------------------------- |
-| `admin-manage-users`      | Admin user management                     |
-| `ai-message-assist`       | AI-powered message tone suggestions       |
-| `ai-schedule-suggest`     | AI-powered schedule recommendations       |
-| `check-subscription`      | Verify Stripe subscription status         |
-| `create-checkout`         | Create Stripe checkout session            |
-| `customer-portal`         | Stripe customer portal access             |
-| `exchange-reminders`      | Automated exchange reminder notifications |
-| `generate-expense-report` | PDF expense report generation             |
-| `send-coparent-invite`    | Send invitation emails via Resend         |
-| `send-notification`       | Push notification delivery                |
+| Function                   | Purpose                                   |
+| -------------------------- | ----------------------------------------- |
+| `admin-manage-users`       | Admin user management                     |
+| `ai-message-assist`        | AI-powered message tone suggestions       |
+| `ai-schedule-suggest`      | AI-powered schedule recommendations       |
+| `check-subscription`       | Verify Stripe subscription status         |
+| `create-checkout`          | Create Stripe checkout session            |
+| `customer-portal`          | Stripe customer portal access             |
+| `exchange-reminders`       | Automated exchange reminder notifications |
+| `generate-expense-report`  | PDF expense report generation             |
+| `send-coparent-invite`     | Send co-parent invitation emails          |
+| `send-third-party-invite`  | Send third-party invitation emails        |
+| `send-notification`        | Push notification delivery                |
 
 ---
 
@@ -566,6 +575,9 @@ CoParrent Application
 
 | Date       | Decision                                | Reason                             |
 | ---------- | --------------------------------------- | ---------------------------------- |
+| 2025-12-26 | Step-Parent → Third-Party role rename   | More inclusive naming for extended family |
+| 2025-12-26 | Third-Party invitation-only model       | Security: prevent unauthorized access |
+| 2025-12-26 | Messaging Hub replaces 1-on-1 messages  | Support group + DM within family group |
 | YYYY-MM-DD | Blog kept public and SEO-indexed        | Marketing + organic discovery      |
 | YYYY-MM-DD | Stripe webhooks limited to 4 events     | Reduce noise + simplify edge logic |
 | YYYY-MM-DD | Dashboard UI gated strictly behind auth | Prevent data leakage               |
@@ -577,6 +589,32 @@ CoParrent Application
 ## 🔄 Change Log
 
 > **Policy:** Any change affecting routing, authentication, payments, data integrity, or user access must be recorded here. Do not remove existing entries.
+
+### 2025-12-26
+
+- **Major:** Third-Party Accounts System
+  - Replaced Step-Parent concept with Third-Party role (step-parents, grandparents, babysitters, etc.)
+  - Third-Party accounts can ONLY be added via email invitation from Parents/Guardians
+  - Created `family_members` table with RLS policies
+  - Created `ThirdPartyManager` component for invitation management
+  - Created `send-third-party-invite` edge function
+  - Plan limits enforced: Free (0), Pro (2), MVP (6) third-party members
+  
+- **Major:** Messaging Hub Implementation
+  - Created new `MessagingHubPage` with Family Channel (group) and Direct Messages (1-on-1)
+  - Users can only message people within their family group
+  - Created `message_threads` and `thread_messages` tables with RLS
+  - Messages are immutable (court-friendly) - no edit/delete
+  - Role badges displayed in messages (Parent/Family)
+  - Created `useMessagingHub` hook for messaging functionality
+  - Created `useFamilyRole` hook for role detection
+  
+- **Major:** Permission System
+  - Third-Party permissions enforced via route guards and RLS
+  - Third-Party allowed: Messaging Hub, Journal, Law Library, Blog
+  - Third-Party NOT allowed: Calendar edit, Children edit, Documents, Expenses, Settings, Admin
+  - Navigation items hidden based on user role
+  - `ProtectedRoute` component updated with role-based restrictions
 
 ### 2025-12-25
 
@@ -608,10 +646,20 @@ CoParrent Application
 
 ## 🧪 QA Acceptance Checks
 
+### Third-Party Access
+
+- Free accounts cannot invite third-party members
+- Pro accounts limited to 2 third-party members
+- MVP+ accounts limited to 6 third-party members
+- Third-party can only access: Dashboard, Messaging Hub, Journal, Law Library, Blog
+- Third-party CANNOT access: Calendar (edit), Children (edit), Documents, Expenses, Settings
+- Removed third-party members lose access immediately
+
 ### Auth & Routing
 
 - Logged-out users never see dashboard sidebar
 - Blog page loads publicly and is crawlable
+- Third-party users see filtered navigation
 
 ### Core CRUD
 
