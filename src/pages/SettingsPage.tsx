@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { User, Bell, Shield, LogOut, Users, BellOff } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { CoParentInvite } from "@/components/settings/CoParentInvite";
 import { TrialStatus } from "@/components/settings/TrialStatus";
 import { StepParentManager } from "@/components/settings/StepParentManager";
+import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -439,8 +440,16 @@ const SettingsPage = () => {
           </div>
 
           <div className="space-y-4">
-            <Button variant="outline">Change Password</Button>
+            <TwoFactorSetup />
+            
             <Separator />
+            
+            <Link to="/forgot-password">
+              <Button variant="outline">Change Password</Button>
+            </Link>
+            
+            <Separator />
+            
             <div className="pt-2">
               <Button 
                 variant="destructive" 
