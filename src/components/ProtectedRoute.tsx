@@ -8,9 +8,8 @@ interface ProtectedRouteProps {
   requireParent?: boolean;
 }
 
-// Routes that Third-Party members cannot access
+// Routes that Third-Party members cannot access (edit-only routes)
 const PARENT_ONLY_ROUTES = [
-  "/dashboard/calendar",
   "/dashboard/children",
   "/dashboard/documents",
   "/dashboard/expenses",
@@ -18,10 +17,11 @@ const PARENT_ONLY_ROUTES = [
   "/admin",
 ];
 
-// Routes that Third-Party can access (read-only calendar is separate)
+// Routes that Third-Party can access (calendar is read-only)
 const THIRD_PARTY_ALLOWED_ROUTES = [
   "/dashboard",
   "/dashboard/messages",
+  "/dashboard/calendar", // Read-only access
   "/dashboard/journal",
   "/dashboard/law-library",
   "/dashboard/blog",
