@@ -3,6 +3,9 @@ project_id = "znxiydmycxcjkflihfxn"
 [functions.send-coparent-invite]
 verify_jwt = true
 
+[functions.send-third-party-invite]
+verify_jwt = true
+
 [functions.create-checkout]
 verify_jwt = true
 

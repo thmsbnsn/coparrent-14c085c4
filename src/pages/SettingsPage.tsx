@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { CoParentInvite } from "@/components/settings/CoParentInvite";
 import { TrialStatus } from "@/components/settings/TrialStatus";
-import { StepParentManager } from "@/components/settings/StepParentManager";
+import { ThirdPartyManager } from "@/components/settings/ThirdPartyManager";
 import { PreferencesSettings } from "@/components/settings/PreferencesSettings";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { RecoveryCodes } from "@/components/auth/RecoveryCodes";
@@ -231,13 +231,13 @@ const SettingsPage = () => {
           />
         </motion.div>
 
-        {/* Step-Parent Section */}
+        {/* Third-Party Access Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12 }}
         >
-          <StepParentManager
+          <ThirdPartyManager
             subscriptionTier={profile?.subscription_tier || "free"}
             isTrialActive={
               profile?.subscription_status === "trial" &&

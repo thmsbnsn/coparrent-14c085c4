@@ -23,6 +23,7 @@ import Dashboard from "./pages/Dashboard";
 import CalendarPage from "./pages/CalendarPage";
 import ChildrenPage from "./pages/ChildrenPage";
 import MessagesPage from "./pages/MessagesPage";
+import MessagingHubPage from "./pages/MessagingHubPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AcceptInvite from "./pages/AcceptInvite";
@@ -71,7 +72,8 @@ const App = () => (
               <Route path="/dashboard" element={<ProtectedRoute><RouteErrorBoundary routeName="Dashboard"><Dashboard /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/calendar" element={<ProtectedRoute><RouteErrorBoundary routeName="Calendar"><CalendarPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/children" element={<ProtectedRoute><RouteErrorBoundary routeName="Children"><ChildrenPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/messages" element={<ProtectedRoute><RouteErrorBoundary routeName="Messages"><MessagesPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/messages" element={<ProtectedRoute><RouteErrorBoundary routeName="Messages"><MessagingHubPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/messages-legacy" element={<ProtectedRoute><RouteErrorBoundary routeName="Messages Legacy"><MessagesPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/documents" element={<ProtectedRoute><RouteErrorBoundary routeName="Documents"><DocumentsPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/settings" element={<ProtectedRoute><RouteErrorBoundary routeName="Settings"><SettingsPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/notifications" element={<ProtectedRoute><RouteErrorBoundary routeName="Notifications"><NotificationsPage /></RouteErrorBoundary></ProtectedRoute>} />
