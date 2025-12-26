@@ -122,7 +122,7 @@ export default function JournalPage() {
         title: title.trim() || null,
         content: content.trim(),
         mood,
-        child_id: selectedChild || null,
+        child_id: selectedChild && selectedChild !== "none" ? selectedChild : null,
         tags
       };
 
@@ -341,7 +341,7 @@ ${entry.content}
                         <SelectValue placeholder="Select a child" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {children.map((child) => (
                           <SelectItem key={child.id} value={child.id}>
                             {child.name}
