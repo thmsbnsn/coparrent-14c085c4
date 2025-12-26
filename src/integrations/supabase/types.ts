@@ -365,13 +365,79 @@ export type Database = {
           },
         ]
       }
+      family_members: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          invited_at: string | null
+          invited_by: string | null
+          primary_parent_id: string
+          profile_id: string
+          role: Database["public"]["Enums"]["member_role"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          primary_parent_id: string
+          profile_id: string
+          role?: Database["public"]["Enums"]["member_role"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          primary_parent_id?: string
+          profile_id?: string
+          role?: Database["public"]["Enums"]["member_role"]
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_members_primary_parent_id_fkey"
+            columns: ["primary_parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           created_at: string
           expires_at: string
           id: string
+          invitation_type: string
           invitee_email: string
           inviter_id: string
+          role: Database["public"]["Enums"]["member_role"] | null
           status: string
           token: string
           updated_at: string
@@ -380,8 +446,10 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          invitation_type?: string
           invitee_email: string
           inviter_id: string
+          role?: Database["public"]["Enums"]["member_role"] | null
           status?: string
           token?: string
           updated_at?: string
@@ -390,8 +458,10 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          invitation_type?: string
           invitee_email?: string
           inviter_id?: string
+          role?: Database["public"]["Enums"]["member_role"] | null
           status?: string
           token?: string
           updated_at?: string
@@ -507,6 +577,61 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      message_threads: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          participant_a_id: string | null
+          participant_b_id: string | null
+          primary_parent_id: string
+          thread_type: Database["public"]["Enums"]["thread_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          participant_a_id?: string | null
+          participant_b_id?: string | null
+          primary_parent_id: string
+          thread_type: Database["public"]["Enums"]["thread_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          participant_a_id?: string | null
+          participant_b_id?: string | null
+          primary_parent_id?: string
+          thread_type?: Database["public"]["Enums"]["thread_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_threads_participant_a_id_fkey"
+            columns: ["participant_a_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_threads_participant_b_id_fkey"
+            columns: ["participant_b_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_threads_primary_parent_id_fkey"
+            columns: ["primary_parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -877,6 +1002,48 @@ export type Database = {
           },
         ]
       }
+      thread_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          sender_id: string
+          sender_role: Database["public"]["Enums"]["member_role"]
+          thread_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          sender_role: Database["public"]["Enums"]["member_role"]
+          thread_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          sender_role?: Database["public"]["Enums"]["member_role"]
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_devices: {
         Row: {
           browser: string | null
@@ -956,6 +1123,14 @@ export type Database = {
         Args: { _document_id: string; _user_id: string }
         Returns: boolean
       }
+      can_access_thread: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
+      count_third_party_members: {
+        Args: { _primary_parent_id: string }
+        Returns: number
+      }
       create_child_with_link: {
         Args: { _date_of_birth?: string; _name: string }
         Returns: Json
@@ -974,6 +1149,14 @@ export type Database = {
         }[]
       }
       get_user_co_parent_id: { Args: { user_uuid: string }; Returns: string }
+      get_user_family_primary_parent: {
+        Args: { _user_id: string }
+        Returns: string
+      }
+      get_user_family_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["member_role"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -982,9 +1165,15 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_family_member: {
+        Args: { _primary_parent_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      member_role: "parent" | "guardian" | "third_party"
+      thread_type: "family_channel" | "direct_message"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1113,6 +1302,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      member_role: ["parent", "guardian", "third_party"],
+      thread_type: ["family_channel", "direct_message"],
     },
   },
 } as const
