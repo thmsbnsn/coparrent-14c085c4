@@ -14,6 +14,8 @@ import { CoParentInvite } from "@/components/settings/CoParentInvite";
 import { TrialStatus } from "@/components/settings/TrialStatus";
 import { StepParentManager } from "@/components/settings/StepParentManager";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
+import { RecoveryCodes } from "@/components/auth/RecoveryCodes";
+import { SessionManager } from "@/components/auth/SessionManager";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -63,6 +65,7 @@ const SettingsPage = () => {
   const [coParent, setCoParent] = useState<CoParentProfile | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -440,7 +443,13 @@ const SettingsPage = () => {
           </div>
 
           <div className="space-y-4">
-            <TwoFactorSetup />
+            <TwoFactorSetup onStatusChange={setTwoFactorEnabled} />
+            
+            <RecoveryCodes isEnabled={twoFactorEnabled} />
+            
+            <Separator />
+            
+            <SessionManager />
             
             <Separator />
             

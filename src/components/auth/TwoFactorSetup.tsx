@@ -26,9 +26,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface TwoFactorSetupProps {
   className?: string;
+  onStatusChange?: (isEnabled: boolean) => void;
 }
 
-export const TwoFactorSetup = ({ className }: TwoFactorSetupProps) => {
+export const TwoFactorSetup = ({ className, onStatusChange }: TwoFactorSetupProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
@@ -56,9 +57,11 @@ export const TwoFactorSetup = ({ className }: TwoFactorSetupProps) => {
       if (totpFactor) {
         setIsEnabled(true);
         setFactorId(totpFactor.id);
+        onStatusChange?.(true);
       } else {
         setIsEnabled(false);
         setFactorId(null);
+        onStatusChange?.(false);
       }
     } catch (error: any) {
       console.error("Error checking MFA status:", error);
@@ -121,6 +124,7 @@ export const TwoFactorSetup = ({ className }: TwoFactorSetupProps) => {
       setIsEnabled(true);
       setShowEnrollDialog(false);
       setVerificationCode("");
+      onStatusChange?.(true);
       
       toast({
         title: "2FA enabled!",
@@ -150,6 +154,7 @@ export const TwoFactorSetup = ({ className }: TwoFactorSetupProps) => {
       setIsEnabled(false);
       setFactorId(null);
       setShowDisableDialog(false);
+      onStatusChange?.(false);
       
       toast({
         title: "2FA disabled",
