@@ -635,6 +635,7 @@ export type Database = {
           full_name: string | null
           id: string
           notification_preferences: Json | null
+          preferences: Json | null
           subscription_status: string | null
           subscription_tier: string | null
           trial_ends_at: string | null
@@ -652,6 +653,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           notification_preferences?: Json | null
+          preferences?: Json | null
           subscription_status?: string | null
           subscription_tier?: string | null
           trial_ends_at?: string | null
@@ -669,6 +671,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           notification_preferences?: Json | null
+          preferences?: Json | null
           subscription_status?: string | null
           subscription_tier?: string | null
           trial_ends_at?: string | null
