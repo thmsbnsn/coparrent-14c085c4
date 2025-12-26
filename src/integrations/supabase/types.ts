@@ -429,6 +429,42 @@ export type Database = {
           },
         ]
       }
+      group_chat_participants: {
+        Row: {
+          id: string
+          joined_at: string
+          profile_id: string
+          thread_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          profile_id: string
+          thread_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          profile_id?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_chat_participants_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_chat_participants_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           created_at: string
@@ -577,6 +613,42 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      message_read_receipts: {
+        Row: {
+          id: string
+          message_id: string
+          read_at: string
+          reader_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          read_at?: string
+          reader_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          read_at?: string
+          reader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_read_receipts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "thread_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_read_receipts_reader_id_fkey"
+            columns: ["reader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       message_threads: {
         Row: {
@@ -1173,7 +1245,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       member_role: "parent" | "guardian" | "third_party"
-      thread_type: "family_channel" | "direct_message"
+      thread_type: "family_channel" | "direct_message" | "group_chat"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1303,7 +1375,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       member_role: ["parent", "guardian", "third_party"],
-      thread_type: ["family_channel", "direct_message"],
+      thread_type: ["family_channel", "direct_message", "group_chat"],
     },
   },
 } as const

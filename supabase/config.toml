@@ -6,6 +6,9 @@ verify_jwt = true
 [functions.send-third-party-invite]
 verify_jwt = true
 
+[functions.notify-third-party-added]
+verify_jwt = false
+
 [functions.create-checkout]
 verify_jwt = true
 
