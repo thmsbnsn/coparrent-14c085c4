@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -188,7 +189,7 @@ const ResetPassword = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">At least 8 characters</p>
+                <PasswordStrengthIndicator password={password} className="mt-3" />
               </div>
 
               <div className="space-y-2">

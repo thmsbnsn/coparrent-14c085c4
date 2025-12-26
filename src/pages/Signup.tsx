@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
+import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 
 type AccountType = "parent" | "lawoffice";
 
@@ -241,9 +242,7 @@ const Signup = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  At least 8 characters
-                </p>
+                <PasswordStrengthIndicator password={formData.password} className="mt-3" />
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
