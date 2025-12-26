@@ -874,6 +874,51 @@ export type Database = {
           },
         ]
       }
+      user_devices: {
+        Row: {
+          browser: string | null
+          created_at: string
+          device_fingerprint: string
+          device_name: string | null
+          first_seen_at: string
+          id: string
+          ip_address: string | null
+          is_trusted: boolean
+          last_seen_at: string
+          location: string | null
+          os: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          device_fingerprint: string
+          device_name?: string | null
+          first_seen_at?: string
+          id?: string
+          ip_address?: string | null
+          is_trusted?: boolean
+          last_seen_at?: string
+          location?: string | null
+          os?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          device_fingerprint?: string
+          device_name?: string | null
+          first_seen_at?: string
+          id?: string
+          ip_address?: string | null
+          is_trusted?: boolean
+          last_seen_at?: string
+          location?: string | null
+          os?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
