@@ -27,15 +27,11 @@ interface ExpenseChartsProps {
 }
 
 const COLORS = [
-  "hsl(var(--primary))",
+  "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
-  "#10B981",
-  "#F59E0B",
-  "#EF4444",
-  "#8B5CF6",
 ];
 
 export function ExpenseCharts({ expenses, profileId }: ExpenseChartsProps) {
