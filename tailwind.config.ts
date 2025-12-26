@@ -63,6 +63,13 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        chart: {
+          "1": "hsl(var(--chart-1))",
+          "2": "hsl(var(--chart-2))",
+          "3": "hsl(var(--chart-3))",
+          "4": "hsl(var(--chart-4))",
+          "5": "hsl(var(--chart-5))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -77,6 +84,13 @@ export default {
         "parent-a-light": "hsl(var(--parent-a-light))",
         "parent-b": "hsl(var(--parent-b))",
         "parent-b-light": "hsl(var(--parent-b-light))",
+        "primary-hover": "hsl(var(--primary-hover))",
+        "primary-active": "hsl(var(--primary-active))",
+        "secondary-hover": "hsl(var(--secondary-hover))",
+        "secondary-active": "hsl(var(--secondary-active))",
+        "accent-hover": "hsl(var(--accent-hover))",
+        "accent-active": "hsl(var(--accent-active))",
+        "muted-hover": "hsl(var(--muted-hover))",
       },
       borderRadius: {
         lg: "var(--radius)",

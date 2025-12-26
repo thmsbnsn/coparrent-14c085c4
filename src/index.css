@@ -51,6 +51,22 @@
     --info: 200 80% 50%;
     --info-foreground: 0 0% 100%;
 
+    /* Chart Colors - Harmonious palette for data visualization */
+    --chart-1: 222 60% 55%;
+    --chart-2: 174 50% 45%;
+    --chart-3: 38 85% 55%;
+    --chart-4: 280 60% 55%;
+    --chart-5: 340 65% 55%;
+
+    /* Interactive States */
+    --primary-hover: 222 47% 15%;
+    --primary-active: 222 47% 12%;
+    --secondary-hover: 150 25% 88%;
+    --secondary-active: 150 25% 84%;
+    --accent-hover: 174 42% 85%;
+    --accent-active: 174 42% 80%;
+    --muted-hover: 210 20% 90%;
+
     /* Parent Colors */
     --parent-a: 222 60% 55%;
     --parent-a-light: 222 60% 95%;
@@ -108,6 +124,22 @@
     --border: 222 40% 18%;
     --input: 222 40% 18%;
     --ring: 174 42% 50%;
+
+    /* Chart Colors - Dark mode variants */
+    --chart-1: 222 70% 65%;
+    --chart-2: 174 60% 55%;
+    --chart-3: 38 90% 60%;
+    --chart-4: 280 70% 65%;
+    --chart-5: 340 75% 65%;
+
+    /* Interactive States - Dark mode */
+    --primary-hover: 174 42% 55%;
+    --primary-active: 174 42% 60%;
+    --secondary-hover: 150 20% 22%;
+    --secondary-active: 150 20% 26%;
+    --accent-hover: 174 30% 22%;
+    --accent-active: 174 30% 26%;
+    --muted-hover: 222 40% 18%;
 
     --sidebar-background: 222 50% 6%;
     --sidebar-foreground: 210 40% 98%;
