@@ -645,11 +645,44 @@ const MessagingHubPage = () => {
               {/* Input area */}
               {activeThread && (
                 <div className="p-4 border-t border-border">
+                  {/* Typing indicator */}
+                  <AnimatePresence>
+                    {typingText && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mb-2"
+                      >
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="flex gap-1">
+                            <motion.span
+                              animate={{ opacity: [0.4, 1, 0.4] }}
+                              transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
+                              className="w-1.5 h-1.5 bg-primary rounded-full"
+                            />
+                            <motion.span
+                              animate={{ opacity: [0.4, 1, 0.4] }}
+                              transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
+                              className="w-1.5 h-1.5 bg-primary rounded-full"
+                            />
+                            <motion.span
+                              animate={{ opacity: [0.4, 1, 0.4] }}
+                              transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
+                              className="w-1.5 h-1.5 bg-primary rounded-full"
+                            />
+                          </div>
+                          <span>{typingText}</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
                   <div className="flex gap-2">
                     <Input
                       placeholder="Type a message..."
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
+                      onChange={handleInputChange}
                       onKeyPress={handleKeyPress}
                       disabled={sending}
                       className="flex-1"
