@@ -162,6 +162,20 @@ const AcceptInvite = () => {
           .update({ status: "accepted", updated_at: new Date().toISOString() })
           .eq("token", token);
 
+        // Notify parents about the new third-party member
+        try {
+          await supabase.functions.invoke("notify-third-party-added", {
+            body: {
+              primary_parent_id: primaryParentId,
+              new_member_name: profile.id, // Will fetch name in function
+              new_member_email: user.email,
+            },
+          });
+        } catch (notifyError) {
+          console.error("Error sending notification:", notifyError);
+          // Don't fail the join if notification fails
+        }
+
         sessionStorage.removeItem("pendingInviteToken");
         localStorage.removeItem("pendingInviteToken");
 
