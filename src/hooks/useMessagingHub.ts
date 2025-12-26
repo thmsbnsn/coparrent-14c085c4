@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilyRole } from "./useFamilyRole";
 import { useToast } from "./use-toast";
+import { Database } from "@/integrations/supabase/types";
+
+type ThreadType = Database["public"]["Enums"]["thread_type"];
 
 export interface ThreadMessage {
   id: string;
@@ -13,12 +16,19 @@ export interface ThreadMessage {
   created_at: string;
   sender_name?: string;
   is_from_me: boolean;
+  read_by?: ReadReceipt[];
+}
+
+export interface ReadReceipt {
+  reader_id: string;
+  reader_name: string;
+  read_at: string;
 }
 
 export interface MessageThread {
   id: string;
   primary_parent_id: string;
-  thread_type: "family_channel" | "direct_message";
+  thread_type: ThreadType;
   participant_a_id: string | null;
   participant_b_id: string | null;
   name: string | null;
@@ -29,8 +39,16 @@ export interface MessageThread {
     email: string | null;
     role?: string;
   };
+  participants?: GroupParticipant[];
   last_message?: ThreadMessage;
   unread_count?: number;
+}
+
+export interface GroupParticipant {
+  profile_id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
 }
 
 export interface FamilyMember {
@@ -48,6 +66,7 @@ export const useMessagingHub = () => {
   const { profileId, primaryParentId, role, loading: roleLoading } = useFamilyRole();
   
   const [threads, setThreads] = useState<MessageThread[]>([]);
+  const [groupChats, setGroupChats] = useState<MessageThread[]>([]);
   const [familyChannel, setFamilyChannel] = useState<MessageThread | null>(null);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [activeThread, setActiveThread] = useState<MessageThread | null>(null);
@@ -150,13 +169,42 @@ export const useMessagingHub = () => {
 
       if (error) throw error;
 
-      const formattedThreads: MessageThread[] = [];
+      const dmThreads: MessageThread[] = [];
+      const groupThreads: MessageThread[] = [];
       let channel: MessageThread | null = null;
 
       for (const thread of threadData || []) {
         if (thread.thread_type === "family_channel") {
           channel = thread;
-        } else {
+        } else if (thread.thread_type === "group_chat") {
+          // Fetch group participants
+          const { data: participants } = await supabase
+            .from("group_chat_participants")
+            .select(`
+              profile_id,
+              profiles!group_chat_participants_profile_id_fkey (
+                id,
+                full_name,
+                email,
+                avatar_url
+              )
+            `)
+            .eq("thread_id", thread.id);
+
+          const isParticipant = participants?.some(p => p.profile_id === profileId);
+          
+          if (isParticipant) {
+            groupThreads.push({
+              ...thread,
+              participants: participants?.map((p: any) => ({
+                profile_id: p.profile_id,
+                full_name: p.profiles?.full_name,
+                email: p.profiles?.email,
+                avatar_url: p.profiles?.avatar_url,
+              })) || [],
+            });
+          }
+        } else if (thread.thread_type === "direct_message") {
           // For DMs, only include if user is a participant
           if (thread.participant_a_id === profileId || thread.participant_b_id === profileId) {
             const otherParticipantId = 
@@ -171,7 +219,7 @@ export const useMessagingHub = () => {
                 .eq("id", otherParticipantId)
                 .single();
 
-              formattedThreads.push({
+              dmThreads.push({
                 ...thread,
                 other_participant: otherProfile || undefined,
               });
@@ -181,13 +229,14 @@ export const useMessagingHub = () => {
       }
 
       setFamilyChannel(channel);
-      setThreads(formattedThreads);
+      setThreads(dmThreads);
+      setGroupChats(groupThreads);
     } catch (error) {
       console.error("Error fetching threads:", error);
     }
   }, [primaryParentId, profileId]);
 
-  // Fetch messages for active thread
+  // Fetch messages for active thread with read receipts
   const fetchMessages = useCallback(async (threadId: string) => {
     if (!profileId) return;
 
@@ -211,13 +260,54 @@ export const useMessagingHub = () => {
         (profiles || []).map(p => [p.id, p.full_name || p.email || "Unknown"])
       );
 
+      // Fetch read receipts
+      const messageIds = (data || []).map(m => m.id);
+      const { data: receipts } = await supabase
+        .from("message_read_receipts")
+        .select(`
+          message_id,
+          reader_id,
+          read_at,
+          profiles!message_read_receipts_reader_id_fkey (
+            full_name,
+            email
+          )
+        `)
+        .in("message_id", messageIds);
+
+      const receiptsByMessage = new Map<string, ReadReceipt[]>();
+      (receipts || []).forEach((r: any) => {
+        const list = receiptsByMessage.get(r.message_id) || [];
+        list.push({
+          reader_id: r.reader_id,
+          reader_name: r.profiles?.full_name || r.profiles?.email || "Unknown",
+          read_at: r.read_at,
+        });
+        receiptsByMessage.set(r.message_id, list);
+      });
+
       const formattedMessages: ThreadMessage[] = (data || []).map(msg => ({
         ...msg,
         sender_name: profileMap.get(msg.sender_id) || "Unknown",
         is_from_me: msg.sender_id === profileId,
+        read_by: receiptsByMessage.get(msg.id) || [],
       }));
 
       setMessages(formattedMessages);
+
+      // Mark messages as read
+      const unreadMessages = (data || []).filter(m => 
+        m.sender_id !== profileId
+      );
+      
+      for (const msg of unreadMessages) {
+        await supabase
+          .from("message_read_receipts")
+          .upsert({
+            message_id: msg.id,
+            reader_id: profileId,
+          }, { onConflict: "message_id,reader_id" });
+      }
     } catch (error) {
       console.error("Error fetching messages:", error);
     }
@@ -302,6 +392,51 @@ export const useMessagingHub = () => {
     }
   };
 
+  // Create group chat
+  const createGroupChat = async (name: string, participantIds: string[]) => {
+    if (!primaryParentId || !profileId) return null;
+
+    try {
+      // Create thread
+      const { data: newThread, error: threadError } = await supabase
+        .from("message_threads")
+        .insert({
+          primary_parent_id: primaryParentId,
+          thread_type: "group_chat",
+          name,
+        })
+        .select()
+        .single();
+
+      if (threadError) throw threadError;
+
+      // Add all participants including creator
+      const allParticipants = [...new Set([profileId, ...participantIds])];
+      
+      const { error: participantError } = await supabase
+        .from("group_chat_participants")
+        .insert(
+          allParticipants.map(pid => ({
+            thread_id: newThread.id,
+            profile_id: pid,
+          }))
+        );
+
+      if (participantError) throw participantError;
+
+      await fetchThreads();
+      return newThread;
+    } catch (error) {
+      console.error("Error creating group chat:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create group chat",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   // Create family channel if doesn't exist
   const ensureFamilyChannel = async () => {
     if (!primaryParentId || familyChannel) return familyChannel;
@@ -360,7 +495,7 @@ export const useMessagingHub = () => {
     }
   }, [activeThread, fetchMessages]);
 
-  // Subscribe to realtime updates
+  // Subscribe to realtime updates for messages
   useEffect(() => {
     if (!activeThread) return;
 
@@ -390,8 +525,19 @@ export const useMessagingHub = () => {
               ...newMsg,
               sender_name: senderProfile?.full_name || senderProfile?.email || "Unknown",
               is_from_me: newMsg.sender_id === profileId,
+              read_by: [],
             },
           ]);
+
+          // Mark as read if not from me
+          if (newMsg.sender_id !== profileId && profileId) {
+            await supabase
+              .from("message_read_receipts")
+              .upsert({
+                message_id: newMsg.id,
+                reader_id: profileId,
+              }, { onConflict: "message_id,reader_id" });
+          }
         }
       )
       .subscribe();
@@ -401,8 +547,65 @@ export const useMessagingHub = () => {
     };
   }, [activeThread, profileId]);
 
+  // Subscribe to realtime updates for read receipts
+  useEffect(() => {
+    if (!activeThread) return;
+
+    const channel = supabase
+      .channel(`read-receipts-${activeThread.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "message_read_receipts",
+        },
+        async (payload) => {
+          const receipt = payload.new as any;
+          
+          // Check if this receipt is for a message in our active thread
+          const messageExists = messages.some(m => m.id === receipt.message_id);
+          if (!messageExists) return;
+
+          // Fetch reader name
+          const { data: readerProfile } = await supabase
+            .from("profiles")
+            .select("full_name, email")
+            .eq("id", receipt.reader_id)
+            .single();
+
+          setMessages(prev => prev.map(msg => {
+            if (msg.id === receipt.message_id) {
+              const existingReceipts = msg.read_by || [];
+              if (existingReceipts.some(r => r.reader_id === receipt.reader_id)) {
+                return msg;
+              }
+              return {
+                ...msg,
+                read_by: [
+                  ...existingReceipts,
+                  {
+                    reader_id: receipt.reader_id,
+                    reader_name: readerProfile?.full_name || readerProfile?.email || "Unknown",
+                    read_at: receipt.read_at,
+                  },
+                ],
+              };
+            }
+            return msg;
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeThread, messages, profileId]);
+
   return {
     threads,
+    groupChats,
     familyChannel,
     familyMembers,
     activeThread,
@@ -413,6 +616,7 @@ export const useMessagingHub = () => {
     setActiveThread,
     sendMessage,
     getOrCreateDMThread,
+    createGroupChat,
     ensureFamilyChannel,
     fetchThreads,
   };
