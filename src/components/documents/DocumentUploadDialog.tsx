@@ -141,7 +141,7 @@ export const DocumentUploadDialog = ({
       title,
       description,
       category,
-      childId || undefined
+      childId && childId !== "none" ? childId : undefined
     );
 
     if (result) {
@@ -292,7 +292,7 @@ export const DocumentUploadDialog = ({
                   <SelectValue placeholder="Select a child (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {children.map((child) => (
                     <SelectItem key={child.id} value={child.id}>
                       {child.name}
