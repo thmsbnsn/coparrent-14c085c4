@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { TrialBadge } from "@/components/dashboard/TrialBadge";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -200,6 +201,7 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
           <div className="flex-1" />
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <NotificationDropdown />
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
               {userInitials || "U"}
