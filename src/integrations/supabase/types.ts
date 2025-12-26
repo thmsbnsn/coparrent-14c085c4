@@ -429,6 +429,133 @@ export type Database = {
           },
         ]
       }
+      gift_items: {
+        Row: {
+          category: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          created_by: string
+          gift_list_id: string
+          id: string
+          link: string | null
+          notes: string | null
+          parent_only_notes: string | null
+          purchased: boolean | null
+          status: string | null
+          suggested_age_range: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          created_by: string
+          gift_list_id: string
+          id?: string
+          link?: string | null
+          notes?: string | null
+          parent_only_notes?: string | null
+          purchased?: boolean | null
+          status?: string | null
+          suggested_age_range?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          created_by?: string
+          gift_list_id?: string
+          id?: string
+          link?: string | null
+          notes?: string | null
+          parent_only_notes?: string | null
+          purchased?: boolean | null
+          status?: string | null
+          suggested_age_range?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_items_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_items_gift_list_id_fkey"
+            columns: ["gift_list_id"]
+            isOneToOne: false
+            referencedRelation: "gift_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_lists: {
+        Row: {
+          allow_multiple_claims: boolean | null
+          child_id: string
+          created_at: string
+          custom_occasion_name: string | null
+          event_date: string | null
+          id: string
+          occasion_type: string
+          primary_parent_id: string
+          updated_at: string
+        }
+        Insert: {
+          allow_multiple_claims?: boolean | null
+          child_id: string
+          created_at?: string
+          custom_occasion_name?: string | null
+          event_date?: string | null
+          id?: string
+          occasion_type?: string
+          primary_parent_id: string
+          updated_at?: string
+        }
+        Update: {
+          allow_multiple_claims?: boolean | null
+          child_id?: string
+          created_at?: string
+          custom_occasion_name?: string | null
+          event_date?: string | null
+          id?: string
+          occasion_type?: string
+          primary_parent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_lists_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_lists_primary_parent_id_fkey"
+            columns: ["primary_parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_chat_participants: {
         Row: {
           id: string
@@ -1109,6 +1236,42 @@ export type Database = {
           },
           {
             foreignKeyName: "thread_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      typing_indicators: {
+        Row: {
+          id: string
+          profile_id: string
+          started_at: string
+          thread_id: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          started_at?: string
+          thread_id: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          started_at?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "typing_indicators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "typing_indicators_thread_id_fkey"
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "message_threads"

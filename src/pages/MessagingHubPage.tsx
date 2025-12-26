@@ -22,6 +22,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMessagingHub, MessageThread, FamilyMember } from "@/hooks/useMessagingHub";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
@@ -77,6 +78,7 @@ const MessagingHubPage = () => {
   } = useMessagingHub();
   
   const { isThirdParty } = useFamilyRole();
+  const { typingText, setTyping, clearTyping } = useTypingIndicator(activeThread?.id || null);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
@@ -86,6 +88,14 @@ const MessagingHubPage = () => {
   const [groupName, setGroupName] = useState("");
   const [creatingGroup, setCreatingGroup] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Handle typing indicator on input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    if (e.target.value.trim()) {
+      setTyping();
+    }
+  };
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -109,6 +119,7 @@ const MessagingHubPage = () => {
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;
     
+    clearTyping();
     setSending(true);
     const success = await sendMessage(newMessage.trim());
     if (success) {
