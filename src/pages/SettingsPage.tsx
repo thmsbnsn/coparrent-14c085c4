@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { CoParentInvite } from "@/components/settings/CoParentInvite";
 import { TrialStatus } from "@/components/settings/TrialStatus";
 import { StepParentManager } from "@/components/settings/StepParentManager";
+import { PreferencesSettings } from "@/components/settings/PreferencesSettings";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { RecoveryCodes } from "@/components/auth/RecoveryCodes";
 import { SessionManager } from "@/components/auth/SessionManager";
@@ -244,6 +245,15 @@ const SettingsPage = () => {
               new Date(profile.trial_ends_at) > new Date()
             }
           />
+        </motion.div>
+
+        {/* Preferences Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.14 }}
+        >
+          <PreferencesSettings />
         </motion.div>
 
         {/* Profile Section */}
