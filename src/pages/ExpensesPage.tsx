@@ -193,7 +193,7 @@ function ExpensesPageContent() {
         amount: parseFloat(amount),
         description,
         expense_date: expenseDate,
-        child_id: childId || undefined,
+        child_id: childId && childId !== "none" ? childId : undefined,
         receipt_path: receiptPath,
         split_percentage: parseFloat(splitPercentage),
         notes: notes || undefined,
@@ -593,7 +593,7 @@ function ExpensesPageContent() {
                           <SelectValue placeholder="Select a child" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {children.map((child) => (
                             <SelectItem key={child.id} value={child.id}>
                               {child.name}
