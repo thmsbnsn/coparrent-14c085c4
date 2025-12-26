@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { FeatureErrorBoundary } from "@/components/ui/FeatureErrorBoundary";
+import { ExpenseCharts } from "@/components/expenses/ExpenseCharts";
 import { useExpenses, EXPENSE_CATEGORIES, Expense, ReimbursementRequest } from "@/hooks/useExpenses";
 import { useChildren } from "@/hooks/useChildren";
 import { supabase } from "@/integrations/supabase/client";
@@ -711,6 +712,9 @@ function ExpensesPageContent() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Expense Charts */}
+        <ExpenseCharts expenses={expenses} profileId={profile?.id} />
 
         {/* Pending Requests */}
         {totals.pendingRequestsToMe.length > 0 && (
