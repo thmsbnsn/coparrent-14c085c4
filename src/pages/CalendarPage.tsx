@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft, Loader2, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft, Loader2, Calendar, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { CalendarWizard, ScheduleConfig } from "@/components/calendar/CalendarWizard";
 import { CalendarExportDialog } from "@/components/calendar/CalendarExportDialog";
 import { ScheduleChangeRequest, ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
 import { useScheduleRequests } from "@/hooks/useScheduleRequests";
 import { useSchedulePersistence } from "@/hooks/useSchedulePersistence";
+import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -55,6 +57,7 @@ const getParentForDate = (date: Date, config: ScheduleConfig | null): "A" | "B" 
 const CalendarPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isThirdParty, loading: roleLoading } = useFamilyRole();
   const { createRequest } = useScheduleRequests();
   const { scheduleConfig, loading: scheduleLoading, saving, saveSchedule } = useSchedulePersistence();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -172,32 +175,67 @@ const CalendarPage = () => {
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <div>
-            <h1 className="text-2xl lg:text-3xl font-display font-bold">Parenting Calendar</h1>
-            <p className="text-muted-foreground mt-1">View and manage your custody schedule</p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => setShowChangeRequest(true)}>
-              <ArrowRightLeft className="w-4 h-4 mr-2" />
-              Request Change
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => window.print()}>
-              <Printer className="w-4 h-4 mr-2" />
-              Print
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
-              <Calendar className="w-4 h-4 mr-2" />
-              Sync Calendar
-            </Button>
-            <Button size="sm" onClick={() => setShowWizard(true)} disabled={saving}>
-              {saving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Settings2 className="w-4 h-4 mr-2" />
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl lg:text-3xl font-display font-bold">Parenting Calendar</h1>
+              {isThirdParty && (
+                <Badge variant="secondary" className="gap-1">
+                  <Eye className="w-3 h-3" />
+                  View Only
+                </Badge>
               )}
-              {scheduleConfig ? "Edit Schedule" : "Setup Schedule"}
-            </Button>
+            </div>
+            <p className="text-muted-foreground mt-1">
+              {isThirdParty 
+                ? "View the family custody schedule" 
+                : "View and manage your custody schedule"}
+            </p>
           </div>
+          {!isThirdParty && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => setShowChangeRequest(true)}>
+                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                Request Change
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => window.print()}>
+                <Printer className="w-4 h-4 mr-2" />
+                Print
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
+                <Calendar className="w-4 h-4 mr-2" />
+                Sync Calendar
+              </Button>
+              <Button size="sm" onClick={() => setShowWizard(true)} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Settings2 className="w-4 h-4 mr-2" />
+                )}
+                {scheduleConfig ? "Edit Schedule" : "Setup Schedule"}
+              </Button>
+            </div>
+          )}
         </motion.div>
+
+        {/* Read-only notice for Third-Party users */}
+        {isThirdParty && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="p-4 rounded-xl bg-muted/50 border border-border"
+          >
+            <div className="flex items-start gap-3">
+              <Eye className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium">Read-Only Access</p>
+                <p className="text-sm text-muted-foreground">
+                  As a family member, you can view the custody schedule but cannot make changes. 
+                  Contact the parents if you need schedule modifications.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Loading State */}
         {scheduleLoading && (
@@ -338,10 +376,13 @@ const CalendarPage = () => {
                 return (
                   <div
                     key={date.toISOString()}
-                    onClick={() => handleDateClick(date)}
+                    onClick={() => !isThirdParty && handleDateClick(date)}
                     className={cn(
-                      "aspect-square p-2 border-b border-r border-border relative transition-colors cursor-pointer group",
-                      parent === "A" ? "bg-parent-a-light hover:bg-parent-a/20" : "bg-parent-b-light hover:bg-parent-b/20"
+                      "aspect-square p-2 border-b border-r border-border relative transition-colors",
+                      parent === "A" ? "bg-parent-a-light" : "bg-parent-b-light",
+                      !isThirdParty && "cursor-pointer group hover:bg-parent-a/20 hover:bg-parent-b/20",
+                      !isThirdParty && parent === "A" && "hover:bg-parent-a/20",
+                      !isThirdParty && parent === "B" && "hover:bg-parent-b/20"
                     )}
                   >
                     <span
@@ -356,9 +397,11 @@ const CalendarPage = () => {
                       "absolute bottom-1 right-1 w-2 h-2 rounded-full",
                       parent === "A" ? "bg-parent-a" : "bg-parent-b"
                     )} />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/60 rounded">
-                      <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
-                    </div>
+                    {!isThirdParty && (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/60 rounded">
+                        <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    )}
                   </div>
                 );
               })}

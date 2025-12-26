@@ -8,7 +8,8 @@ import {
   ChevronLeft,
   Plus,
   Hash,
-  FileText
+  FileText,
+  Check
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { toast } from "sonner";
 
 const formatTimestamp = (dateString: string) => {
   return format(new Date(dateString), "MMM d, yyyy h:mm a");
@@ -72,6 +74,8 @@ const MessagingHubPage = () => {
   const [sending, setSending] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
   const [activeTab, setActiveTab] = useState<"family" | "direct">("family");
+  const [selectedMembers, setSelectedMembers] = useState<FamilyMember[]>([]);
+  const [showGroupConfirm, setShowGroupConfirm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -109,6 +113,62 @@ const MessagingHubPage = () => {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const toggleMemberSelection = (member: FamilyMember) => {
+    if (member.profile_id === profileId) return;
+    
+    setSelectedMembers(prev => {
+      const isSelected = prev.some(m => m.profile_id === member.profile_id);
+      if (isSelected) {
+        return prev.filter(m => m.profile_id !== member.profile_id);
+      } else {
+        return [...prev, member];
+      }
+    });
+  };
+
+  const handleStartConversation = async () => {
+    if (selectedMembers.length === 0) {
+      toast.error("Please select at least one person to message");
+      return;
+    }
+    
+    if (selectedMembers.length > 1) {
+      // Show confirmation for group message
+      setShowGroupConfirm(true);
+      return;
+    }
+    
+    // Start DM with single member
+    const member = selectedMembers[0];
+    const thread = await getOrCreateDMThread(member.profile_id);
+    if (thread) {
+      setActiveThread({
+        ...thread,
+        other_participant: {
+          id: member.profile_id,
+          full_name: member.full_name,
+          email: member.email,
+          role: member.role,
+        },
+      });
+      setShowNewDM(false);
+      setSelectedMembers([]);
+      setActiveTab("direct");
+    }
+  };
+
+  const handleConfirmGroupMessage = () => {
+    // For now, redirect to family channel for group messaging
+    if (familyChannel) {
+      setActiveThread(familyChannel);
+      setActiveTab("family");
+      toast.info("For group conversations, please use the Family Chat");
+    }
+    setShowNewDM(false);
+    setSelectedMembers([]);
+    setShowGroupConfirm(false);
   };
 
   const handleStartDM = async (member: FamilyMember) => {
@@ -459,14 +519,17 @@ const MessagingHubPage = () => {
 
         {/* New DM Modal */}
         <AnimatePresence>
-          {showNewDM && (
+          {showNewDM && !showGroupConfirm && (
             <>
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50"
-                onClick={() => setShowNewDM(false)}
+                onClick={() => {
+                  setShowNewDM(false);
+                  setSelectedMembers([]);
+                }}
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -474,40 +537,134 @@ const MessagingHubPage = () => {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-card rounded-xl border border-border p-6 z-50"
               >
-                <h2 className="text-lg font-semibold mb-4">New Message</h2>
+                <h2 className="text-lg font-semibold mb-2">New Message</h2>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Select a family member to message:
+                  Select one or more family members to message:
                 </p>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {familyMembers
                     .filter((m) => m.profile_id !== profileId)
-                    .map((member) => (
-                      <button
-                        key={member.id}
-                        onClick={() => handleStartDM(member)}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
-                      >
-                        <Avatar className="w-10 h-10">
-                          <AvatarFallback>
-                            {getInitials(member.full_name, member.email)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="font-medium">
-                            {member.full_name || member.email}
-                          </p>
-                        </div>
-                        {getRoleBadge(member.role)}
-                      </button>
-                    ))}
+                    .map((member) => {
+                      const isSelected = selectedMembers.some(m => m.profile_id === member.profile_id);
+                      return (
+                        <button
+                          key={member.id}
+                          onClick={() => toggleMemberSelection(member)}
+                          className={cn(
+                            "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+                            isSelected 
+                              ? "bg-primary/10 border border-primary/30" 
+                              : "hover:bg-muted border border-transparent"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                            isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
+                          )}>
+                            {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
+                          </div>
+                          <Avatar className="w-10 h-10">
+                            <AvatarFallback>
+                              {getInitials(member.full_name, member.email)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-medium">
+                              {member.full_name || member.email}
+                            </p>
+                          </div>
+                          {getRoleBadge(member.role)}
+                        </button>
+                      );
+                    })}
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full mt-4"
-                  onClick={() => setShowNewDM(false)}
-                >
-                  Cancel
-                </Button>
+                
+                {selectedMembers.length > 0 && (
+                  <div className="mt-4 p-3 rounded-lg bg-muted/50 text-sm">
+                    <span className="font-medium">{selectedMembers.length} selected:</span>{" "}
+                    {selectedMembers.map(m => m.full_name || m.email).join(", ")}
+                  </div>
+                )}
+                
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowNewDM(false);
+                      setSelectedMembers([]);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={handleStartConversation}
+                    disabled={selectedMembers.length === 0}
+                  >
+                    {selectedMembers.length > 1 ? "Start Group Chat" : "Start Message"}
+                  </Button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Group Message Confirmation Modal */}
+        <AnimatePresence>
+          {showGroupConfirm && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50"
+                onClick={() => setShowGroupConfirm(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-card rounded-xl border border-border p-6 z-50"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold">Start Group Message?</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedMembers.length} people selected
+                    </p>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  You've selected multiple people. For group conversations, you'll be redirected to the Family Chat where all family members can participate.
+                </p>
+                
+                <div className="p-3 rounded-lg bg-muted/50 mb-4">
+                  <p className="text-sm font-medium mb-1">Selected members:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedMembers.map(m => m.full_name || m.email).join(", ")}
+                  </p>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowGroupConfirm(false)}
+                  >
+                    Go Back
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={handleConfirmGroupMessage}
+                  >
+                    Use Family Chat
+                  </Button>
+                </div>
               </motion.div>
             </>
           )}
