@@ -82,6 +82,10 @@ export const Navbar = () => {
                   </Link>
                 ))}
                 <div className="pt-4 space-y-3 border-t border-border">
+                  <div className="flex items-center justify-between px-2 py-2">
+                    <span className="text-sm font-medium text-muted-foreground">Theme</span>
+                    <ThemeToggle />
+                  </div>
                   <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
                     Sign In
                   </Button>
