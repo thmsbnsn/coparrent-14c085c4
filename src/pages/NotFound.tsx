@@ -1,5 +1,5 @@
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Home, ArrowLeft, Search, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
@@ -44,9 +45,48 @@ const NotFound = () => {
     );
   }, [searchQuery]);
 
+  // Reset selection when results change
+  useEffect(() => {
+    setSelectedIndex(searchResults.length > 0 ? 0 : -1);
+  }, [searchResults]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (searchResults.length === 0) return;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev < searchResults.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev > 0 ? prev - 1 : searchResults.length - 1
+          );
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
+            navigate(searchResults[selectedIndex].path);
+          }
+          break;
+        case "Escape":
+          setSearchQuery("");
+          setSelectedIndex(-1);
+          break;
+      }
+    },
+    [searchResults, selectedIndex, navigate]
+  );
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchResults.length === 1) {
+    if (selectedIndex >= 0 && searchResults[selectedIndex]) {
+      navigate(searchResults[selectedIndex].path);
+    } else if (searchResults.length === 1) {
       navigate(searchResults[0].path);
     }
   };
@@ -105,9 +145,10 @@ const NotFound = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search for a page..."
+              placeholder="Search for a page... (↑↓ to navigate)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="pl-10 pr-4 h-12 text-base"
             />
           </form>
@@ -121,14 +162,21 @@ const NotFound = () => {
             >
               {searchResults.length > 0 ? (
                 <ul className="divide-y divide-border">
-                  {searchResults.map((result) => (
+                  {searchResults.map((result, index) => (
                     <li key={result.path}>
                       <Link
                         to={result.path}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors"
+                        className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                          index === selectedIndex
+                            ? "bg-primary/10 text-primary"
+                            : "hover:bg-muted"
+                        }`}
+                        onMouseEnter={() => setSelectedIndex(index)}
                       >
-                        <Search className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-foreground">{result.label}</span>
+                        <Search className={`w-4 h-4 ${index === selectedIndex ? "text-primary" : "text-muted-foreground"}`} />
+                        <span className={index === selectedIndex ? "text-primary font-medium" : "text-foreground"}>
+                          {result.label}
+                        </span>
                         <span className="ml-auto text-xs text-muted-foreground">
                           {result.path}
                         </span>
