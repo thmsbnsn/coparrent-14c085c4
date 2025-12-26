@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,6 +41,35 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('[AI-MESSAGE-ASSIST] No authorization header provided');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify JWT token
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('[AI-MESSAGE-ASSIST] Invalid authentication:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[AI-MESSAGE-ASSIST] Authenticated user: ${user.id}`);
+
     const { message, action } = await req.json();
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
@@ -97,7 +127,7 @@ Provide your response as JSON with this structure:
       userPrompt = `Analyze this co-parenting message:\n\n"${message}"`;
     }
 
-    console.log(`AI Message Assist - Action: ${action}`);
+    console.log(`[AI-MESSAGE-ASSIST] Action: ${action}, User: ${user.id}`);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -120,7 +150,7 @@ Provide your response as JSON with this structure:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenRouter error:", errorText);
+      console.error("[AI-MESSAGE-ASSIST] OpenRouter error:", errorText);
       throw new Error(`OpenRouter API error: ${response.status}`);
     }
 
@@ -149,7 +179,7 @@ Provide your response as JSON with this structure:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in ai-message-assist:", error);
+    console.error("[AI-MESSAGE-ASSIST] Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to process request";
     return new Response(
       JSON.stringify({ error: errorMessage }),

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,6 +32,35 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('[AI-SCHEDULE-SUGGEST] No authorization header provided');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify JWT token
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('[AI-SCHEDULE-SUGGEST] Invalid authentication:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[AI-SCHEDULE-SUGGEST] Authenticated user: ${user.id}`);
+
     const { childrenInfo, isHighConflict, preferences, state }: SuggestionRequest = await req.json();
     
     const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
@@ -38,7 +68,7 @@ serve(async (req) => {
       throw new Error('OPENROUTER_API_KEY is not configured');
     }
 
-    console.log('AI Schedule Suggest called with:', { childrenInfo, isHighConflict, preferences, state });
+    console.log('[AI-SCHEDULE-SUGGEST] Request:', { childrenInfo, isHighConflict, preferences, state, userId: user.id });
 
     const systemPrompt = `You are an expert family law consultant and child psychologist specializing in custody arrangements. 
 You help co-parents find the best custody schedule for their specific situation.
@@ -97,12 +127,12 @@ Respond ONLY with the JSON object, no other text.`;
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenRouter API error:', response.status, errorText);
+      console.error('[AI-SCHEDULE-SUGGEST] OpenRouter API error:', response.status, errorText);
       throw new Error(`OpenRouter API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('OpenRouter response:', JSON.stringify(data, null, 2));
+    console.log('[AI-SCHEDULE-SUGGEST] OpenRouter response received');
     
     const content = data.choices?.[0]?.message?.content;
     if (!content) {
@@ -148,7 +178,7 @@ Respond ONLY with the JSON object, no other text.`;
       }));
       
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError, 'Content:', content);
+      console.error('[AI-SCHEDULE-SUGGEST] Failed to parse AI response:', parseError, 'Content:', content);
       throw new Error('Failed to parse AI suggestions');
     }
 
@@ -158,7 +188,7 @@ Respond ONLY with the JSON object, no other text.`;
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in ai-schedule-suggest function:', error);
+    console.error('[AI-SCHEDULE-SUGGEST] Error:', error);
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
