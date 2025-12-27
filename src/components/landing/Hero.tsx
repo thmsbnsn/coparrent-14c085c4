@@ -114,10 +114,10 @@ export const Hero = () => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: 0.5 + index * 0.1 }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur-sm shadow-md"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 dark:bg-white/10 backdrop-blur-sm shadow-md"
                 >
                   <feature.icon className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">{feature.label}</span>
+                  <span className="text-sm font-medium text-primary">{feature.label}</span>
                 </motion.div>
               ))}
             </motion.div>
