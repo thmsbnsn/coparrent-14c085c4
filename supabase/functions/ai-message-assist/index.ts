@@ -8,12 +8,38 @@ import { validateMessageAnalysis, createFallbackMessageAnalysis, parseAIJsonResp
 const VALID_ACTIONS = ["quick-check", "analyze", "rephrase", "draft"] as const;
 type ValidAction = typeof VALID_ACTIONS[number];
 
+// Valid rewrite modes for rephrase/draft actions
+const VALID_MODES = ["neutral", "deescalate", "facts_only", "boundary_setting"] as const;
+type ValidMode = typeof VALID_MODES[number];
+
 // Input length limits per plan tier
 const INPUT_LIMITS: Record<string, number> = {
   free: 600,
   trial: 1500,
   paid: 3000,
+  premium: 3000,
   admin: 5000,
+  admin_access: 5000,
+};
+
+// Mode-specific prompt modifiers for rephrase/draft
+const MODE_PROMPTS: Record<ValidMode, { instruction: string; style: string }> = {
+  neutral: {
+    instruction: "Rephrase professionally while maintaining the original intent.",
+    style: "calm, professional, and child-focused"
+  },
+  deescalate: {
+    instruction: "Rephrase to de-escalate tension and reduce conflict. Lower emotional temperature.",
+    style: "calming, non-confrontational, and solution-oriented"
+  },
+  facts_only: {
+    instruction: "Rephrase to be purely factual and court-friendly. Remove all emotion, accusations, and subjective language.",
+    style: "factual, objective, and documentation-ready"
+  },
+  boundary_setting: {
+    instruction: "Rephrase to set firm but calm boundaries. Be clear and direct without being aggressive.",
+    style: "firm, respectful, and boundary-clear"
+  }
 };
 
 // Patterns that might indicate hostile or inflammatory language
@@ -60,7 +86,7 @@ serve(async (req) => {
   try {
     // Parse request body
     const body = await req.json();
-    const { message, action } = body;
+    const { message, action, mode } = body;
     
     // Validate action
     if (!action || !VALID_ACTIONS.includes(action as ValidAction)) {
@@ -70,6 +96,9 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // Validate mode if provided (only for rephrase/draft)
+    const selectedMode: ValidMode = (mode && VALID_MODES.includes(mode)) ? mode : "neutral";
     
     // Authenticate and authorize with aiGuard
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -91,7 +120,7 @@ serve(async (req) => {
     const userId = userContext.userId;
     
     // Log request metadata (no message content for safety)
-    console.log(`[AI-MESSAGE-ASSIST] action=${action} user=${userId} role=${userContext.role} plan=${userContext.planTier}`);
+    console.log(`[AI-MESSAGE-ASSIST] action=${action} mode=${selectedMode} user=${userId} role=${userContext.role} plan=${userContext.planTier}`);
     
     // Quick check is allowed for all authenticated users without quota consumption
     if (action === "quick-check") {
@@ -168,14 +197,18 @@ serve(async (req) => {
     // Build prompts for AI actions
     let systemPrompt = "";
     let userPrompt = "";
+    
+    // Get mode-specific instructions
+    const modeConfig = MODE_PROMPTS[selectedMode];
 
     if (action === "rephrase") {
-      systemPrompt = `You are a co-parenting communication assistant. Your role is to help parents communicate in a calm, professional, and child-focused manner.
+      systemPrompt = `You are a co-parenting communication assistant. Your role is to help parents communicate in a ${modeConfig.style} manner.
+
+${modeConfig.instruction}
 
 Guidelines:
 - Remove emotional language and personal attacks
 - Focus on facts and the children's wellbeing
-- Use respectful, business-like tone
 - Keep requests clear and actionable
 - Maintain the original intent while improving delivery
 - Be concise but thorough
@@ -183,10 +216,13 @@ Guidelines:
 This is informational assistance only, not legal advice. For legal matters, consult an attorney.
 
 Respond with ONLY the rephrased message, no explanations.`;
-      userPrompt = `Rephrase this message to be more professional and constructive:\n\n"${trimmedMessage}"`;
+      userPrompt = `Rephrase this message to be more ${modeConfig.style}:\n\n"${trimmedMessage}"`;
     } else if (action === "draft") {
-      systemPrompt = `You are a co-parenting communication assistant. Help parents draft professional, child-focused messages. Your suggestions should:
-- Be calm and respectful
+      systemPrompt = `You are a co-parenting communication assistant. Help parents draft ${modeConfig.style} messages.
+
+${modeConfig.instruction}
+
+Your suggestions should:
 - Focus on the children's needs
 - Be clear and specific about requests or information
 - Avoid blame or emotional language
@@ -194,7 +230,7 @@ Respond with ONLY the rephrased message, no explanations.`;
 This is informational assistance only, not legal advice. Consult an attorney for legal guidance.
 
 Provide 2-3 alternative message drafts based on the user's intent.`;
-      userPrompt = `Help me draft a message about: ${trimmedMessage}`;
+      userPrompt = `Help me draft a ${modeConfig.style} message about: ${trimmedMessage}`;
     } else if (action === "analyze") {
       systemPrompt = `You are a co-parenting communication assistant. Analyze the message for tone and provide specific, actionable feedback.
 
@@ -214,7 +250,7 @@ Return ONLY valid JSON, no markdown or explanation.`;
       userPrompt = `Analyze this co-parenting message:\n\n"${trimmedMessage}"`;
     }
 
-    console.log(`[AI-MESSAGE-ASSIST] Calling AI user=${userId} action=${action} inputLength=${trimmedMessage.length}`);
+    console.log(`[AI-MESSAGE-ASSIST] Calling AI user=${userId} action=${action} mode=${selectedMode} inputLength=${trimmedMessage.length}`);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -305,12 +341,12 @@ Return ONLY valid JSON, no markdown or explanation.`;
         }
       }
     } else {
-      // rephrase or draft - return content directly
+      // rephrase or draft - return content directly (backwards compatible)
       result = { content: aiResponse.trim() };
     }
 
     const latency = Date.now() - startTime;
-    console.log(`[AI-MESSAGE-ASSIST] completed action=${action} user=${userId} latency=${latency}ms remaining=${rateLimitResult.remaining}`);
+    console.log(`[AI-MESSAGE-ASSIST] completed action=${action} mode=${selectedMode} user=${userId} latency=${latency}ms remaining=${rateLimitResult.remaining}`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
