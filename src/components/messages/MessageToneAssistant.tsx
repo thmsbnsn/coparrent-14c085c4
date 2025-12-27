@@ -1,9 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, AlertTriangle, CheckCircle, RefreshCw, X, Lightbulb } from "lucide-react";
+import { Sparkles, AlertTriangle, CheckCircle, RefreshCw, X, Lightbulb, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { usePremiumAccess } from "@/hooks/usePremiumAccess";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ToneAnalysis {
   overallTone?: "positive" | "neutral" | "concerning";
@@ -25,6 +32,16 @@ interface MessageToneAssistantProps {
   className?: string;
 }
 
+// Rewrite modes with labels for UI
+const REWRITE_MODES = [
+  { value: "neutral", label: "Neutral", description: "Professional and balanced" },
+  { value: "deescalate", label: "De-escalate", description: "Reduce tension and conflict" },
+  { value: "facts_only", label: "Facts-only", description: "Court-friendly, no emotion" },
+  { value: "boundary_setting", label: "Boundary-setting", description: "Firm but calm" },
+] as const;
+
+type RewriteMode = typeof REWRITE_MODES[number]["value"];
+
 export const MessageToneAssistant = ({ message, onRephrase, className }: MessageToneAssistantProps) => {
   const [quickCheck, setQuickCheck] = useState<QuickCheck | null>(null);
   const [analysis, setAnalysis] = useState<ToneAnalysis | null>(null);
@@ -32,6 +49,9 @@ export const MessageToneAssistant = ({ message, onRephrase, className }: Message
   const [loading, setLoading] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [lastCheckedMessage, setLastCheckedMessage] = useState("");
+  const [selectedMode, setSelectedMode] = useState<RewriteMode>("neutral");
+  
+  const { hasAccess: hasPremium, loading: premiumLoading } = usePremiumAccess();
 
   // Debounced quick check
   const performQuickCheck = useCallback(async (text: string) => {
@@ -86,7 +106,7 @@ export const MessageToneAssistant = ({ message, onRephrase, className }: Message
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-message-assist", {
-        body: { message, action: "rephrase" },
+        body: { message, action: "rephrase", mode: selectedMode },
       });
 
       if (error) throw error;
@@ -123,6 +143,8 @@ export const MessageToneAssistant = ({ message, onRephrase, className }: Message
     }
   };
 
+  const selectedModeLabel = REWRITE_MODES.find(m => m.value === selectedMode)?.label || "Neutral";
+
   if (!message || message.length < 10) return null;
 
   return (
@@ -145,25 +167,52 @@ export const MessageToneAssistant = ({ message, onRephrase, className }: Message
                 ))}
               </ul>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAnalyze}
-                disabled={loading}
-              >
-                <Sparkles className="w-3 h-3 mr-1" />
-                Analyze
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleRephrase}
-                disabled={loading}
-              >
-                <RefreshCw className={cn("w-3 h-3 mr-1", loading && "animate-spin")} />
-                Rephrase
-              </Button>
+            <div className="flex flex-col gap-2">
+              {/* Mode selector for premium users */}
+              {hasPremium && !premiumLoading && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-xs">
+                      {selectedModeLabel}
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {REWRITE_MODES.map((mode) => (
+                      <DropdownMenuItem
+                        key={mode.value}
+                        onClick={() => setSelectedMode(mode.value)}
+                        className={cn(selectedMode === mode.value && "bg-accent")}
+                      >
+                        <div>
+                          <div className="font-medium">{mode.label}</div>
+                          <div className="text-xs text-muted-foreground">{mode.description}</div>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAnalyze}
+                  disabled={loading}
+                >
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  Analyze
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleRephrase}
+                  disabled={loading}
+                >
+                  <RefreshCw className={cn("w-3 h-3 mr-1", loading && "animate-spin")} />
+                  Rephrase
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -182,6 +231,11 @@ export const MessageToneAssistant = ({ message, onRephrase, className }: Message
               <span className="text-sm font-medium flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
                 Suggested Rephrase
+                {hasPremium && selectedMode !== "neutral" && (
+                  <span className="text-xs text-muted-foreground">
+                    ({selectedModeLabel})
+                  </span>
+                )}
               </span>
               <Button
                 variant="ghost"
@@ -280,7 +334,32 @@ export const MessageToneAssistant = ({ message, onRephrase, className }: Message
               </div>
             )}
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap gap-2 items-center">
+              {/* Mode selector for premium users in analysis panel */}
+              {hasPremium && !premiumLoading && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Style: {selectedModeLabel}
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {REWRITE_MODES.map((mode) => (
+                      <DropdownMenuItem
+                        key={mode.value}
+                        onClick={() => setSelectedMode(mode.value)}
+                        className={cn(selectedMode === mode.value && "bg-accent")}
+                      >
+                        <div>
+                          <div className="font-medium">{mode.label}</div>
+                          <div className="text-xs text-muted-foreground">{mode.description}</div>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <Button size="sm" onClick={handleRephrase} disabled={loading}>
                 <RefreshCw className={cn("w-3 h-3 mr-1", loading && "animate-spin")} />
                 Get Rephrased Version
