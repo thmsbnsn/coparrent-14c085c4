@@ -1,4 +1,5 @@
 // Edge function to generate court-ready expense reports
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,20 +52,44 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Other',
 };
 
+// HTML escape function to prevent XSS
+function escapeHtml(text: string | null | undefined): string {
+  if (text == null) return '';
+  const str = String(text);
+  const htmlEscapes: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;'
+  };
+  return str.replace(/[&<>"'`=/]/g, (char) => htmlEscapes[char] || char);
+}
+
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return escapeHtml(dateStr);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  } catch {
+    return escapeHtml(dateStr);
+  }
 }
 
 function formatCurrency(amount: number): string {
+  const num = Number(amount);
+  if (isNaN(num)) return '$0.00';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-  }).format(amount);
+  }).format(num);
 }
 
 function generateHTML(data: ReportData): string {
@@ -88,11 +113,16 @@ function generateHTML(data: ReportData): string {
   const pendingReimbursements = reimbursementRequests.filter(r => r.status === 'pending');
   const rejectedReimbursements = reimbursementRequests.filter(r => r.status === 'rejected');
 
+  // Escape all user-controlled data
+  const safeProfileName = escapeHtml(profile.full_name || profile.email || 'Unknown');
+  const safeCoParentName = escapeHtml(coParent?.full_name || coParent?.email || 'Not linked');
+
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';">
   <title>Co-Parenting Expense Report</title>
   <style>
     * {
@@ -286,11 +316,11 @@ function generateHTML(data: ReportData): string {
     <div class="parties-grid">
       <div class="party-box">
         <h4>Parent 1 (Report Generator)</h4>
-        <div class="name">${profile.full_name || profile.email || 'Unknown'}</div>
+        <div class="name">${safeProfileName}</div>
       </div>
       <div class="party-box">
         <h4>Parent 2 (Co-Parent)</h4>
-        <div class="name">${coParent?.full_name || coParent?.email || 'Not linked'}</div>
+        <div class="name">${safeCoParentName}</div>
       </div>
     </div>
     
@@ -298,7 +328,7 @@ function generateHTML(data: ReportData): string {
     <div style="margin-top: 15px;">
       <h4 style="color: #666; font-size: 10pt; margin-bottom: 8px;">CHILDREN</h4>
       <div class="children-list">
-        ${children.map(c => `<span class="child-badge">${c.name}</span>`).join('')}
+        ${children.map(c => `<span class="child-badge">${escapeHtml(c.name)}</span>`).join('')}
       </div>
     </div>
     ` : ''}
@@ -312,11 +342,11 @@ function generateHTML(data: ReportData): string {
         <div class="value">${formatCurrency(totalExpenses)}</div>
       </div>
       <div class="summary-box">
-        <div class="label">${profile.full_name || 'Your'} Expenses</div>
+        <div class="label">${safeProfileName} Expenses</div>
         <div class="value">${formatCurrency(myTotal)}</div>
       </div>
       <div class="summary-box">
-        <div class="label">${coParent?.full_name || 'Co-Parent'} Expenses</div>
+        <div class="label">${safeCoParentName} Expenses</div>
         <div class="value">${formatCurrency(coParentTotal)}</div>
       </div>
     </div>
@@ -329,7 +359,7 @@ function generateHTML(data: ReportData): string {
         .sort(([, a], [, b]) => b - a)
         .map(([cat, total]) => `
           <div class="category-item">
-            <span>${CATEGORY_LABELS[cat] || cat}</span>
+            <span>${escapeHtml(CATEGORY_LABELS[cat] || cat)}</span>
             <span class="amount">${formatCurrency(total)}</span>
           </div>
         `).join('')}
@@ -355,12 +385,12 @@ function generateHTML(data: ReportData): string {
           <tr>
             <td>${formatDate(e.expense_date)}</td>
             <td>
-              ${e.description}
+              ${escapeHtml(e.description)}
               ${e.receipt_path ? '<span class="receipt-indicator">📎</span>' : ''}
             </td>
-            <td>${CATEGORY_LABELS[e.category] || e.category}</td>
-            <td>${e.child?.name || '—'}</td>
-            <td>${e.creator?.full_name || e.creator?.email || '—'}</td>
+            <td>${escapeHtml(CATEGORY_LABELS[e.category] || e.category)}</td>
+            <td>${escapeHtml(e.child?.name) || '—'}</td>
+            <td>${escapeHtml(e.creator?.full_name || e.creator?.email) || '—'}</td>
             <td style="text-align: right;" class="amount">${formatCurrency(e.amount)}</td>
           </tr>
         `).join('')}
@@ -408,11 +438,11 @@ function generateHTML(data: ReportData): string {
         ${reimbursementRequests.map(r => `
           <tr>
             <td>${formatDate(r.created_at)}</td>
-            <td>${r.expense?.description || 'Unknown'}</td>
-            <td>${r.requester?.full_name || r.requester?.email || '—'}</td>
+            <td>${escapeHtml(r.expense?.description) || 'Unknown'}</td>
+            <td>${escapeHtml(r.requester?.full_name || r.requester?.email) || '—'}</td>
             <td style="text-align: right;" class="amount">${formatCurrency(r.amount)}</td>
             <td>
-              <span class="status-badge status-${r.status}">${r.status.toUpperCase()}</span>
+              <span class="status-badge status-${escapeHtml(r.status)}">${escapeHtml(r.status.toUpperCase())}</span>
             </td>
           </tr>
         `).join('')}
@@ -444,11 +474,83 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.log('[generate-expense-report] Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: { headers: { Authorization: authHeader } },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.log('[generate-expense-report] Invalid token:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token', code: 'INVALID_TOKEN' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get user's profile to verify access
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, co_parent_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (profileError || !profile) {
+      console.log('[generate-expense-report] Profile not found:', profileError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Profile not found', code: 'PROFILE_NOT_FOUND' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse and validate request body
     const data: ReportData = await req.json();
     
-    console.log('Generating expense report for:', data.profile?.email);
-    console.log('Expenses count:', data.expenses?.length);
-    console.log('Reimbursement requests count:', data.reimbursementRequests?.length);
+    // Validate required fields
+    if (!data.dateRange?.start || !data.dateRange?.end) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid date range', code: 'INVALID_INPUT' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate expenses array
+    if (!Array.isArray(data.expenses)) {
+      data.expenses = [];
+    }
+
+    // Validate reimbursement requests array
+    if (!Array.isArray(data.reimbursementRequests)) {
+      data.reimbursementRequests = [];
+    }
+
+    // Validate children array
+    if (!Array.isArray(data.children)) {
+      data.children = [];
+    }
+
+    // Log metadata only (no sensitive data)
+    console.log('[generate-expense-report] Generating report:', {
+      userId: user.id,
+      profileId: profile.id,
+      expenseCount: data.expenses.length,
+      reimbursementCount: data.reimbursementRequests.length,
+      childCount: data.children.length,
+      dateRange: data.dateRange,
+    });
     
     const html = generateHTML(data);
     
@@ -456,13 +558,14 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/html; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error generating report:', error);
+    console.error('[generate-expense-report] Error:', errorMessage);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'Failed to generate report', code: 'INTERNAL_ERROR' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
