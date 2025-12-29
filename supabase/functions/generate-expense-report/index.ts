@@ -1,10 +1,6 @@
 // Edge function to generate court-ready expense reports
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { strictCors, getCorsHeaders } from "../_shared/cors.ts";
 
 interface Expense {
   id: string;
@@ -468,10 +464,11 @@ function generateHTML(data: ReportData): string {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  // Strict CORS validation
+  const corsResponse = strictCors(req);
+  if (corsResponse) return corsResponse;
+  
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     // Authenticate user
