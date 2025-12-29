@@ -720,6 +720,48 @@ export type Database = {
           },
         ]
       }
+      law_articles: {
+        Row: {
+          access_level: string
+          article_number: string
+          created_at: string
+          id: string
+          is_repealed: boolean
+          related_slugs: string[] | null
+          slug: string
+          storage_path: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          access_level?: string
+          article_number: string
+          created_at?: string
+          id?: string
+          is_repealed?: boolean
+          related_slugs?: string[] | null
+          slug: string
+          storage_path: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          access_level?: string
+          article_number?: string
+          created_at?: string
+          id?: string
+          is_repealed?: boolean
+          related_slugs?: string[] | null
+          slug?: string
+          storage_path?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       law_library_resources: {
         Row: {
           category: string
