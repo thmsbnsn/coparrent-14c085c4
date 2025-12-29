@@ -2,19 +2,37 @@ import { useMemo } from 'react';
 
 interface MarkdownRendererProps {
   content: string;
+  onHeadingsExtracted?: (headings: TocHeading[]) => void;
+}
+
+export interface TocHeading {
+  id: string;
+  text: string;
+  level: 2 | 3;
+}
+
+// Slugify text for anchor IDs
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
 }
 
 // Simple, safe markdown renderer - no dangerouslySetInnerHTML
-export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
-  const elements = useMemo(() => {
+export const MarkdownRenderer = ({ content, onHeadingsExtracted }: MarkdownRendererProps) => {
+  const { elements, headings } = useMemo(() => {
     const lines = content.split('\n');
     const result: JSX.Element[] = [];
+    const extractedHeadings: TocHeading[] = [];
     let key = 0;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       
-      // Headers
+      // Headers with anchor IDs for H2/H3
       if (line.startsWith('######')) {
         result.push(<h6 key={key++} className="text-sm font-semibold mt-4 mb-2 text-foreground">{line.slice(6).trim()}</h6>);
       } else if (line.startsWith('#####')) {
@@ -22,9 +40,23 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
       } else if (line.startsWith('####')) {
         result.push(<h4 key={key++} className="text-base font-semibold mt-5 mb-2 text-foreground">{line.slice(4).trim()}</h4>);
       } else if (line.startsWith('###')) {
-        result.push(<h3 key={key++} className="text-lg font-semibold mt-6 mb-3 text-foreground">{line.slice(3).trim()}</h3>);
+        const text = line.slice(3).trim();
+        const id = slugify(text);
+        extractedHeadings.push({ id, text, level: 3 });
+        result.push(
+          <h3 key={key++} id={id} className="text-lg font-semibold mt-6 mb-3 text-foreground scroll-mt-20">
+            {text}
+          </h3>
+        );
       } else if (line.startsWith('##')) {
-        result.push(<h2 key={key++} className="text-xl font-semibold mt-8 mb-4 text-foreground border-b border-border pb-2">{line.slice(2).trim()}</h2>);
+        const text = line.slice(2).trim();
+        const id = slugify(text);
+        extractedHeadings.push({ id, text, level: 2 });
+        result.push(
+          <h2 key={key++} id={id} className="text-xl font-semibold mt-8 mb-4 text-foreground border-b border-border pb-2 scroll-mt-20">
+            {text}
+          </h2>
+        );
       } else if (line.startsWith('#')) {
         result.push(<h1 key={key++} className="text-2xl font-bold mt-8 mb-4 text-foreground">{line.slice(1).trim()}</h1>);
       }
@@ -88,8 +120,15 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
       }
     }
 
-    return result;
+    return { elements: result, headings: extractedHeadings };
   }, [content]);
+
+  // Notify parent of extracted headings
+  useMemo(() => {
+    if (onHeadingsExtracted && headings.length > 0) {
+      onHeadingsExtracted(headings);
+    }
+  }, [headings, onHeadingsExtracted]);
 
   return <div className="prose-custom">{elements}</div>;
 };

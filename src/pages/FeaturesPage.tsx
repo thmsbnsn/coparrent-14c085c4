@@ -16,6 +16,16 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
 
+// Feature screenshots
+import calendarFeature from "@/assets/features/calendar-feature.png";
+import messagingFeature from "@/assets/features/messaging-feature.png";
+import childrenFeature from "@/assets/features/children-feature.png";
+import documentsFeature from "@/assets/features/documents-feature.png";
+import expensesFeature from "@/assets/features/expenses-feature.png";
+import journalFeature from "@/assets/features/journal-feature.png";
+import lawLibraryFeature from "@/assets/features/law-library-feature.png";
+import professionalFeature from "@/assets/features/professional-feature.png";
+
 const featureSections = [
   {
     id: "calendar",
@@ -30,7 +40,8 @@ const featureSections = [
       "Holiday schedule overrides and rotating arrangements"
     ],
     gradient: "from-primary to-info",
-    link: "/calendar"
+    link: "/calendar",
+    image: calendarFeature
   },
   {
     id: "messaging",
@@ -45,7 +56,8 @@ const featureSections = [
       "Court-ready message exports"
     ],
     gradient: "from-warning to-destructive",
-    link: "/messages"
+    link: "/messages",
+    image: messagingFeature
   },
   {
     id: "children",
@@ -60,7 +72,8 @@ const featureSections = [
       "Shared access with permission controls"
     ],
     gradient: "from-accent-foreground to-success",
-    link: "/children"
+    link: "/children",
+    image: childrenFeature
   },
   {
     id: "documents",
@@ -75,7 +88,8 @@ const featureSections = [
       "Shared access between co-parents"
     ],
     gradient: "from-success to-info",
-    link: "/documents"
+    link: "/documents",
+    image: documentsFeature
   },
   {
     id: "expenses",
@@ -90,7 +104,8 @@ const featureSections = [
       "Exportable expense reports"
     ],
     gradient: "from-primary to-accent-foreground",
-    link: "/expenses"
+    link: "/expenses",
+    image: expensesFeature
   },
   {
     id: "journal",
@@ -105,7 +120,8 @@ const featureSections = [
       "Searchable history"
     ],
     gradient: "from-info to-primary",
-    link: "/journal"
+    link: "/journal",
+    image: journalFeature
   },
   {
     id: "law-library",
@@ -120,7 +136,8 @@ const featureSections = [
       "Disclaimer: For reference only, not legal advice"
     ],
     gradient: "from-muted-foreground to-primary",
-    link: "/law-library"
+    link: "/law-library",
+    image: lawLibraryFeature
   },
   {
     id: "professional",
@@ -135,7 +152,8 @@ const featureSections = [
       "Professional reporting tools"
     ],
     gradient: "from-primary to-warning",
-    link: "/pricing"
+    link: "/pricing",
+    image: professionalFeature
   }
 ];
 
@@ -244,12 +262,17 @@ export default function FeaturesPage() {
                   </Button>
                 </div>
 
-                {/* Visual Card */}
+                {/* Visual Card with Screenshot */}
                 <div className="flex-1 w-full max-w-lg">
                   <div className={`relative rounded-3xl bg-gradient-to-br ${section.gradient} p-[1px]`}>
-                    <div className="rounded-3xl bg-card p-8 lg:p-10">
-                      <div className="aspect-[4/3] rounded-2xl bg-muted/50 flex items-center justify-center">
-                        <section.icon className="w-24 h-24 text-muted-foreground/30" />
+                    <div className="rounded-3xl bg-card p-4 lg:p-6">
+                      <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-muted/50">
+                        <img 
+                          src={section.image} 
+                          alt={`${section.title} screenshot`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
                       </div>
                     </div>
                   </div>
