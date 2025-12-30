@@ -59,21 +59,11 @@ const LawArticlesPageContent = () => {
   }, [searchInput]);
 
   const filteredAndSortedArticles = useMemo(() => {
-    if (!articles) return [];
+    if (!articles || articles.length === 0) return [];
     
     let result = [...articles];
     
-    // Apply search filter
-    if (debouncedSearch.trim()) {
-      const query = debouncedSearch.toLowerCase();
-      result = result.filter(
-        (article) =>
-          article.title.toLowerCase().includes(query) ||
-          article.summary?.toLowerCase().includes(query)
-      );
-    }
-    
-    // Apply category filter
+    // Step 1: Apply chip filter first
     switch (activeFilter) {
       case 'core':
         result = result.filter((a) => CORE_ARTICLES.includes(a.article_number));
@@ -87,9 +77,20 @@ const LawArticlesPageContent = () => {
       case 'auth':
         result = result.filter((a) => a.access_level === 'auth');
         break;
+      // 'all' - no filtering
     }
     
-    // Apply sorting
+    // Step 2: Apply search filter
+    const searchTerm = debouncedSearch.trim().toLowerCase();
+    if (searchTerm) {
+      result = result.filter(
+        (article) =>
+          article.title.toLowerCase().includes(searchTerm) ||
+          (article.summary?.toLowerCase().includes(searchTerm) ?? false)
+      );
+    }
+    
+    // Step 3: Apply sorting
     if (sortBy === 'title') {
       result.sort((a, b) => a.title.localeCompare(b.title));
     } else {
@@ -101,7 +102,7 @@ const LawArticlesPageContent = () => {
     }
     
     return result;
-  }, [articles, debouncedSearch, activeFilter, sortBy]);
+  }, [articles, activeFilter, debouncedSearch, sortBy]);
 
   if (error) {
     return (
