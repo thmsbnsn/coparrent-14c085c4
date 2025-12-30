@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import logoSvg from "@/assets/coparrent-logo.svg";
+import logoMark from "@/assets/coparrent-mark.svg";
 
 interface LogoProps {
   className?: string;
@@ -17,14 +17,14 @@ export const Logo = ({ className, showText = true, size = "md" }: LogoProps) => 
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <img 
-        src={logoSvg} 
+        src={logoMark} 
         alt="CoParrent Logo" 
         className={cn(sizes[size].icon)}
       />
       {showText && (
         <span className={cn("font-display font-bold tracking-tight", sizes[size].text)}>
           <span className="text-primary">Co</span>
-          <span className="text-[#21B0FE]">Parrent</span>
+          <span className="text-[#14B8A6]">Parrent</span>
         </span>
       )}
     </div>
