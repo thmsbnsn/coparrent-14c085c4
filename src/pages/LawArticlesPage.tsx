@@ -1,11 +1,12 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Search, Scale, Book, Filter, ArrowUpDown } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, Scale, Book, Filter, ArrowUpDown, Info, FileX } from 'lucide-react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { FeatureErrorBoundary } from '@/components/ui/FeatureErrorBoundary';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -13,8 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { LawArticleListItem } from '@/components/law-articles/LawArticleListItem';
-import { useLawArticles, LawArticle } from '@/hooks/useLawArticles';
+import { useLawArticles } from '@/hooks/useLawArticles';
 
 type FilterType = 'all' | 'core' | 'definitions' | 'repealed' | 'auth';
 type SortType = 'article' | 'title';
@@ -22,12 +29,12 @@ type SortType = 'article' | 'title';
 const CORE_ARTICLES = ['17', '34', '35'];
 const DEFINITION_ARTICLES = ['9'];
 
-const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'core', label: 'Core' },
-  { value: 'definitions', label: 'Definitions' },
-  { value: 'repealed', label: 'Repealed' },
-  { value: 'auth', label: 'Auth-only' },
+const FILTER_OPTIONS: { value: FilterType; label: string; tooltip: string }[] = [
+  { value: 'all', label: 'All', tooltip: 'Show all 42 Indiana Code Title 31 articles' },
+  { value: 'core', label: 'Core', tooltip: 'Articles 17, 34, 35 – key family law provisions' },
+  { value: 'definitions', label: 'Definitions', tooltip: 'Article 9 – legal term definitions' },
+  { value: 'repealed', label: 'Repealed', tooltip: 'Articles no longer in effect' },
+  { value: 'auth', label: 'Auth-only', tooltip: 'Articles requiring login to view full text' },
 ];
 
 const SORT_OPTIONS: { value: SortType; label: string }[] = [
@@ -121,13 +128,14 @@ const LawArticlesPageContent = () => {
         </div>
         
         <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
           <Input
             type="search"
-            placeholder="Search articles..."
+            placeholder="Search by title or summary..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="pl-10"
+            aria-label="Search law articles"
           />
         </div>
       </div>
@@ -135,25 +143,39 @@ const LawArticlesPageContent = () => {
       {/* Filters and Sort */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Filter Chips */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          {FILTER_OPTIONS.map((option) => (
-            <Badge
-              key={option.value}
-              variant={activeFilter === option.value ? 'default' : 'outline'}
-              className="cursor-pointer transition-colors hover:bg-primary/20"
-              onClick={() => setActiveFilter(option.value)}
-            >
-              {option.label}
-            </Badge>
-          ))}
-        </div>
+        <TooltipProvider delayDuration={300}>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter articles">
+            <Filter className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+            {FILTER_OPTIONS.map((option) => (
+              <Tooltip key={option.value}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setActiveFilter(option.value)}
+                    aria-pressed={activeFilter === option.value}
+                    className="inline-flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-full"
+                  >
+                    <Badge
+                      variant={activeFilter === option.value ? 'default' : 'outline'}
+                      className="cursor-pointer transition-colors hover:bg-primary/20"
+                    >
+                      {option.label}
+                    </Badge>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p>{option.tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </TooltipProvider>
         
         {/* Sort Dropdown */}
         <div className="flex items-center gap-2">
-          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+          <ArrowUpDown className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortType)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px]" aria-label="Sort articles by">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -208,14 +230,35 @@ const LawArticlesPageContent = () => {
       {!isLoading && filteredAndSortedArticles.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
-            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <FileX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No articles found</h3>
-            <p className="text-sm text-muted-foreground">
-              {debouncedSearch 
+            <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">
+              {debouncedSearch && activeFilter !== 'all'
+                ? `No articles match "${debouncedSearch}" with the "${FILTER_OPTIONS.find(f => f.value === activeFilter)?.label}" filter.`
+                : debouncedSearch
                 ? `No articles match your search for "${debouncedSearch}".`
-                : 'No articles match the selected filter.'}
-              {' '}Try adjusting your search or filters.
+                : `No articles match the "${FILTER_OPTIONS.find(f => f.value === activeFilter)?.label}" filter.`}
             </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {debouncedSearch && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearchInput('')}
+                >
+                  Clear search
+                </Button>
+              )}
+              {activeFilter !== 'all' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActiveFilter('all')}
+                >
+                  Show all articles
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
