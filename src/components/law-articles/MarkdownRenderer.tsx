@@ -92,7 +92,7 @@ export const MarkdownRenderer = ({ content, onHeadingsExtracted }: MarkdownRende
           </li>
         );
       }
-      // Code block (simple - fenced)
+      // Code block (simple - fenced) with mobile overflow handling
       else if (line.startsWith('```')) {
         const codeLines: string[] = [];
         i++;
@@ -130,7 +130,11 @@ export const MarkdownRenderer = ({ content, onHeadingsExtracted }: MarkdownRende
     }
   }, [headings, onHeadingsExtracted]);
 
-  return <div className="prose-custom">{elements}</div>;
+  return (
+    <div className="prose-custom max-w-none overflow-x-hidden [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_p]:break-words [&_li]:break-words">
+      {elements}
+    </div>
+  );
 };
 
 // Helper to render inline formatting (bold, italic, code, links)
