@@ -56,7 +56,7 @@ const AdminDashboard = () => {
   const [editingReason, setEditingReason] = useState<{ id: string; value: string } | null>(null);
   const [activeTab, setActiveTab] = useState("users");
 
-  // Check if user is admin
+  // Check if user is admin using secure server-side RPC
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user) {
@@ -65,14 +65,15 @@ const AdminDashboard = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-
-        setIsAdmin(!!data);
+        // Use the secure is_admin() RPC function instead of client-side query
+        const { data, error } = await supabase.rpc("is_admin");
+        
+        if (error) {
+          console.error("Admin check error:", error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data === true);
+        }
       } catch (error) {
         console.error("Error checking admin status:", error);
         setIsAdmin(false);
