@@ -246,15 +246,15 @@ export function useExpenses() {
     return fileName;
   };
 
-  const getReceiptUrl = (path: string) => {
-    const { data } = supabase.storage.from('receipts').getPublicUrl(path);
-    return data.publicUrl;
-  };
-
-  const getSignedReceiptUrl = async (path: string) => {
+  /**
+   * Get a signed URL for accessing receipt files.
+   * The receipts bucket is private, so signed URLs are required for access.
+   * URLs are valid for 1 hour.
+   */
+  const getSignedReceiptUrl = async (path: string): Promise<string | null> => {
     const { data, error } = await supabase.storage
       .from('receipts')
-      .createSignedUrl(path, 3600); // 1 hour
+      .createSignedUrl(path, 3600); // 1 hour expiry
     
     if (error) {
       console.error('Error getting signed URL:', error);
@@ -295,7 +295,6 @@ export function useExpenses() {
     requestReimbursement,
     respondToReimbursement,
     uploadReceipt,
-    getReceiptUrl,
     getSignedReceiptUrl,
     getTotals,
     refetch: fetchExpenses,

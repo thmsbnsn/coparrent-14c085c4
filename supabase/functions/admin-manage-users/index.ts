@@ -73,7 +73,16 @@ serve(async (req) => {
 
     // List all users with their subscription status (supports GET and POST)
     if (action === "list") {
-      const search = url.searchParams.get("search") || "";
+      const rawSearch = url.searchParams.get("search") || "";
+      
+      // Input validation: sanitize search parameter
+      // - Trim whitespace
+      // - Limit length to prevent resource exhaustion
+      // - Remove special characters that could affect query behavior
+      const sanitizedSearch = rawSearch
+        .trim()
+        .substring(0, 100)
+        .replace(/[%_\\]/g, ''); // Remove LIKE wildcards and escape chars
       
       // Get all profiles
       let query = supabaseClient
@@ -81,8 +90,11 @@ serve(async (req) => {
         .select("id, user_id, email, full_name, subscription_status, subscription_tier, free_premium_access, access_reason, created_at")
         .order("created_at", { ascending: false });
 
-      if (search) {
-        query = query.or(`email.ilike.%${search}%,full_name.ilike.%${search}%`);
+      if (sanitizedSearch && sanitizedSearch.length >= 2) {
+        // Only search if at least 2 characters to prevent broad queries
+        query = query.or(`email.ilike.%${sanitizedSearch}%,full_name.ilike.%${sanitizedSearch}%`);
+      } else if (rawSearch && rawSearch.length > 0 && sanitizedSearch.length < 2) {
+        logStep("Search query too short after sanitization", { original: rawSearch.length, sanitized: sanitizedSearch.length });
       }
 
       const { data: profiles, error: profilesError } = await query;
