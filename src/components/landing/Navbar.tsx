@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -17,6 +18,7 @@ const navLinks = [
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass">
@@ -43,12 +45,23 @@ export const Navbar = () => {
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
-            <Button variant="ghost" onClick={() => navigate("/login")}>
-              Sign In
-            </Button>
-            <Button onClick={() => navigate("/signup")}>
-              Get Started Free
-            </Button>
+            {!loading && user ? (
+              // User is logged in - show dashboard button
+              <Button onClick={() => navigate("/dashboard")}>
+                <LayoutDashboard className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+            ) : (
+              // User is not logged in - show sign in/up buttons
+              <>
+                <Button variant="ghost" onClick={() => navigate("/login")}>
+                  Sign In
+                </Button>
+                <Button onClick={() => navigate("/signup")}>
+                  Get Started Free
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -86,12 +99,23 @@ export const Navbar = () => {
                     <span className="text-sm font-medium text-muted-foreground">Theme</span>
                     <ThemeToggle />
                   </div>
-                  <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
-                    Sign In
-                  </Button>
-                  <Button className="w-full" onClick={() => navigate("/signup")}>
-                    Get Started Free
-                  </Button>
+                  {!loading && user ? (
+                    // User is logged in - show dashboard button
+                    <Button className="w-full" onClick={() => { navigate("/dashboard"); setMobileMenuOpen(false); }}>
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      Dashboard
+                    </Button>
+                  ) : (
+                    // User is not logged in - show sign in/up buttons
+                    <>
+                      <Button variant="outline" className="w-full" onClick={() => { navigate("/login"); setMobileMenuOpen(false); }}>
+                        Sign In
+                      </Button>
+                      <Button className="w-full" onClick={() => { navigate("/signup"); setMobileMenuOpen(false); }}>
+                        Get Started Free
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>
