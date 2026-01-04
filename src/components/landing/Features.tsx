@@ -48,10 +48,20 @@ const features = [
 
 export const Features = () => {
   return (
-    <section className="py-24 lg:py-32 bg-muted/30">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-16 lg:py-24 bg-muted/30 relative overflow-hidden">
+      {/* Subtle background texture */}
+      <div className="absolute inset-0 opacity-30 dark:opacity-20 pointer-events-none">
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 20% 50%, hsl(var(--primary) / 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 50%, hsl(var(--accent) / 0.05) 0%, transparent 50%)'
+          }}
+        />
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Section Header */}
-        <div className="max-w-3xl mx-auto text-center mb-16 lg:mb-20">
+        <div className="max-w-3xl mx-auto text-center mb-12 lg:mb-16">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -81,7 +91,7 @@ export const Features = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
@@ -89,20 +99,21 @@ export const Features = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="group relative p-6 lg:p-8 rounded-2xl bg-card border border-border hover:border-primary/20 hover:shadow-lg transition-all duration-300"
+              whileHover={{ y: -4, boxShadow: '0 20px 40px -15px hsl(var(--primary) / 0.15)' }}
+              className="group relative p-5 lg:p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300"
             >
               {/* Icon */}
               <div
-                className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} mb-6`}
+                className={`inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br ${feature.gradient} mb-4`}
               >
-                <feature.icon className="w-6 h-6 text-primary-foreground" />
+                <feature.icon className="w-5 h-5 text-primary-foreground" />
               </div>
 
               {/* Content */}
-              <h3 className="text-xl font-display font-semibold mb-3 group-hover:text-primary transition-colors">
+              <h3 className="text-lg font-display font-semibold mb-2 group-hover:text-primary transition-colors">
                 {feature.title}
               </h3>
-              <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
 
               {/* Hover Glow Effect */}
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity -z-10" />

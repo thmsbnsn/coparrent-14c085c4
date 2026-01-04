@@ -155,6 +155,17 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
+  }
+
+  /* Prevent horizontal overflow globally */
+  html {
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   /* Theme transition - smooth color changes */
