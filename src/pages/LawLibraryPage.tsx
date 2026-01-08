@@ -27,6 +27,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { LawLibraryCard } from '@/components/law-library/LawLibraryCard';
 import { LawLibraryDisclaimer } from '@/components/law-library/LawLibraryDisclaimer';
+import { BackToTop } from '@/components/ui/BackToTop';
 import {
   useLawLibrary,
   US_STATES,
@@ -344,6 +345,8 @@ const LawLibraryPage = () => {
             </CardContent>
           </Card>
         )}
+
+        <BackToTop />
       </div>
     </DashboardLayout>
   );
