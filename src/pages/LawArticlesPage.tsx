@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { LawArticleListItem } from '@/components/law-articles/LawArticleListItem';
+import { BackToTop } from '@/components/ui/BackToTop';
 import { useLawArticles } from '@/hooks/useLawArticles';
 
 type FilterType = 'all' | 'core' | 'definitions' | 'repealed' | 'auth';
@@ -263,6 +264,8 @@ const LawArticlesPageContent = () => {
           </CardContent>
         </Card>
       )}
+
+      <BackToTop />
     </div>
   );
 };
