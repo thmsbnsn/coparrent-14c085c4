@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Edit2, Baby, Calendar, Heart, School, Phone, Droplet, AlertCircle, Pill, Users, Check } from "lucide-react";
+import { Plus, Edit2, Baby, Calendar, Heart, School, Phone, Droplet, AlertCircle, Pill, Users, Check, Image } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useRealtimeChildren } from "@/hooks/useRealtimeChildren";
 import { addChildSchema } from "@/lib/validations";
 import { ChildAvatar } from "@/components/children/ChildAvatar";
+import { ChildPhotoGallery } from "@/components/children/ChildPhotoGallery";
 import type { Child } from "@/hooks/useChildren";
 import {
   Dialog,
@@ -140,6 +141,7 @@ const ChildrenPage = () => {
 
   const profileTabs = [
     { id: "overview", label: "Overview", icon: Users },
+    { id: "gallery", label: "Gallery", icon: Image },
     { id: "health", label: "Health", icon: Heart },
     { id: "school", label: "School", icon: School },
     { id: "emergency", label: "Emergency", icon: Phone },
@@ -530,6 +532,13 @@ const ChildrenPage = () => {
                                 <InfoCard icon={Droplet} label="Blood Type" value={selectedChild.blood_type || "Not set"} />
                                 <InfoCard icon={School} label="School" value={selectedChild.school_name || "Not set"} />
                               </div>
+                            )}
+
+                            {activeTab === "gallery" && (
+                              <ChildPhotoGallery
+                                childId={selectedChild.id}
+                                childName={selectedChild.name}
+                              />
                             )}
 
                             {activeTab === "health" && (

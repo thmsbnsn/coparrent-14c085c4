@@ -89,6 +89,57 @@ export type Database = {
         }
         Relationships: []
       }
+      child_photos: {
+        Row: {
+          caption: string | null
+          child_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          taken_at: string | null
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          caption?: string | null
+          child_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          taken_at?: string | null
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          caption?: string | null
+          child_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          taken_at?: string | null
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_photos_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "child_photos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       children: {
         Row: {
           allergies: string[] | null
