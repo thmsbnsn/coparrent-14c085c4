@@ -97,6 +97,7 @@ export type Database = {
           file_name: string
           file_path: string
           id: string
+          tags: string[] | null
           taken_at: string | null
           updated_at: string
           uploaded_by: string
@@ -108,6 +109,7 @@ export type Database = {
           file_name: string
           file_path: string
           id?: string
+          tags?: string[] | null
           taken_at?: string | null
           updated_at?: string
           uploaded_by: string
@@ -119,6 +121,7 @@ export type Database = {
           file_name?: string
           file_path?: string
           id?: string
+          tags?: string[] | null
           taken_at?: string | null
           updated_at?: string
           uploaded_by?: string

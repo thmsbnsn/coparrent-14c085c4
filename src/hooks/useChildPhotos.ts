@@ -14,6 +14,7 @@ export interface ChildPhoto {
   file_name: string;
   caption: string | null;
   taken_at: string | null;
+  tags: string[];
   created_at: string;
   signedUrl?: string;
 }
@@ -90,7 +91,7 @@ export const useChildPhotos = (childId: string | null) => {
 
   // Upload a photo
   const uploadPhoto = useCallback(
-    async (file: File, caption?: string, takenAt?: string): Promise<boolean> => {
+    async (file: File, caption?: string, takenAt?: string, tags?: string[]): Promise<boolean> => {
       if (!childId || !userProfileId) {
         toast({
           title: "Error",
@@ -155,6 +156,7 @@ export const useChildPhotos = (childId: string | null) => {
           file_name: file.name,
           caption: caption || null,
           taken_at: takenAt || null,
+          tags: tags || [],
         });
 
         if (dbError) {
@@ -266,14 +268,42 @@ export const useChildPhotos = (childId: string | null) => {
           prev.map((p) => (p.id === photoId ? { ...p, caption } : p))
         );
 
-        toast({
-          title: "Caption updated",
-          description: "The photo caption has been updated",
-        });
-
         return true;
       } catch (error) {
         console.error("Error updating caption:", error);
+        return false;
+      }
+    },
+    [toast]
+  );
+
+  // Update photo tags
+  const updateTags = useCallback(
+    async (photoId: string, tags: string[]): Promise<boolean> => {
+      try {
+        const { error } = await supabase
+          .from("child_photos")
+          .update({ tags })
+          .eq("id", photoId);
+
+        if (error) {
+          console.error("Error updating tags:", error);
+          toast({
+            title: "Update failed",
+            description: "Could not update the tags. Please try again.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        // Update local state
+        setPhotos((prev) =>
+          prev.map((p) => (p.id === photoId ? { ...p, tags } : p))
+        );
+
+        return true;
+      } catch (error) {
+        console.error("Error updating tags:", error);
         return false;
       }
     },
@@ -287,6 +317,7 @@ export const useChildPhotos = (childId: string | null) => {
     uploadPhoto,
     deletePhoto,
     updateCaption,
+    updateTags,
     refetch: fetchPhotos,
   };
 };
