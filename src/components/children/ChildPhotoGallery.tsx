@@ -1,12 +1,13 @@
 import { useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Trash2, Image, Calendar, Download, Edit2, Check, Tag, Filter } from "lucide-react";
+import { Plus, X, Trash2, Image, Calendar, Download, Edit2, Check, Tag, Filter, Upload, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useChildPhotos, ChildPhoto } from "@/hooks/useChildPhotos";
+import { useChildPhotos, ChildPhoto, UploadProgress } from "@/hooks/useChildPhotos";
 import { cn } from "@/lib/utils";
 
 // Predefined tag categories
@@ -144,9 +145,10 @@ const TagSelector = ({
 };
 
 export const ChildPhotoGallery = ({ childId, childName }: ChildPhotoGalleryProps) => {
-  const { photos, loading, uploading, uploadPhoto, deletePhoto, updateCaption, updateTags } = useChildPhotos(childId);
+  const { photos, loading, uploading, uploadProgress, uploadPhoto, uploadPhotos, clearUploadProgress, deletePhoto, updateCaption, updateTags } = useChildPhotos(childId);
   
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<ChildPhoto | null>(null);
   const [photoToDelete, setPhotoToDelete] = useState<ChildPhoto | null>(null);
   const [editingCaption, setEditingCaption] = useState<string | null>(null);
@@ -158,14 +160,20 @@ export const ChildPhotoGallery = ({ childId, childName }: ChildPhotoGalleryProps
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   
-  // Upload form state
+  // Upload form state (single)
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadCaption, setUploadCaption] = useState("");
   const [uploadDate, setUploadDate] = useState("");
   const [uploadTags, setUploadTags] = useState<string[]>([]);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   
+  // Bulk upload state
+  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
+  const [bulkPreviews, setBulkPreviews] = useState<string[]>([]);
+  const [bulkTags, setBulkTags] = useState<string[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bulkFileInputRef = useRef<HTMLInputElement>(null);
 
   // Filtered photos
   const filteredPhotos = useMemo(() => {
@@ -192,6 +200,25 @@ export const ChildPhotoGallery = ({ childId, childName }: ChildPhotoGalleryProps
     }
   };
 
+  const handleBulkFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setBulkFiles(files);
+      // Generate previews for all files
+      const previews: string[] = [];
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previews[index] = e.target?.result as string;
+          if (previews.filter(Boolean).length === files.length) {
+            setBulkPreviews([...previews]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
   const handleUpload = async () => {
     if (!uploadFile) return;
     
@@ -202,6 +229,18 @@ export const ChildPhotoGallery = ({ childId, childName }: ChildPhotoGalleryProps
     }
   };
 
+  const handleBulkUpload = async () => {
+    if (bulkFiles.length === 0) return;
+    
+    await uploadPhotos(bulkFiles, bulkTags);
+  };
+
+  const closeBulkUploadDialog = () => {
+    setIsBulkUploadOpen(false);
+    resetBulkUploadForm();
+    clearUploadProgress();
+  };
+
   const resetUploadForm = () => {
     setUploadFile(null);
     setUploadCaption("");
@@ -209,6 +248,18 @@ export const ChildPhotoGallery = ({ childId, childName }: ChildPhotoGalleryProps
     setUploadTags([]);
     setUploadPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const resetBulkUploadForm = () => {
+    setBulkFiles([]);
+    setBulkPreviews([]);
+    setBulkTags([]);
+    if (bulkFileInputRef.current) bulkFileInputRef.current.value = "";
+  };
+
+  const removeBulkFile = (index: number) => {
+    setBulkFiles((prev) => prev.filter((_, i) => i !== index));
+    setBulkPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteConfirm = async () => {
@@ -338,6 +389,10 @@ export const ChildPhotoGallery = ({ childId, childName }: ChildPhotoGalleryProps
               </PopoverContent>
             </Popover>
           )}
+          <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className="w-4 h-4 mr-1.5" />
+            Bulk Upload
+          </Button>
           <Button size="sm" onClick={() => setIsUploadOpen(true)}>
             <Plus className="w-4 h-4 mr-1.5" />
             Add Photo
@@ -546,6 +601,162 @@ export const ChildPhotoGallery = ({ childId, childName }: ChildPhotoGalleryProps
             <Button onClick={handleUpload} disabled={!uploadFile || uploading}>
               {uploading ? "Uploading..." : "Upload Photo"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Upload Dialog */}
+      <Dialog open={isBulkUploadOpen} onOpenChange={(open) => {
+        if (!open && !uploading) closeBulkUploadDialog();
+      }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Upload Photos</DialogTitle>
+            <DialogDescription>
+              Upload multiple photos at once to {childName}'s gallery
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* File selection (only show if no files selected or not uploading) */}
+            {bulkFiles.length === 0 && uploadProgress.length === 0 && (
+              <div className="space-y-2">
+                <Label>Select Photos</Label>
+                <button
+                  onClick={() => bulkFileInputRef.current?.click()}
+                  className="w-full py-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                >
+                  <Upload className="w-8 h-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Click to select multiple photos</p>
+                  <p className="text-xs text-muted-foreground">JPG, PNG, WebP, or GIF (max 10MB each)</p>
+                </button>
+                <input
+                  ref={bulkFileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  multiple
+                  onChange={handleBulkFileSelect}
+                  className="hidden"
+                />
+              </div>
+            )}
+
+            {/* Selected files preview (before upload) */}
+            {bulkFiles.length > 0 && uploadProgress.length === 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>{bulkFiles.length} photo{bulkFiles.length > 1 ? 's' : ''} selected</Label>
+                  <Button variant="ghost" size="sm" onClick={resetBulkUploadForm} className="h-7 px-2 text-xs">
+                    Clear all
+                  </Button>
+                </div>
+                <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto">
+                  {bulkPreviews.map((preview, index) => (
+                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted group">
+                      {preview ? (
+                        <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => removeBulkFile(index)}
+                        className="absolute top-1 right-1 p-1 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Shared tags for all photos */}
+                <div className="space-y-2 pt-2 border-t">
+                  <Label>Apply tags to all photos (optional)</Label>
+                  {bulkTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {bulkTags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                          {tag}
+                          <button
+                            onClick={() => setBulkTags(bulkTags.filter((t) => t !== tag))}
+                            className="ml-0.5 hover:bg-muted rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <TagSelector selectedTags={bulkTags} onTagsChange={setBulkTags} compact />
+                </div>
+              </div>
+            )}
+
+            {/* Upload progress */}
+            {uploadProgress.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Upload Progress</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {uploadProgress.filter(p => p.status === 'success').length} / {uploadProgress.length} complete
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {uploadProgress.map((progress, index) => (
+                    <div key={index} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                      <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                        {progress.status === 'success' ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        ) : progress.status === 'error' ? (
+                          <AlertCircle className="w-5 h-5 text-destructive" />
+                        ) : progress.status === 'uploading' ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        ) : (
+                          <Image className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{progress.fileName}</p>
+                        {progress.status === 'error' && progress.error && (
+                          <p className="text-xs text-destructive">{progress.error}</p>
+                        )}
+                        {progress.status === 'uploading' && (
+                          <Progress value={progress.progress} className="h-1.5 mt-1" />
+                        )}
+                        {progress.status === 'success' && (
+                          <p className="text-xs text-green-500">Uploaded</p>
+                        )}
+                        {progress.status === 'pending' && (
+                          <p className="text-xs text-muted-foreground">Waiting...</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {uploadProgress.length > 0 ? (
+              <Button 
+                onClick={closeBulkUploadDialog} 
+                disabled={uploading}
+                className="w-full sm:w-auto"
+              >
+                {uploading ? "Uploading..." : "Done"}
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={closeBulkUploadDialog} disabled={uploading}>
+                  Cancel
+                </Button>
+                <Button onClick={handleBulkUpload} disabled={bulkFiles.length === 0 || uploading}>
+                  {uploading ? "Uploading..." : `Upload ${bulkFiles.length} Photo${bulkFiles.length !== 1 ? 's' : ''}`}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
