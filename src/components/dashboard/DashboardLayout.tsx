@@ -15,6 +15,7 @@ import {
   BookOpen,
   DollarSign,
   Scale,
+  Trophy,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const parentNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true },
   { icon: Calendar, label: "Parenting Calendar", href: "/dashboard/calendar", thirdPartyAllowed: false },
   { icon: Users, label: "Child Info", href: "/dashboard/children", thirdPartyAllowed: false },
+  { icon: Trophy, label: "Sports Hub", href: "/dashboard/sports", thirdPartyAllowed: false },
   { icon: MessageSquare, label: "Messaging Hub", href: "/dashboard/messages", thirdPartyAllowed: true },
   { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false },
   { icon: DollarSign, label: "Expenses", href: "/dashboard/expenses", thirdPartyAllowed: false },
