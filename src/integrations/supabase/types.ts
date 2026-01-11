@@ -14,6 +14,143 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_audit_logs: {
+        Row: {
+          action: string
+          activity_id: string | null
+          created_at: string
+          details: Json | null
+          event_id: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          activity_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_id?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          activity_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_id?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_audit_logs_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "child_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_audit_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "activity_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_events: {
+        Row: {
+          activity_id: string
+          created_at: string
+          created_by: string
+          dropoff_parent_id: string | null
+          end_time: string | null
+          equipment_needed: Json | null
+          event_date: string
+          event_type: string
+          id: string
+          is_cancelled: boolean
+          location_address: string | null
+          location_name: string | null
+          notes: string | null
+          pickup_parent_id: string | null
+          start_time: string
+          title: string
+          updated_at: string
+          venue_notes: string | null
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          created_by: string
+          dropoff_parent_id?: string | null
+          end_time?: string | null
+          equipment_needed?: Json | null
+          event_date: string
+          event_type: string
+          id?: string
+          is_cancelled?: boolean
+          location_address?: string | null
+          location_name?: string | null
+          notes?: string | null
+          pickup_parent_id?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+          venue_notes?: string | null
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          created_by?: string
+          dropoff_parent_id?: string | null
+          end_time?: string | null
+          equipment_needed?: Json | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          is_cancelled?: boolean
+          location_address?: string | null
+          location_name?: string | null
+          notes?: string | null
+          pickup_parent_id?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+          venue_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_events_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "child_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_events_dropoff_parent_id_fkey"
+            columns: ["dropoff_parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_events_pickup_parent_id_fkey"
+            columns: ["pickup_parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage_daily: {
         Row: {
           created_at: string
@@ -88,6 +225,78 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      child_activities: {
+        Row: {
+          child_id: string
+          coach_email: string | null
+          coach_name: string | null
+          coach_phone: string | null
+          created_at: string
+          equipment_checklist: Json | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          primary_parent_id: string
+          season_end: string | null
+          season_start: string | null
+          sport_type: string
+          team_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          coach_email?: string | null
+          coach_name?: string | null
+          coach_phone?: string | null
+          created_at?: string
+          equipment_checklist?: Json | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          primary_parent_id: string
+          season_end?: string | null
+          season_start?: string | null
+          sport_type: string
+          team_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          coach_email?: string | null
+          coach_name?: string | null
+          coach_phone?: string | null
+          created_at?: string
+          equipment_checklist?: Json | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          primary_parent_id?: string
+          season_end?: string | null
+          season_start?: string | null
+          sport_type?: string
+          team_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_activities_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "child_activities_primary_parent_id_fkey"
+            columns: ["primary_parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       child_photos: {
         Row: {
@@ -1443,6 +1652,33 @@ export type Database = {
           last_seen_at?: string
           location?: string | null
           os?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_map_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          preferred_map_provider: string
+          remember_choice: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preferred_map_provider?: string
+          remember_choice?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preferred_map_provider?: string
+          remember_choice?: boolean
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
