@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Edit2, Baby, Calendar, Heart, School, Phone, Droplet, AlertCircle, Pill, Users, Check, Image } from "lucide-react";
+import { Plus, Edit2, Baby, Calendar, Heart, School, Phone, Droplet, AlertCircle, Pill, Users, Check, Image, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { useRealtimeChildren } from "@/hooks/useRealtimeChildren";
 import { addChildSchema } from "@/lib/validations";
 import { ChildAvatar } from "@/components/children/ChildAvatar";
 import { ChildPhotoGallery } from "@/components/children/ChildPhotoGallery";
+import { DeleteChildDialog } from "@/components/children/DeleteChildDialog";
 import type { Child } from "@/hooks/useChildren";
 import {
   Dialog,
@@ -109,7 +110,7 @@ const InfoCard = ({
 );
 
 const ChildrenPage = () => {
-  const { children, loading, addChild, updateChild } = useRealtimeChildren();
+  const { children, loading, addChild, updateChild, deleteChild } = useRealtimeChildren();
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -118,6 +119,7 @@ const ChildrenPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [editActiveTab, setEditActiveTab] = useState("basic");
+  const [childToDelete, setChildToDelete] = useState<Child | null>(null);
   
   // Validation errors
   const [nameError, setNameError] = useState<string | null>(null);
@@ -492,13 +494,23 @@ const ChildrenPage = () => {
                                 ? `Born ${formatDate(selectedChild.date_of_birth)} • ${calculateAge(selectedChild.date_of_birth)} years old`
                                 : "Date of birth not set"}
                             </p>
-                            <Button 
-                              onClick={openEditDialog} 
-                              className="mt-3 w-full sm:w-auto"
-                            >
-                              <Edit2 className="w-4 h-4 mr-2" />
-                              Edit Profile
-                            </Button>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <Button 
+                                onClick={openEditDialog} 
+                                className="flex-1 sm:flex-none"
+                              >
+                                <Edit2 className="w-4 h-4 mr-2" />
+                                Edit Profile
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => setChildToDelete(selectedChild)}
+                                className="flex-1 sm:flex-none text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -879,6 +891,20 @@ const ChildrenPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Child Dialog */}
+      <DeleteChildDialog
+        open={!!childToDelete}
+        onOpenChange={(open) => !open && setChildToDelete(null)}
+        child={childToDelete}
+        onConfirm={async (childId) => {
+          const success = await deleteChild(childId);
+          if (success && selectedChild?.id === childId) {
+            setSelectedChild(children.find(c => c.id !== childId) || null);
+          }
+          return success;
+        }}
+      />
     </DashboardLayout>
   );
 };
