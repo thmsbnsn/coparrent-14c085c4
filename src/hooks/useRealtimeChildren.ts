@@ -5,6 +5,15 @@ import { useToast } from "@/hooks/use-toast";
 import type { Child } from "@/hooks/useChildren";
 import { useNotifications } from "@/hooks/useNotifications";
 
+// Helper to delete all files in a storage folder
+const deleteStorageFolder = async (bucket: string, folderPath: string): Promise<void> => {
+  const { data: files } = await supabase.storage.from(bucket).list(folderPath);
+  if (files && files.length > 0) {
+    const filePaths = files.map((f) => `${folderPath}/${f.name}`);
+    await supabase.storage.from(bucket).remove(filePaths);
+  }
+};
+
 export const useRealtimeChildren = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -228,11 +237,107 @@ export const useRealtimeChildren = () => {
     return true;
   };
 
+  const deleteChild = async (childId: string): Promise<boolean> => {
+    if (!userProfileId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to delete a child",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      // First verify the user has access to this child
+      const { data: link } = await supabase
+        .from("parent_children")
+        .select("id")
+        .eq("parent_id", userProfileId)
+        .eq("child_id", childId)
+        .maybeSingle();
+
+      if (!link) {
+        toast({
+          title: "Error",
+          description: "You don't have permission to delete this child",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Get child info for cleanup and toast message
+      const child = children.find((c) => c.id === childId);
+      const childName = child?.name || "Child";
+
+      // 1. Delete storage assets - avatars and photos
+      await deleteStorageFolder("child-avatars", childId);
+      await deleteStorageFolder("child-photos", childId);
+
+      // 2. Delete child_photos records (if any - should cascade but be explicit)
+      await supabase.from("child_photos").delete().eq("child_id", childId);
+
+      // 3. Delete child_activities and related events (events cascade from activities via FK)
+      await supabase.from("child_activities").delete().eq("child_id", childId);
+
+      // 4. Delete documents associated with this child
+      const { data: docs } = await supabase
+        .from("documents")
+        .select("id, file_path")
+        .eq("child_id", childId);
+      
+      if (docs && docs.length > 0) {
+        // Delete document files from storage
+        const docPaths = docs.map((d) => d.file_path);
+        await supabase.storage.from("documents").remove(docPaths);
+        // Delete document records
+        await supabase.from("documents").delete().eq("child_id", childId);
+      }
+
+      // 5. Delete journal entries for this child
+      await supabase.from("journal_entries").delete().eq("child_id", childId);
+
+      // 6. Delete expenses for this child
+      await supabase.from("expenses").delete().eq("child_id", childId);
+
+      // 7. Delete gift lists for this child (gift_items cascade via FK)
+      await supabase.from("gift_lists").delete().eq("child_id", childId);
+
+      // 8. Delete parent_children links
+      await supabase.from("parent_children").delete().eq("child_id", childId);
+
+      // 9. Finally delete the child record
+      const { error } = await supabase.from("children").delete().eq("id", childId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state
+      setChildren((prev) => prev.filter((c) => c.id !== childId));
+
+      toast({
+        title: "Child Deleted",
+        description: `${childName}'s profile and all associated data have been removed`,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting child:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete child. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return {
     children,
     loading,
     addChild,
     updateChild,
+    deleteChild,
     refetch: fetchChildren,
   };
 };

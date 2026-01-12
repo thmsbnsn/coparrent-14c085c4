@@ -10,7 +10,9 @@ import { ActivityCard } from "@/components/sports/ActivityCard";
 import { EventCard } from "@/components/sports/EventCard";
 import { CreateActivityDialog } from "@/components/sports/CreateActivityDialog";
 import { CreateEventDialog } from "@/components/sports/CreateEventDialog";
-import { useSportsActivities, ChildActivity } from "@/hooks/useSportsActivities";
+import { EditActivityDialog } from "@/components/sports/EditActivityDialog";
+import { EditEventDialog } from "@/components/sports/EditEventDialog";
+import { useSportsActivities, ChildActivity, ActivityEvent } from "@/hooks/useSportsActivities";
 import { useChildren } from "@/hooks/useChildren";
 import {
   AlertDialog,
@@ -32,8 +34,10 @@ const SportsPage = () => {
     loading,
     parentProfiles,
     createActivity,
+    updateActivity,
     deleteActivity,
     createEvent,
+    updateEvent,
     cancelEvent,
     deleteEvent,
   } = useSportsActivities();
@@ -41,6 +45,8 @@ const SportsPage = () => {
   const [selectedActivity, setSelectedActivity] = useState<ChildActivity | null>(null);
   const [showCreateActivity, setShowCreateActivity] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [activityToEdit, setActivityToEdit] = useState<ChildActivity | null>(null);
+  const [eventToEdit, setEventToEdit] = useState<ActivityEvent | null>(null);
   const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [eventToCancel, setEventToCancel] = useState<string | null>(null);
@@ -174,7 +180,7 @@ const SportsPage = () => {
                           <EventCard
                             key={event.id}
                             event={event}
-                            onEdit={() => {}}
+                            onEdit={() => setEventToEdit(event)}
                             onCancel={() => setEventToCancel(event.id)}
                             onDelete={() => setEventToDelete(event.id)}
                           />
@@ -204,7 +210,7 @@ const SportsPage = () => {
                           <ActivityCard
                             key={activity.id}
                             activity={activity}
-                            onEdit={() => {}}
+                            onEdit={() => setActivityToEdit(activity)}
                             onDelete={() => setActivityToDelete(activity.id)}
                             onViewEvents={() => setSelectedActivity(activity)}
                           />
@@ -243,7 +249,7 @@ const SportsPage = () => {
                       <EventCard
                         key={event.id}
                         event={event}
-                        onEdit={() => {}}
+                        onEdit={() => setEventToEdit(event)}
                         onCancel={() => setEventToCancel(event.id)}
                         onDelete={() => setEventToDelete(event.id)}
                       />
@@ -254,7 +260,7 @@ const SportsPage = () => {
           </AnimatePresence>
         </div>
 
-        {/* Dialogs */}
+        {/* Create Dialogs */}
         <CreateActivityDialog
           open={showCreateActivity}
           onOpenChange={setShowCreateActivity}
@@ -271,6 +277,25 @@ const SportsPage = () => {
           defaultActivityId={selectedActivity?.id}
         />
 
+        {/* Edit Dialogs */}
+        <EditActivityDialog
+          open={!!activityToEdit}
+          onOpenChange={(open) => !open && setActivityToEdit(null)}
+          activity={activityToEdit}
+          children={children}
+          onSubmit={updateActivity}
+        />
+
+        <EditEventDialog
+          open={!!eventToEdit}
+          onOpenChange={(open) => !open && setEventToEdit(null)}
+          event={eventToEdit}
+          activities={activities}
+          parentProfiles={parentProfiles}
+          onSubmit={updateEvent}
+        />
+
+        {/* Confirmation Dialogs */}
         <AlertDialog open={!!activityToDelete} onOpenChange={() => setActivityToDelete(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
