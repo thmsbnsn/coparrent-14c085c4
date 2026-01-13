@@ -41,23 +41,25 @@ The application is designed with a **calm, professional, court-friendly aestheti
 **Current Phase:** Active Development (Beta-Ready)  
 **Environment:** Lovable Cloud + Supabase  
 **Stripe Mode:** Test  
-**Last Verified Build:** 2025-12-26  
+**Last Verified Build:** 2026-01-13  
 **Verified By:** Lovable  
-**Last README Update:** 2025-12-26
+**Last README Update:** 2026-01-13
 
 > **Note:** The `Last Verified Build` and `Verified By` fields must be updated whenever a behavioral or architectural change is made.
 
 ### Current Focus
 
+- Youth Sports Hub feature with calendar integration
+- Smart reminder notifications with leave-by time calculations
+- Delete child profile with cascade cleanup
 - Expanding Law Library with comprehensive state-by-state legal resources
-- Polishing notification and email delivery systems
-- Preparing for production Stripe integration
 
 ### Known Blocking Issues
 
 _None currently. All previously identified blocking issues have been resolved._
 
-_Last updated: 2025-12-25_
+_Last updated: 2026-01-13_
+
 
 ---
 
@@ -388,22 +390,25 @@ When modifying AI functionality:
 
 ### 4. Custody Calendar
 
-| Feature          | Components              | Description                     |
-| ---------------- | ----------------------- | ------------------------------- |
-| Calendar View    | `CalendarPage`          | Visual custody schedule         |
-| Schedule Setup   | `CalendarWizard`        | Pattern-based schedule creation |
-| Change Requests  | `ScheduleChangeRequest` | Formal swap/cancel requests     |
-| Realtime Updates | `useRealtimeSchedule`   | Live schedule synchronization   |
+| Feature               | Components                | Description                        |
+| --------------------- | ------------------------- | ---------------------------------- |
+| Calendar View         | `CalendarPage`            | Visual custody schedule            |
+| Schedule Setup        | `CalendarWizard`          | Pattern-based schedule creation    |
+| Change Requests       | `ScheduleChangeRequest`   | Formal swap/cancel requests        |
+| Realtime Updates      | `useRealtimeSchedule`     | Live schedule synchronization      |
+| **Sports Integration**| `SportsEventDetail`       | View sports events in calendar     |
+| **Multi-Event Popup** | `SportsEventListPopup`    | Select from multiple events on day |
 
 ### 5. Children Management
 
-| Feature           | Components                              | Description                 |
-| ----------------- | --------------------------------------- | --------------------------- |
-| Children List     | `ChildrenPage`                          | Child profile cards         |
-| Child Details     | Medical, school, emergency info         | Comprehensive child records |
-| Realtime Sync     | `useRealtimeChildren`, `useChildren`    | Live data updates           |
-| **Gift Lists**    | `GiftsPage`, `GiftListCard`             | Shared gift coordination    |
-| **Gift Items**    | `GiftItemCard`, `AddGiftItemDialog`     | Gift claiming and tracking  |
+| Feature             | Components                              | Description                     |
+| ------------------- | --------------------------------------- | ------------------------------- |
+| Children List       | `ChildrenPage`                          | Child profile cards             |
+| Child Details       | Medical, school, emergency info         | Comprehensive child records     |
+| Realtime Sync       | `useRealtimeChildren`, `useChildren`    | Live data updates               |
+| **Delete Child**    | `DeleteChildDialog`                     | Cascade cleanup with confirmation |
+| **Gift Lists**      | `GiftsPage`, `GiftListCard`             | Shared gift coordination        |
+| **Gift Items**      | `GiftItemCard`, `AddGiftItemDialog`     | Gift claiming and tracking      |
 
 ### 6. Messaging Hub
 
@@ -444,7 +449,21 @@ When modifying AI functionality:
 | **Exchange Notes**  | Linked entries  | Journal entries tied to exchange check-ins |
 | **Tags**            | Tag system      | Organize entries with custom tags          |
 
-### 10. Law Library
+### 10. Youth Sports Hub (Premium)
+
+| Feature                  | Components                                    | Description                              |
+| ------------------------ | --------------------------------------------- | ---------------------------------------- |
+| **Sports Activities**    | `SportsPage`, `ActivityCard`                  | Track sports/activities per child        |
+| **Activity Events**      | `EventCard`, `CreateEventDialog`              | Games, practices, tournaments            |
+| **Calendar Integration** | `useSportsEvents`                             | Sports events show in calendar           |
+| **Map Navigation**       | `DirectionsDialog`, `useMapNavigation`        | Get directions (Google/Apple/Waze)       |
+| **Parent Responsibility**| Drop-off/pick-up assignments                  | Per-event responsibility tracking        |
+| **Equipment Checklist**  | Equipment needed per event                    | Track required equipment                 |
+| **Venue Notes**          | Parking, field numbers, tips                  | Location-specific information            |
+| **Smart Reminders**      | `sports-event-reminders` edge function        | Leave-by time, responsibility reminders  |
+| **Edit/Cancel Events**   | `EditActivityDialog`, `EditEventDialog`       | Full CRUD with cancel toggle             |
+
+### 11. Law Library
 
 | Feature                   | Components                         | Description                                |
 | ------------------------- | ---------------------------------- | ------------------------------------------ |
@@ -457,7 +476,7 @@ When modifying AI functionality:
 | **Custody Laws**          | All 50 states + DC                 | Modification and enforcement laws          |
 | **Relocation Laws**       | All 50 states + DC                 | Move-away requirements and procedures      |
 
-### 11. Settings & Account
+### 12. Settings & Account
 
 | Feature                 | Components             | Description                          |
 | ----------------------- | ---------------------- | ------------------------------------ |
@@ -469,7 +488,7 @@ When modifying AI functionality:
 | **Subscription**        | `useSubscription`      | Stripe subscription management       |
 | **Role-Based Access**   | `useFamilyRole`        | Permission enforcement               |
 
-### 12. Admin
+### 13. Admin
 
 | Feature                 | Components                | Description                       |
 | ----------------------- | ------------------------- | --------------------------------- |
@@ -478,7 +497,7 @@ When modifying AI functionality:
 | **Law Library Manager** | `AdminLawLibraryManager`  | Upload and manage legal resources |
 | **Blog Management**     | Blog CRUD                 | Create and edit blog posts        |
 
-### 13. UI Components (shadcn/ui + Custom)
+### 14. UI Components (shadcn/ui + Custom)
 
 | Component                        | Variants/Features                                     |
 | -------------------------------- | ----------------------------------------------------- |

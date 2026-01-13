@@ -9,6 +9,7 @@ import { CalendarWizard, ScheduleConfig } from "@/components/calendar/CalendarWi
 import { CalendarExportDialog } from "@/components/calendar/CalendarExportDialog";
 import { ScheduleChangeRequest, ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
 import { SportsEventDetail } from "@/components/calendar/SportsEventDetail";
+import { SportsEventListPopup } from "@/components/calendar/SportsEventListPopup";
 import { useScheduleRequests } from "@/hooks/useScheduleRequests";
 import { useSchedulePersistence } from "@/hooks/useSchedulePersistence";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
@@ -70,6 +71,9 @@ const CalendarPage = () => {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedSportsEvent, setSelectedSportsEvent] = useState<CalendarSportsEvent | null>(null);
+  const [showSportsEventList, setShowSportsEventList] = useState(false);
+  const [sportsEventListDate, setSportsEventListDate] = useState<Date | null>(null);
+  const [sportsEventListEvents, setSportsEventListEvents] = useState<CalendarSportsEvent[]>([]);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
   const [coParent, setCoParent] = useState<{ full_name: string | null; email: string | null } | null>(null);
 
@@ -416,8 +420,10 @@ const CalendarPage = () => {
                           if (dateSportsEvents.length === 1) {
                             setSelectedSportsEvent(dateSportsEvents[0]);
                           } else {
-                            // For multiple events, show the first one - could be expanded to a list
-                            setSelectedSportsEvent(dateSportsEvents[0]);
+                            // For multiple events, show the list popup
+                            setSportsEventListDate(date);
+                            setSportsEventListEvents(dateSportsEvents);
+                            setShowSportsEventList(true);
                           }
                         }}
                       >
@@ -565,6 +571,18 @@ const CalendarPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Sports Event List Popup for Multiple Events */}
+      <SportsEventListPopup
+        events={sportsEventListEvents}
+        date={sportsEventListDate || new Date()}
+        isOpen={showSportsEventList}
+        onClose={() => setShowSportsEventList(false)}
+        onSelectEvent={(event) => {
+          setShowSportsEventList(false);
+          setSelectedSportsEvent(event);
+        }}
+      />
     </DashboardLayout>
   );
 };
