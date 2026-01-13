@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 interface SportsEventDetailProps {
   event: CalendarSportsEvent;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 export const SportsEventDetail = ({ event, onClose }: SportsEventDetailProps) => {
@@ -47,9 +47,11 @@ export const SportsEventDetail = ({ event, onClose }: SportsEventDetailProps) =>
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-            <X className="w-4 h-4" />
-          </Button>
+          {onClose && (
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+              <X className="w-4 h-4" />
+            </Button>
+          )}
         </div>
 
         <div className="space-y-4">
