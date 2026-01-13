@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft, Loader2, Calendar, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft, Loader2, Calendar, Eye, Trophy, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarWizard, ScheduleConfig } from "@/components/calendar/CalendarWizard";
 import { CalendarExportDialog } from "@/components/calendar/CalendarExportDialog";
 import { ScheduleChangeRequest, ScheduleChangeRequestData } from "@/components/calendar/ScheduleChangeRequest";
+import { SportsEventDetail } from "@/components/calendar/SportsEventDetail";
 import { useScheduleRequests } from "@/hooks/useScheduleRequests";
 import { useSchedulePersistence } from "@/hooks/useSchedulePersistence";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
+import { useSportsEvents, CalendarSportsEvent } from "@/hooks/useSportsEvents";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -60,12 +62,14 @@ const CalendarPage = () => {
   const { isThirdParty, loading: roleLoading } = useFamilyRole();
   const { createRequest } = useScheduleRequests();
   const { scheduleConfig, loading: scheduleLoading, saving, saveSchedule } = useSchedulePersistence();
+  const { events: sportsEvents, getEventsForDate, hasEventsOnDate, loading: sportsLoading } = useSportsEvents();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"calendar" | "court">("calendar");
   const [showWizard, setShowWizard] = useState(false);
   const [showChangeRequest, setShowChangeRequest] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedSportsEvent, setSelectedSportsEvent] = useState<CalendarSportsEvent | null>(null);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
   const [coParent, setCoParent] = useState<{ full_name: string | null; email: string | null } | null>(null);
 
@@ -321,6 +325,10 @@ const CalendarPage = () => {
             <div className="w-4 h-4 rounded bg-parent-b" />
             <span className="text-sm">Co-Parent's Time (Parent B)</span>
           </div>
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <span className="text-sm">Sports/Activity Event</span>
+          </div>
         </motion.div>
         )}
 
@@ -372,6 +380,8 @@ const CalendarPage = () => {
 
                 const parent = getParentForDate(date, scheduleConfig);
                 const isToday = date.getTime() === today.getTime();
+                const hasSportsEvents = hasEventsOnDate(date);
+                const dateSportsEvents = getEventsForDate(date);
 
                 return (
                   <div
@@ -397,7 +407,27 @@ const CalendarPage = () => {
                       "absolute bottom-1 right-1 w-2 h-2 rounded-full",
                       parent === "A" ? "bg-parent-a" : "bg-parent-b"
                     )} />
-                    {!isThirdParty && (
+                    {/* Sports event indicator */}
+                    {hasSportsEvents && (
+                      <div 
+                        className="absolute bottom-1 left-1 flex items-center gap-0.5 cursor-pointer z-10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (dateSportsEvents.length === 1) {
+                            setSelectedSportsEvent(dateSportsEvents[0]);
+                          } else {
+                            // For multiple events, show the first one - could be expanded to a list
+                            setSelectedSportsEvent(dateSportsEvents[0]);
+                          }
+                        }}
+                      >
+                        <Trophy className="w-3 h-3 text-amber-500" />
+                        {dateSportsEvents.length > 1 && (
+                          <span className="text-[10px] font-medium text-amber-600">{dateSportsEvents.length}</span>
+                        )}
+                      </div>
+                    )}
+                    {!isThirdParty && !hasSportsEvents && (
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/60 rounded">
                         <ArrowRightLeft className="w-4 h-4 text-muted-foreground" />
                       </div>
@@ -504,6 +534,37 @@ const CalendarPage = () => {
         userProfile={userProfile}
         coParent={coParent}
       />
+
+      {/* Sports Event Detail Panel */}
+      <AnimatePresence>
+        {selectedSportsEvent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setSelectedSportsEvent(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-background border border-border shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 z-10"
+                onClick={() => setSelectedSportsEvent(null)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+              <SportsEventDetail event={selectedSportsEvent} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 };
