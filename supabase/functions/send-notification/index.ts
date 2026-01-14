@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { strictCors, getCorsHeaders } from "../_shared/cors.ts";
+import { checkFunctionRateLimit, createRateLimitResponse } from "../_shared/functionRateLimit.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -112,6 +113,31 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check for auth (optional for system-triggered notifications)
+    const authHeader = req.headers.get("Authorization");
+    let userId: string | null = null;
+    
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabase.auth.getUser(token);
+      userId = userData?.user?.id || null;
+      
+      // Apply rate limiting for authenticated user requests
+      if (userId) {
+        const rateLimitResult = await checkFunctionRateLimit(
+          supabaseUrl,
+          supabaseServiceKey,
+          userId,
+          "send-notification"
+        );
+
+        if (!rateLimitResult.allowed) {
+          console.log("Rate limit exceeded for send-notification", { userId });
+          return createRateLimitResponse(rateLimitResult, corsHeaders);
+        }
+      }
+    }
 
     const payload: NotificationPayload = await req.json();
     console.log("Received notification request:", payload);

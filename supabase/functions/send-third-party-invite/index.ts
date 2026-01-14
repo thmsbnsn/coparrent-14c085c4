@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { strictCors, getCorsHeaders } from "../_shared/cors.ts";
+import { checkFunctionRateLimit, createRateLimitResponse } from "../_shared/functionRateLimit.ts";
 
 const InviteRequestSchema = z.object({
   inviteeEmail: z.string().email("Invalid email address").max(255, "Email too long"),
@@ -51,6 +52,19 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     logStep("User authenticated", { userId: userData.user.id });
+
+    // Check rate limit
+    const rateLimitResult = await checkFunctionRateLimit(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      userData.user.id,
+      "send-third-party-invite"
+    );
+
+    if (!rateLimitResult.allowed) {
+      logStep("Rate limit exceeded", { remaining: rateLimitResult.remaining });
+      return createRateLimitResponse(rateLimitResult, corsHeaders);
+    }
 
     const rawBody = await req.json();
     const parseResult = InviteRequestSchema.safeParse(rawBody);

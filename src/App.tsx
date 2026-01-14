@@ -37,6 +37,8 @@ import LawLibraryPage from "./pages/LawLibraryPage";
 import JournalPage from "./pages/JournalPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import SportsPage from "./pages/SportsPage";
+import GiftsPage from "./pages/GiftsPage";
+import AuditLogPage from "./pages/AuditLogPage";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 
@@ -86,6 +88,8 @@ const App = () => (
               <Route path="/dashboard/journal" element={<ProtectedRoute><RouteErrorBoundary routeName="Journal"><JournalPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/expenses" element={<ProtectedRoute><RouteErrorBoundary routeName="Expenses"><ExpensesPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/sports" element={<ProtectedRoute><RouteErrorBoundary routeName="Sports"><SportsPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/gifts" element={<ProtectedRoute><RouteErrorBoundary routeName="Gifts"><GiftsPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/audit" element={<ProtectedRoute><RouteErrorBoundary routeName="Audit Log"><AuditLogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog"><BlogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog/:slug" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog Post"><BlogPostPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><RouteErrorBoundary routeName="Admin"><AdminDashboard /></RouteErrorBoundary></ProtectedRoute>} />
