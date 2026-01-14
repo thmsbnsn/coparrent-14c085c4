@@ -60,7 +60,6 @@ _None currently. All previously identified blocking issues have been resolved._
 
 _Last updated: 2026-01-13_
 
-
 ---
 
 ## 🛠 Tech Stack
@@ -215,28 +214,28 @@ CoParrent integrates AI-powered features to help co-parents communicate professi
 
 ### AI Capabilities
 
-| Feature | Description | Edge Function |
-| ------- | ----------- | ------------- |
-| **Message Tone Analysis** | Analyzes messages for hostile or inflammatory language patterns | `ai-message-assist` |
-| **Message Rephrasing** | Rewrites messages to be court-appropriate and professional | `ai-message-assist` |
-| **Quick Tone Check** | Real-time pattern matching for problematic phrases | `ai-message-assist` |
-| **Schedule Suggestions** | AI-powered custody schedule recommendations based on family situation | `ai-schedule-suggest` |
+| Feature                   | Description                                                           | Edge Function         |
+| ------------------------- | --------------------------------------------------------------------- | --------------------- |
+| **Message Tone Analysis** | Analyzes messages for hostile or inflammatory language patterns       | `ai-message-assist`   |
+| **Message Rephrasing**    | Rewrites messages to be court-appropriate and professional            | `ai-message-assist`   |
+| **Quick Tone Check**      | Real-time pattern matching for problematic phrases                    | `ai-message-assist`   |
+| **Schedule Suggestions**  | AI-powered custody schedule recommendations based on family situation | `ai-schedule-suggest` |
 
 ### AI Files & Components
 
 #### Edge Functions (Backend)
 
-| File | Purpose |
-| ---- | ------- |
-| `supabase/functions/ai-message-assist/index.ts` | Handles message tone analysis, rephrasing, and quick checks |
+| File                                              | Purpose                                                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `supabase/functions/ai-message-assist/index.ts`   | Handles message tone analysis, rephrasing, and quick checks                                      |
 | `supabase/functions/ai-schedule-suggest/index.ts` | Generates custody schedule suggestions based on children's ages, conflict level, and preferences |
 
 #### Frontend Components
 
-| File | Purpose |
-| ---- | ------- |
+| File                                               | Purpose                                                           |
+| -------------------------------------------------- | ----------------------------------------------------------------- |
 | `src/components/messages/MessageToneAssistant.tsx` | UI component for tone analysis and message rephrasing suggestions |
-| `src/components/calendar/CalendarWizard.tsx` | Schedule setup wizard with AI-powered pattern suggestions |
+| `src/components/calendar/CalendarWizard.tsx`       | Schedule setup wizard with AI-powered pattern suggestions         |
 
 ### AI Message Assist (`ai-message-assist`)
 
@@ -270,6 +269,7 @@ Generates custody schedule recommendations based on:
 - **Preferences**: Parent-specified preferences
 
 Returns 2-3 pattern suggestions with:
+
 - Pattern name and description
 - Pros and cons for the specific situation
 - 14-day visual representation
@@ -281,16 +281,16 @@ Returns 2-3 pattern suggestions with:
 
 The quick-check system detects these patterns locally (no AI call required):
 
-| Pattern | Example | Suggestion |
-| ------- | ------- | ---------- |
-| Generalizations | "you always", "you never" | Focus on specific situations |
-| Blame | "your fault", "blame you" | Use 'I feel' statements |
-| Personal attacks | "stupid", "idiot", "incompetent" | Remove attacks, focus on issue |
-| Demands | "demand", "insist", "must" | Use "request" or "would appreciate" |
-| Multiple exclamation | "!!!" | One exclamation is sufficient |
-| Inflammatory | "can't believe", "ridiculous" | Express concerns calmly |
-| Threats | "never see", "my lawyer" | Focus on finding solutions |
-| ALL CAPS | "THREE+ WORDS SHOUTING" | Avoid shouting |
+| Pattern              | Example                          | Suggestion                          |
+| -------------------- | -------------------------------- | ----------------------------------- |
+| Generalizations      | "you always", "you never"        | Focus on specific situations        |
+| Blame                | "your fault", "blame you"        | Use 'I feel' statements             |
+| Personal attacks     | "stupid", "idiot", "incompetent" | Remove attacks, focus on issue      |
+| Demands              | "demand", "insist", "must"       | Use "request" or "would appreciate" |
+| Multiple exclamation | "!!!"                            | One exclamation is sufficient       |
+| Inflammatory         | "can't believe", "ridiculous"    | Express concerns calmly             |
+| Threats              | "never see", "my lawyer"         | Focus on finding solutions          |
+| ALL CAPS             | "THREE+ WORDS SHOUTING"          | Avoid shouting                      |
 
 ### Security & Authentication
 
@@ -304,14 +304,15 @@ All AI endpoints require authentication:
 ### AI Model Configuration
 
 Both edge functions use OpenRouter API with:
+
 - **Model**: `google/gemini-2.0-flash-exp:free`
 - **Temperature**: 0.7
 - **Max Tokens**: 1000-2000
 
 ### Environment Variables
 
-| Variable | Purpose |
-| -------- | ------- |
+| Variable             | Purpose                              |
+| -------------------- | ------------------------------------ |
 | `OPENROUTER_API_KEY` | Authentication for OpenRouter AI API |
 
 ### User Interaction Flow
@@ -390,37 +391,37 @@ When modifying AI functionality:
 
 ### 4. Custody Calendar
 
-| Feature               | Components                | Description                        |
-| --------------------- | ------------------------- | ---------------------------------- |
-| Calendar View         | `CalendarPage`            | Visual custody schedule            |
-| Schedule Setup        | `CalendarWizard`          | Pattern-based schedule creation    |
-| Change Requests       | `ScheduleChangeRequest`   | Formal swap/cancel requests        |
-| Realtime Updates      | `useRealtimeSchedule`     | Live schedule synchronization      |
-| **Sports Integration**| `SportsEventDetail`       | View sports events in calendar     |
-| **Multi-Event Popup** | `SportsEventListPopup`    | Select from multiple events on day |
+| Feature                | Components              | Description                        |
+| ---------------------- | ----------------------- | ---------------------------------- |
+| Calendar View          | `CalendarPage`          | Visual custody schedule            |
+| Schedule Setup         | `CalendarWizard`        | Pattern-based schedule creation    |
+| Change Requests        | `ScheduleChangeRequest` | Formal swap/cancel requests        |
+| Realtime Updates       | `useRealtimeSchedule`   | Live schedule synchronization      |
+| **Sports Integration** | `SportsEventDetail`     | View sports events in calendar     |
+| **Multi-Event Popup**  | `SportsEventListPopup`  | Select from multiple events on day |
 
 ### 5. Children Management
 
-| Feature             | Components                              | Description                     |
-| ------------------- | --------------------------------------- | ------------------------------- |
-| Children List       | `ChildrenPage`                          | Child profile cards             |
-| Child Details       | Medical, school, emergency info         | Comprehensive child records     |
-| Realtime Sync       | `useRealtimeChildren`, `useChildren`    | Live data updates               |
-| **Delete Child**    | `DeleteChildDialog`                     | Cascade cleanup with confirmation |
-| **Gift Lists**      | `GiftsPage`, `GiftListCard`             | Shared gift coordination        |
-| **Gift Items**      | `GiftItemCard`, `AddGiftItemDialog`     | Gift claiming and tracking      |
+| Feature          | Components                           | Description                       |
+| ---------------- | ------------------------------------ | --------------------------------- |
+| Children List    | `ChildrenPage`                       | Child profile cards               |
+| Child Details    | Medical, school, emergency info      | Comprehensive child records       |
+| Realtime Sync    | `useRealtimeChildren`, `useChildren` | Live data updates                 |
+| **Delete Child** | `DeleteChildDialog`                  | Cascade cleanup with confirmation |
+| **Gift Lists**   | `GiftsPage`, `GiftListCard`          | Shared gift coordination          |
+| **Gift Items**   | `GiftItemCard`, `AddGiftItemDialog`  | Gift claiming and tracking        |
 
 ### 6. Messaging Hub
 
-| Feature               | Components             | Description                            |
-| --------------------- | ---------------------- | -------------------------------------- |
-| **Family Channel**    | `MessagingHubPage`     | Group messaging for entire family      |
-| **Direct Messages**   | `MessagingHubPage`     | 1-on-1 messaging between family members |
-| **AI Tone Assistant** | `MessageToneAssistant` | AI-powered message tone suggestions    |
-| **Typing Indicators** | `useTypingIndicator`   | Real-time typing status display        |
-| **Message History**   | `useMessagingHub`      | Thread and message data management     |
+| Feature               | Components             | Description                              |
+| --------------------- | ---------------------- | ---------------------------------------- |
+| **Family Channel**    | `MessagingHubPage`     | Group messaging for entire family        |
+| **Direct Messages**   | `MessagingHubPage`     | 1-on-1 messaging between family members  |
+| **AI Tone Assistant** | `MessageToneAssistant` | AI-powered message tone suggestions      |
+| **Typing Indicators** | `useTypingIndicator`   | Real-time typing status display          |
+| **Message History**   | `useMessagingHub`      | Thread and message data management       |
 | **Role Badges**       | Visual role indicators | Show parent/third-party role in messages |
-| **Court-Friendly**    | Immutable messages     | Messages cannot be edited or deleted   |
+| **Court-Friendly**    | Immutable messages     | Messages cannot be edited or deleted     |
 
 ### 7. Documents
 
@@ -451,17 +452,17 @@ When modifying AI functionality:
 
 ### 10. Youth Sports Hub (Premium)
 
-| Feature                  | Components                                    | Description                              |
-| ------------------------ | --------------------------------------------- | ---------------------------------------- |
-| **Sports Activities**    | `SportsPage`, `ActivityCard`                  | Track sports/activities per child        |
-| **Activity Events**      | `EventCard`, `CreateEventDialog`              | Games, practices, tournaments            |
-| **Calendar Integration** | `useSportsEvents`                             | Sports events show in calendar           |
-| **Map Navigation**       | `DirectionsDialog`, `useMapNavigation`        | Get directions (Google/Apple/Waze)       |
-| **Parent Responsibility**| Drop-off/pick-up assignments                  | Per-event responsibility tracking        |
-| **Equipment Checklist**  | Equipment needed per event                    | Track required equipment                 |
-| **Venue Notes**          | Parking, field numbers, tips                  | Location-specific information            |
-| **Smart Reminders**      | `sports-event-reminders` edge function        | Leave-by time, responsibility reminders  |
-| **Edit/Cancel Events**   | `EditActivityDialog`, `EditEventDialog`       | Full CRUD with cancel toggle             |
+| Feature                   | Components                              | Description                             |
+| ------------------------- | --------------------------------------- | --------------------------------------- |
+| **Sports Activities**     | `SportsPage`, `ActivityCard`            | Track sports/activities per child       |
+| **Activity Events**       | `EventCard`, `CreateEventDialog`        | Games, practices, tournaments           |
+| **Calendar Integration**  | `useSportsEvents`                       | Sports events show in calendar          |
+| **Map Navigation**        | `DirectionsDialog`, `useMapNavigation`  | Get directions (Google/Apple/Waze)      |
+| **Parent Responsibility** | Drop-off/pick-up assignments            | Per-event responsibility tracking       |
+| **Equipment Checklist**   | Equipment needed per event              | Track required equipment                |
+| **Venue Notes**           | Parking, field numbers, tips            | Location-specific information           |
+| **Smart Reminders**       | `sports-event-reminders` edge function  | Leave-by time, responsibility reminders |
+| **Edit/Cancel Events**    | `EditActivityDialog`, `EditEventDialog` | Full CRUD with cancel toggle            |
 
 ### 11. Law Library
 
@@ -478,15 +479,15 @@ When modifying AI functionality:
 
 ### 12. Settings & Account
 
-| Feature                 | Components             | Description                          |
-| ----------------------- | ---------------------- | ------------------------------------ |
-| **Settings Page**       | `SettingsPage`         | Account management hub               |
-| **Co-Parent Invite**    | `CoParentInvite`       | Email invitation system              |
+| Feature                 | Components             | Description                             |
+| ----------------------- | ---------------------- | --------------------------------------- |
+| **Settings Page**       | `SettingsPage`         | Account management hub                  |
+| **Co-Parent Invite**    | `CoParentInvite`       | Email invitation system                 |
 | **Third-Party Manager** | `ThirdPartyManager`    | Invite step-parents, grandparents, etc. |
-| **Trial Status**        | `TrialStatus`          | Subscription/trial tracking          |
-| **Notifications**       | `NotificationSettings` | Notification preferences             |
-| **Subscription**        | `useSubscription`      | Stripe subscription management       |
-| **Role-Based Access**   | `useFamilyRole`        | Permission enforcement               |
+| **Trial Status**        | `TrialStatus`          | Subscription/trial tracking             |
+| **Notifications**       | `NotificationSettings` | Notification preferences                |
+| **Subscription**        | `useSubscription`      | Stripe subscription management          |
+| **Role-Based Access**   | `useFamilyRole`        | Permission enforcement                  |
 
 ### 13. Admin
 
@@ -710,70 +711,70 @@ CoParrent Application
 
 ### Core Tables
 
-| Table                    | Description                                             |
-| ------------------------ | ------------------------------------------------------- |
-| `profiles`               | User profiles with subscription and co-parent linking   |
-| `children`               | Child information (medical, school, emergency contacts) |
-| `parent_children`        | Junction table linking parents to children              |
-| `family_members`         | Third-party family members (step-parents, grandparents) |
-| `custody_schedules`      | Custody patterns and schedule definitions               |
-| `schedule_requests`      | Schedule change requests                                |
-| `exchange_checkins`      | Exchange confirmation records                           |
-| `message_threads`        | Messaging threads (family channel + direct messages)    |
-| `thread_messages`        | Immutable messages within threads                       |
-| `typing_indicators`      | Real-time typing status for messaging                   |
-| `group_chat_participants`| Participants in group chat threads                      |
-| `message_read_receipts`  | Read receipt tracking for messages                      |
-| `messages`               | Legacy co-parent messages (deprecated)                  |
-| `gift_lists`             | Shared gift lists per child/occasion                    |
-| `gift_items`             | Individual gift items with claim tracking               |
-| `documents`              | Document metadata                                       |
-| `document_access_logs`   | Document access audit trail                             |
-| `expenses`               | Shared expense tracking                                 |
-| `reimbursement_requests` | Expense reimbursement workflows                         |
-| `journal_entries`        | Private journal entries                                 |
-| `notifications`          | User notifications                                      |
-| `invitations`            | Co-parent and third-party invitations                   |
-| `step_parents`           | Step-parent approval tracking                           |
-| `user_devices`           | Trusted device tracking for login notifications         |
-| `law_library_resources`  | State-specific legal documents                          |
-| `blog_posts`             | Blog content                                            |
-| `user_roles`             | Role-based access (admin, moderator, user)              |
+| Table                     | Description                                             |
+| ------------------------- | ------------------------------------------------------- |
+| `profiles`                | User profiles with subscription and co-parent linking   |
+| `children`                | Child information (medical, school, emergency contacts) |
+| `parent_children`         | Junction table linking parents to children              |
+| `family_members`          | Third-party family members (step-parents, grandparents) |
+| `custody_schedules`       | Custody patterns and schedule definitions               |
+| `schedule_requests`       | Schedule change requests                                |
+| `exchange_checkins`       | Exchange confirmation records                           |
+| `message_threads`         | Messaging threads (family channel + direct messages)    |
+| `thread_messages`         | Immutable messages within threads                       |
+| `typing_indicators`       | Real-time typing status for messaging                   |
+| `group_chat_participants` | Participants in group chat threads                      |
+| `message_read_receipts`   | Read receipt tracking for messages                      |
+| `messages`                | Legacy co-parent messages (deprecated)                  |
+| `gift_lists`              | Shared gift lists per child/occasion                    |
+| `gift_items`              | Individual gift items with claim tracking               |
+| `documents`               | Document metadata                                       |
+| `document_access_logs`    | Document access audit trail                             |
+| `expenses`                | Shared expense tracking                                 |
+| `reimbursement_requests`  | Expense reimbursement workflows                         |
+| `journal_entries`         | Private journal entries                                 |
+| `notifications`           | User notifications                                      |
+| `invitations`             | Co-parent and third-party invitations                   |
+| `step_parents`            | Step-parent approval tracking                           |
+| `user_devices`            | Trusted device tracking for login notifications         |
+| `law_library_resources`   | State-specific legal documents                          |
+| `blog_posts`              | Blog content                                            |
+| `user_roles`              | Role-based access (admin, moderator, user)              |
 
 ### Edge Functions
 
-| Function                   | Purpose                                   |
-| -------------------------- | ----------------------------------------- |
-| `admin-manage-users`       | Admin user management                     |
+| Function                   | Purpose                                       |
+| -------------------------- | --------------------------------------------- |
+| `admin-manage-users`       | Admin user management                         |
 | `ai-message-assist`        | AI-powered message tone analysis & rephrasing |
-| `ai-schedule-suggest`      | AI-powered schedule pattern recommendations |
-| `check-subscription`       | Verify Stripe subscription status         |
-| `create-checkout`          | Create Stripe checkout session            |
-| `customer-portal`          | Stripe customer portal access             |
-| `exchange-reminders`       | Automated exchange reminder notifications |
-| `generate-expense-report`  | PDF expense report generation             |
-| `login-notification`       | Device tracking and login alerts          |
-| `notify-third-party-added` | Notification when third-party joins family |
-| `send-coparent-invite`     | Send co-parent invitation emails          |
-| `send-third-party-invite`  | Send third-party invitation emails        |
-| `send-notification`        | Push notification delivery                |
-| `stripe-webhook`           | Stripe webhook event processing           |
+| `ai-schedule-suggest`      | AI-powered schedule pattern recommendations   |
+| `check-subscription`       | Verify Stripe subscription status             |
+| `create-checkout`          | Create Stripe checkout session                |
+| `customer-portal`          | Stripe customer portal access                 |
+| `exchange-reminders`       | Automated exchange reminder notifications     |
+| `generate-expense-report`  | PDF expense report generation                 |
+| `login-notification`       | Device tracking and login alerts              |
+| `notify-third-party-added` | Notification when third-party joins family    |
+| `send-coparent-invite`     | Send co-parent invitation emails              |
+| `send-third-party-invite`  | Send third-party invitation emails            |
+| `send-notification`        | Push notification delivery                    |
+| `stripe-webhook`           | Stripe webhook event processing               |
 
 ---
 
 ## 🧠 Decision Log
 
-| Date       | Decision                                | Reason                             |
-| ---------- | --------------------------------------- | ---------------------------------- |
-| 2025-12-26 | AI endpoints require JWT authentication | Security: prevent unauthorized AI usage |
-| 2025-12-26 | Shared Gift Lists for children          | Coordination and conflict reduction |
-| 2025-12-26 | Typing indicators via realtime table    | Low-latency UX for messaging       |
+| Date       | Decision                                | Reason                                    |
+| ---------- | --------------------------------------- | ----------------------------------------- |
+| 2025-12-26 | AI endpoints require JWT authentication | Security: prevent unauthorized AI usage   |
+| 2025-12-26 | Shared Gift Lists for children          | Coordination and conflict reduction       |
+| 2025-12-26 | Typing indicators via realtime table    | Low-latency UX for messaging              |
 | 2025-12-26 | Step-Parent → Third-Party role rename   | More inclusive naming for extended family |
-| 2025-12-26 | Third-Party invitation-only model       | Security: prevent unauthorized access |
-| 2025-12-26 | Messaging Hub replaces 1-on-1 messages  | Support group + DM within family group |
-| YYYY-MM-DD | Blog kept public and SEO-indexed        | Marketing + organic discovery      |
-| YYYY-MM-DD | Stripe webhooks limited to 4 events     | Reduce noise + simplify edge logic |
-| YYYY-MM-DD | Dashboard UI gated strictly behind auth | Prevent data leakage               |
+| 2025-12-26 | Third-Party invitation-only model       | Security: prevent unauthorized access     |
+| 2025-12-26 | Messaging Hub replaces 1-on-1 messages  | Support group + DM within family group    |
+| YYYY-MM-DD | Blog kept public and SEO-indexed        | Marketing + organic discovery             |
+| YYYY-MM-DD | Stripe webhooks limited to 4 events     | Reduce noise + simplify edge logic        |
+| YYYY-MM-DD | Dashboard UI gated strictly behind auth | Prevent data leakage                      |
 
 > **Policy:** Decision Log entries must never be rewritten; new decisions are appended only.
 
@@ -790,7 +791,6 @@ CoParrent Application
   - Added JWT token verification to `ai-schedule-suggest` edge function
   - All AI endpoints now require authenticated requests
   - User ID logged for audit purposes
-  
 - **Feature:** Shared Gift Lists
   - Created `gift_lists` and `gift_items` tables with RLS policies
   - Parents can create gift lists per child/occasion (Birthday, Holiday, Custom)
@@ -799,13 +799,11 @@ CoParrent Application
   - Created `useGiftLists` hook for gift management
   - Created gift components: `GiftListCard`, `GiftItemCard`, `CreateGiftListDialog`, `AddGiftItemDialog`
   - Created `GiftsPage` for gift list management
-  
 - **Feature:** Typing Indicators
   - Created `typing_indicators` table with realtime enabled
   - Created `useTypingIndicator` hook for broadcast/subscribe
   - Added typing indicator display in MessagingHubPage
   - Animated dots show when other family members are typing
-  
 - **Feature:** Third-Party Join Notification
   - AcceptInvite page now triggers `notify-third-party-added` edge function
   - Parents notified when third-party members accept invitations
@@ -817,7 +815,6 @@ CoParrent Application
   - Created `ThirdPartyManager` component for invitation management
   - Created `send-third-party-invite` edge function
   - Plan limits enforced: Free (0), Pro (2), MVP (6) third-party members
-  
 - **Major:** Messaging Hub Implementation
   - Created new `MessagingHubPage` with Family Channel (group) and Direct Messages (1-on-1)
   - Users can only message people within their family group
@@ -826,7 +823,6 @@ CoParrent Application
   - Role badges displayed in messages (Parent/Family)
   - Created `useMessagingHub` hook for messaging functionality
   - Created `useFamilyRole` hook for role detection
-  
 - **Major:** Permission System
   - Third-Party permissions enforced via route guards and RLS
   - Third-Party allowed: Messaging Hub, Journal, Law Library, Blog
@@ -1028,12 +1024,12 @@ If a requested change conflicts with documented architecture or guardrails:
 
 After completing changes:
 
-| Change Type                          | Update Required                         |
-| ------------------------------------ | --------------------------------------- |
-| Fixed a blocking issue               | Update **Project State** → Known Issues |
-| Changed routing, auth, payments      | Add entry to **Change Log**             |
-| Made architectural decision          | Append to **Decision Log**              |
-| Behavioral or structural change      | Update **Last Verified Build** date     |
+| Change Type                     | Update Required                         |
+| ------------------------------- | --------------------------------------- |
+| Fixed a blocking issue          | Update **Project State** → Known Issues |
+| Changed routing, auth, payments | Add entry to **Change Log**             |
+| Made architectural decision     | Append to **Decision Log**              |
+| Behavioral or structural change | Update **Last Verified Build** date     |
 
 ### Rules
 
@@ -1048,7 +1044,7 @@ After completing changes:
 
 ## 📄 License
 
-This project is proprietary software. All rights reserved.
+This project is proprietary software. All rights reserved. Unauthorized reproduction, distribution, or reverse engineering is prohibited.
 
 ---
 
