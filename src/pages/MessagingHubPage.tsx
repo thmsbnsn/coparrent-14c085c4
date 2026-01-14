@@ -9,7 +9,8 @@ import {
   FileText,
   Check,
   CheckCheck,
-  UsersRound
+  UsersRound,
+  Search
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useMessagingHub, MessageThread, FamilyMember } from "@/hooks/useMessagingHub";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { MessageSearch } from "@/components/messages/MessageSearch";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
@@ -87,6 +90,7 @@ const MessagingHubPage = () => {
   const [showGroupConfirm, setShowGroupConfirm] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [creatingGroup, setCreatingGroup] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Handle typing indicator on input change
@@ -301,14 +305,37 @@ const MessagingHubPage = () => {
                   Communicate with your family group
                 </p>
               </div>
-              {activeThread && messages.length > 0 && (
-                <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Export PDF
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowSearch(true)}>
+                  <Search className="w-4 h-4 mr-2" />
+                  Search
                 </Button>
-              )}
+                {activeThread && messages.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Export PDF
+                  </Button>
+                )}
+              </div>
             </div>
           </motion.div>
+
+          {/* Search Dialog */}
+          <Dialog open={showSearch} onOpenChange={setShowSearch}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Search Messages</DialogTitle>
+              </DialogHeader>
+              <MessageSearch
+                threadId={activeThread?.id}
+                onResultClick={(result) => {
+                  setShowSearch(false);
+                  toast.success("Found message from " + (result.sender_name || "Unknown"));
+                }}
+                onClose={() => setShowSearch(false)}
+              />
+            </DialogContent>
+          </Dialog>
 
           {/* Main content */}
           <div className="flex-1 flex gap-4 min-h-0">

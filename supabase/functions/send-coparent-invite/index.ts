@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { strictCors, getCorsHeaders } from "../_shared/cors.ts";
+import { checkFunctionRateLimit, createRateLimitResponse } from "../_shared/functionRateLimit.ts";
 
 // Zod schema for input validation
 const InviteRequestSchema = z.object({
@@ -54,6 +55,19 @@ const handler = async (req: Request): Promise<Response> => {
 
     const authUser = userData.user;
     logStep("User authenticated", { userId: authUser.id });
+
+    // Check rate limit
+    const rateLimitResult = await checkFunctionRateLimit(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      authUser.id,
+      "send-coparent-invite"
+    );
+
+    if (!rateLimitResult.allowed) {
+      logStep("Rate limit exceeded", { remaining: rateLimitResult.remaining });
+      return createRateLimitResponse(rateLimitResult, corsHeaders);
+    }
 
     // Parse and validate request body
     const rawBody = await req.json();

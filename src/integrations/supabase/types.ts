@@ -178,6 +178,51 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_profile_id: string | null
+          actor_user_id: string
+          after: Json | null
+          before: Json | null
+          child_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          family_context: Json | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_profile_id?: string | null
+          actor_user_id: string
+          after?: Json | null
+          before?: Json | null
+          child_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          family_context?: Json | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_profile_id?: string | null
+          actor_user_id?: string
+          after?: Json | null
+          before?: Json | null
+          child_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          family_context?: Json | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_name: string
@@ -718,6 +763,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      function_usage_daily: {
+        Row: {
+          created_at: string
+          function_name: string
+          id: string
+          minute_count: number
+          minute_window: string
+          request_count: number
+          updated_at: string
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          function_name: string
+          id?: string
+          minute_count?: number
+          minute_window?: string
+          request_count?: number
+          updated_at?: string
+          usage_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          function_name?: string
+          id?: string
+          minute_count?: number
+          minute_window?: string
+          request_count?: number
+          updated_at?: string
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       gift_items: {
         Row: {
@@ -1538,6 +1619,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          search_vector: unknown
           sender_id: string
           sender_role: Database["public"]["Enums"]["member_role"]
           thread_id: string
@@ -1546,6 +1628,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          search_vector?: unknown
           sender_id: string
           sender_role: Database["public"]["Enums"]["member_role"]
           thread_id: string
@@ -1554,6 +1637,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          search_vector?: unknown
           sender_id?: string
           sender_role?: Database["public"]["Enums"]["member_role"]
           thread_id?: string
@@ -1729,6 +1813,7 @@ export type Database = {
         Args: { _date_of_birth?: string; _name: string }
         Returns: Json
       }
+      get_child_details: { Args: { p_child_id: string }; Returns: Json }
       get_invitation_by_token: {
         Args: { _token: string }
         Returns: {
@@ -1762,6 +1847,32 @@ export type Database = {
       is_family_member: {
         Args: { _primary_parent_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          _action: string
+          _after?: Json
+          _before?: Json
+          _child_id?: string
+          _entity_id?: string
+          _entity_type: string
+          _family_context?: Json
+          _metadata?: Json
+        }
+        Returns: string
+      }
+      search_messages: {
+        Args: { p_limit?: number; p_query: string; p_thread_id?: string }
+        Returns: {
+          content: string
+          created_at: string
+          id: string
+          sender_id: string
+          sender_name: string
+          sender_role: string
+          snippet: string
+          thread_id: string
+        }[]
       }
     }
     Enums: {
