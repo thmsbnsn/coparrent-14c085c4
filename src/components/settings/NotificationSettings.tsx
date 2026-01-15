@@ -22,6 +22,8 @@ export const NotificationSettings = () => {
     isSupported,
     isSubscribed,
     permission,
+    isiOS,
+    isPWA,
     loading: pushLoading,
     subscribe,
     unsubscribe,
@@ -116,7 +118,9 @@ export const NotificationSettings = () => {
                     ? isSubscribed
                       ? "Receiving notifications even when app is closed"
                       : "Get notified even when the app is in the background"
-                    : "Not supported in this browser"}
+                    : isiOS && !isPWA
+                      ? "Add to Home Screen to enable notifications"
+                      : "Not supported in this browser"}
                 </p>
               </div>
             </div>
@@ -137,11 +141,26 @@ export const NotificationSettings = () => {
             )}
           </div>
 
+          {/* iOS Home Screen instruction */}
+          {isiOS && !isPWA && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <Smartphone className="w-4 h-4 text-primary mt-0.5" />
+              <div className="text-xs text-primary">
+                <p className="font-medium">Install Required for iOS</p>
+                <p className="mt-1 opacity-80">
+                  Tap the Share button, then "Add to Home Screen" to enable push notifications on iOS.
+                </p>
+              </div>
+            </div>
+          )}
+
           {isSupported && permission === "denied" && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
               <AlertCircle className="w-4 h-4 text-destructive mt-0.5" />
               <p className="text-xs text-destructive">
-                Notifications are blocked. Please enable them in your browser settings.
+                {isiOS 
+                  ? "Notifications are blocked. Open Settings → CoParrent → Notifications to enable."
+                  : "Notifications are blocked. Please enable them in your browser settings."}
               </p>
             </div>
           )}
