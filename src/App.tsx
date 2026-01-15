@@ -8,6 +8,9 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { RouteErrorBoundary } from "@/components/ui/RouteErrorBoundary";
+import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
+import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
+import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import Index from "./pages/Index";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
@@ -39,6 +42,7 @@ import ExpensesPage from "./pages/ExpensesPage";
 import SportsPage from "./pages/SportsPage";
 import GiftsPage from "./pages/GiftsPage";
 import AuditLogPage from "./pages/AuditLogPage";
+import OfflinePage from "./pages/OfflinePage";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 
@@ -52,6 +56,9 @@ const App = () => (
           <AuthProvider>
             <Toaster />
             <Sonner />
+            <OfflineIndicator />
+            <PWAInstallPrompt />
+            <PWAUpdatePrompt />
             <BrowserRouter>
             <Routes>
               {/* Public Routes */}
@@ -93,6 +100,9 @@ const App = () => (
               <Route path="/dashboard/blog" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog"><BlogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog/:slug" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog Post"><BlogPostPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><RouteErrorBoundary routeName="Admin"><AdminDashboard /></RouteErrorBoundary></ProtectedRoute>} />
+              
+              {/* Offline Route */}
+              <Route path="/offline" element={<RouteErrorBoundary routeName="Offline"><OfflinePage /></RouteErrorBoundary>} />
               
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
