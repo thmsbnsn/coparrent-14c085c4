@@ -881,22 +881,23 @@ CoParrent Application
 
 ### Edge Functions
 
-| Function                   | Purpose                                       |
-| -------------------------- | --------------------------------------------- |
-| `admin-manage-users`       | Admin user management                         |
-| `ai-message-assist`        | AI-powered message tone analysis & rephrasing |
-| `ai-schedule-suggest`      | AI-powered schedule pattern recommendations   |
-| `check-subscription`       | Verify Stripe subscription status             |
-| `create-checkout`          | Create Stripe checkout session                |
-| `customer-portal`          | Stripe customer portal access                 |
-| `exchange-reminders`       | Automated exchange reminder notifications     |
-| `generate-expense-report`  | PDF expense report generation                 |
-| `login-notification`       | Device tracking and login alerts              |
-| `notify-third-party-added` | Notification when third-party joins family    |
-| `send-coparent-invite`     | Send co-parent invitation emails              |
-| `send-third-party-invite`  | Send third-party invitation emails            |
-| `send-notification`        | Push notification delivery                    |
-| `stripe-webhook`           | Stripe webhook event processing               |
+| Function                   | Purpose                                          |
+| -------------------------- | ------------------------------------------------ |
+| `admin-manage-users`       | Admin user management                            |
+| `ai-message-assist`        | AI-powered message tone analysis & rephrasing    |
+| `ai-schedule-suggest`      | AI-powered schedule pattern recommendations      |
+| `check-subscription`       | Verify Stripe subscription status                |
+| `create-checkout`          | Create Stripe checkout session                   |
+| `create-message-thread`    | Server-side message thread creation with RLS bypass |
+| `customer-portal`          | Stripe customer portal access                    |
+| `exchange-reminders`       | Automated exchange reminder notifications        |
+| `generate-expense-report`  | PDF expense report generation                    |
+| `login-notification`       | Device tracking and login alerts                 |
+| `notify-third-party-added` | Notification when third-party joins family       |
+| `send-coparent-invite`     | Send co-parent invitation emails                 |
+| `send-third-party-invite`  | Send third-party invitation emails               |
+| `send-notification`        | Push notification delivery                       |
+| `stripe-webhook`           | Stripe webhook event processing                  |
 
 ---
 
@@ -910,6 +911,8 @@ CoParrent Application
 | 2025-12-26 | Step-Parent → Third-Party role rename   | More inclusive naming for extended family |
 | 2025-12-26 | Third-Party invitation-only model       | Security: prevent unauthorized access     |
 | 2025-12-26 | Messaging Hub replaces 1-on-1 messages  | Support group + DM within family group    |
+| 2026-01-16 | Edge function for thread creation       | Bypass RLS complexity for DM/group creation |
+| 2026-01-16 | Centralized display label maps          | Prevent raw IDs/tokens leaking into UI    |
 | YYYY-MM-DD | Blog kept public and SEO-indexed        | Marketing + organic discovery             |
 | YYYY-MM-DD | Stripe webhooks limited to 4 events     | Reduce noise + simplify edge logic        |
 | YYYY-MM-DD | Dashboard UI gated strictly behind auth | Prevent data leakage                      |
@@ -921,6 +924,20 @@ CoParrent Application
 ## 🔄 Change Log
 
 > **Policy:** Any change affecting routing, authentication, payments, data integrity, or user access must be recorded here. Do not remove existing entries.
+
+### 2026-01-16
+
+- **Major:** Server-Side Message Thread Creation
+  - Created `create-message-thread` edge function to bypass RLS complexity
+  - Handles DM, group chat, and family channel creation with server-side membership verification
+  - Updated `useMessagingHub` hook to call edge function instead of direct table inserts
+  - Resolves 403 RLS policy violations when creating new threads
+- **Major:** Display Labels System
+  - Created `src/lib/displayLabels.ts` with centralized label maps
+  - Added typed constants for: subscription status/tier, member roles, invitation types, schedule requests
+  - Updated `SubscriptionBanner`, `TrialStatus`, `MessagingHubPage`, `MessagesPage` to use display labels
+  - Prevents raw IDs, tokens, and enum values from leaking into UI
+  - All UI text now comes from mapped labels or safe fallbacks
 
 ### 2025-12-26
 
