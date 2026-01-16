@@ -7,6 +7,7 @@ import {
   Filter,
   Search,
   FolderOpen,
+  Scale,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ import { FeatureErrorBoundary } from '@/components/ui/FeatureErrorBoundary';
 import { useDocuments, DOCUMENT_CATEGORIES } from '@/hooks/useDocuments';
 import { DocumentUploadDialog } from '@/components/documents/DocumentUploadDialog';
 import { DocumentCard } from '@/components/documents/DocumentCard';
+import { CourtExportDialog } from '@/components/documents/CourtExportDialog';
 
 const DocumentsPageContent = () => {
   const {
@@ -37,6 +39,7 @@ const DocumentsPageContent = () => {
   } = useDocuments();
 
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showCourtExportDialog, setShowCourtExportDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -67,10 +70,16 @@ const DocumentsPageContent = () => {
               Secure storage with complete audit trail
             </p>
           </div>
-          <Button onClick={() => setShowUploadDialog(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Upload Document
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowCourtExportDialog(true)}>
+              <Scale className="w-4 h-4 mr-2" />
+              Court Export
+            </Button>
+            <Button onClick={() => setShowUploadDialog(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Upload Document
+            </Button>
+          </div>
         </motion.div>
 
         {/* Security Notice */}
@@ -216,6 +225,12 @@ const DocumentsPageContent = () => {
         onOpenChange={setShowUploadDialog}
         onUpload={uploadDocument}
         uploading={uploading}
+      />
+
+      {/* Court Export Dialog */}
+      <CourtExportDialog
+        open={showCourtExportDialog}
+        onOpenChange={setShowCourtExportDialog}
       />
     </DashboardLayout>
   );
