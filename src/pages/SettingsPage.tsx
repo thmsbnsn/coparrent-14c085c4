@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Bell, Shield, LogOut, Users, BellOff } from "lucide-react";
+import { User, Bell, Shield, LogOut, Users, BellOff, Baby } from "lucide-react";
 import { useSearchParams, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { CoParentInvite } from "@/components/settings/CoParentInvite";
 import { TrialStatus } from "@/components/settings/TrialStatus";
 import { ThirdPartyManager } from "@/components/settings/ThirdPartyManager";
 import { PreferencesSettings } from "@/components/settings/PreferencesSettings";
+import { ChildAccountControls } from "@/components/settings/ChildAccountControls";
 import { TwoFactorSetup } from "@/components/auth/TwoFactorSetup";
 import { RecoveryCodes } from "@/components/auth/RecoveryCodes";
 import { SessionManager } from "@/components/auth/SessionManager";
@@ -245,6 +246,20 @@ const SettingsPage = () => {
               new Date(profile.trial_ends_at) > new Date()
             }
           />
+        </motion.div>
+
+        {/* Child Account Controls Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.13 }}
+          className="rounded-2xl border border-border bg-card p-6"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <Baby className="w-5 h-5 text-primary" />
+            <h2 className="font-display font-semibold">Child Accounts</h2>
+          </div>
+          <ChildAccountControls />
         </motion.div>
 
         {/* Preferences Section */}
