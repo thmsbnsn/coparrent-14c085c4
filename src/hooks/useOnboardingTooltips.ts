@@ -75,11 +75,15 @@ export function useOnboardingTooltips() {
       
       // First check localStorage for quick loading
       const localState = localStorage.getItem(STORAGE_KEY);
+      let localParsed: OnboardingState | null = null;
+      
       if (localState) {
         try {
-          const parsed: OnboardingState = JSON.parse(localState);
-          setDismissedTooltips(parsed.dismissed || []);
-          setIsOnboardingComplete(!!parsed.completedAt);
+          localParsed = JSON.parse(localState);
+          if (localParsed) {
+            setDismissedTooltips(localParsed.dismissed || []);
+            setIsOnboardingComplete(!!localParsed.completedAt);
+          }
         } catch {
           // Invalid JSON, reset
           localStorage.removeItem(STORAGE_KEY);
