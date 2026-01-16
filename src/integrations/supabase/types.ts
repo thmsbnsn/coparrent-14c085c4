@@ -1901,13 +1901,17 @@ export type Database = {
       get_invitation_by_token: {
         Args: { _token: string }
         Returns: {
+          child_ids: string[]
           created_at: string
           expires_at: string
           id: string
+          invitation_type: string
           invitee_email: string
           inviter_email: string
           inviter_id: string
           inviter_name: string
+          relationship: string
+          role: string
           status: string
         }[]
       }

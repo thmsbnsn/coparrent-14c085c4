@@ -109,8 +109,8 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo - Fixed at top with safe area padding */}
-      <div className="p-4 border-b border-sidebar-border shrink-0" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 1rem))' }}>
+      {/* Logo - Fixed at top, no safe area here (handled by container) */}
+      <div className="p-4 border-b border-sidebar-border shrink-0">
         <div className="flex items-center justify-between gap-2">
           <Link to="/dashboard">
             <Logo size="md" showText={!sidebarCollapsed} className="[&_span]:text-sidebar-foreground" />
@@ -163,13 +163,11 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
         initial={false}
         animate={{ width: sidebarCollapsed ? 72 : 256 }}
         className="hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border fixed left-0 top-0 bottom-0 z-40"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}
       >
         <SidebarContent />
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="absolute -right-3 w-6 h-6 rounded-full bg-sidebar border border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-          style={{ top: 'calc(5rem + env(safe-area-inset-top, 0))' }}
+          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-sidebar border border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
         >
           <ChevronLeft className={cn("w-4 h-4 transition-transform", sidebarCollapsed && "rotate-180")} />
         </button>
@@ -200,13 +198,17 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
 
       {/* Main Content */}
       <div className={cn("flex-1 flex flex-col min-h-screen", sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[256px]")}>
-        {/* Top Bar with safe area support */}
+        {/* Top Bar with safe area support - consistent across all pages */}
         <header 
-          className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30"
-          style={{ paddingTop: 'env(safe-area-inset-top, 0)', height: 'calc(4rem + env(safe-area-inset-top, 0))' }}
+          className="bg-card border-b border-border flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30"
+          style={{ 
+            paddingTop: 'env(safe-area-inset-top, 0)', 
+            minHeight: '4rem',
+            paddingBottom: '0.5rem'
+          }}
         >
           <button
-            className="lg:hidden p-2 rounded-lg hover:bg-muted"
+            className="lg:hidden p-2 rounded-lg hover:bg-muted mt-auto mb-auto"
             onClick={() => setMobileSidebarOpen(true)}
           >
             <Menu className="w-5 h-5" />
