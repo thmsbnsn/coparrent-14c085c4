@@ -189,6 +189,14 @@ This section inventories the app's major features and systems with their current
 | Background Sync | Sync queued actions | ⚠️ Partial | Service worker | Not fully implemented | Medium |
 | Install Prompt | PWA install suggestion | ✅ Complete | PWAInstallPrompt component | None | Low |
 
+### Onboarding & UX
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Multi-Step Onboarding | Guided setup for new users | ✅ Complete | Onboarding.tsx | None | Low |
+| Onboarding Tooltips | Guided tour of dashboard features | ✅ Complete | OnboardingOverlay, useOnboardingTooltips | None | Low |
+| Tooltip Persistence | Remember dismissed tooltips | ✅ Complete | localStorage + profiles.preferences | None | Low |
+
 ---
 
 ## 🛠 Tech Stack
