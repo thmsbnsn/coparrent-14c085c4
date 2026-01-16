@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { TrialBadge } from "@/components/dashboard/TrialBadge";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { OnboardingOverlay } from "@/components/onboarding/OnboardingOverlay";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -35,25 +36,25 @@ interface DashboardLayoutProps {
 
 // Full navigation for parents/guardians
 const parentNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true },
-  { icon: Calendar, label: "Parenting Calendar", href: "/dashboard/calendar", thirdPartyAllowed: false },
-  { icon: Users, label: "Child Info", href: "/dashboard/children", thirdPartyAllowed: false },
-  { icon: Trophy, label: "Sports Hub", href: "/dashboard/sports", thirdPartyAllowed: false },
-  { icon: MessageSquare, label: "Messaging Hub", href: "/dashboard/messages", thirdPartyAllowed: true },
-  { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false },
-  { icon: DollarSign, label: "Expenses", href: "/dashboard/expenses", thirdPartyAllowed: false },
-  { icon: BookHeart, label: "Journal", href: "/dashboard/journal", thirdPartyAllowed: true },
-  { icon: Scale, label: "Law Library", href: "/dashboard/law-library", thirdPartyAllowed: true },
-  { icon: FileText, label: "Resources (PDF)", href: "/dashboard/law-library/resources", thirdPartyAllowed: true },
-  { icon: BookOpen, label: "Blog", href: "/dashboard/blog", thirdPartyAllowed: true },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings", thirdPartyAllowed: false },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true, id: "nav-dashboard" },
+  { icon: Calendar, label: "Parenting Calendar", href: "/dashboard/calendar", thirdPartyAllowed: false, id: "nav-calendar" },
+  { icon: Users, label: "Child Info", href: "/dashboard/children", thirdPartyAllowed: false, id: "nav-children" },
+  { icon: Trophy, label: "Sports Hub", href: "/dashboard/sports", thirdPartyAllowed: false, id: "nav-sports" },
+  { icon: MessageSquare, label: "Messaging Hub", href: "/dashboard/messages", thirdPartyAllowed: true, id: "nav-messages" },
+  { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false, id: "nav-documents" },
+  { icon: DollarSign, label: "Expenses", href: "/dashboard/expenses", thirdPartyAllowed: false, id: "nav-expenses" },
+  { icon: BookHeart, label: "Journal", href: "/dashboard/journal", thirdPartyAllowed: true, id: "nav-journal" },
+  { icon: Scale, label: "Law Library", href: "/dashboard/law-library", thirdPartyAllowed: true, id: "nav-law-library" },
+  { icon: FileText, label: "Resources (PDF)", href: "/dashboard/law-library/resources", thirdPartyAllowed: true, id: "nav-resources" },
+  { icon: BookOpen, label: "Blog", href: "/dashboard/blog", thirdPartyAllowed: true, id: "nav-blog" },
+  { icon: Settings, label: "Settings", href: "/dashboard/settings", thirdPartyAllowed: false, id: "nav-settings" },
 ];
 
 const lawOfficeNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true },
-  { icon: Users, label: "Cases", href: "/dashboard/cases", thirdPartyAllowed: false },
-  { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings", thirdPartyAllowed: false },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true, id: "nav-dashboard" },
+  { icon: Users, label: "Cases", href: "/dashboard/cases", thirdPartyAllowed: false, id: "nav-cases" },
+  { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false, id: "nav-documents" },
+  { icon: Settings, label: "Settings", href: "/dashboard/settings", thirdPartyAllowed: false, id: "nav-settings" },
 ];
 
 export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayoutProps) => {
@@ -126,6 +127,7 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
           return (
             <Link
               key={item.href}
+              id={item.id}
               to={item.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
@@ -230,6 +232,9 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
           {children}
         </main>
       </div>
+
+      {/* Onboarding Tooltips */}
+      <OnboardingOverlay />
     </div>
   );
 };

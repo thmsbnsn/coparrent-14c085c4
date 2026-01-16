@@ -137,6 +137,31 @@ AI functions use `aiRateLimit` module:
 
 ---
 
+## Onboarding & User Experience
+
+### Onboarding Tooltips System
+New users see a guided tour of key dashboard features with dismissal persistence:
+
+| Component | Purpose | Storage |
+|-----------|---------|---------|
+| `useOnboardingTooltips` | Hook for tooltip state and persistence | localStorage + profiles.preferences |
+| `OnboardingOverlay` | Renders tooltip overlay and backdrop | N/A |
+| `OnboardingTooltip` | Individual tooltip with progress indicator | N/A |
+
+**Tooltip Targets:**
+- `nav-calendar` - Custody Calendar
+- `nav-messages` - Messaging Hub
+- `nav-children` - Children Profiles
+- `nav-expenses` - Expense Tracking
+- `nav-journal` - Private Journal
+
+**Persistence:**
+- Dismissed tooltips stored in localStorage for quick access
+- Synced to `profiles.preferences.onboarding_tooltips` for cross-device persistence
+- Users can skip entire tour or dismiss individually
+
+---
+
 ## Security Notes
 
 1. **Never trust client-side role checks alone** - Always enforce on server
