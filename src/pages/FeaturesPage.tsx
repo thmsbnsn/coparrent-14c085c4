@@ -7,14 +7,18 @@ import {
   DollarSign, 
   BookOpen, 
   Scale, 
-  Briefcase,
+  Trophy,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  FlaskConical,
+  Sparkles,
+  Crown
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 // Feature screenshots
 import calendarFeature from "@/assets/features/calendar-feature.png";
@@ -26,22 +30,44 @@ import journalFeature from "@/assets/features/journal-feature.png";
 import lawLibraryFeature from "@/assets/features/law-library-feature.png";
 import professionalFeature from "@/assets/features/professional-feature.png";
 
-const featureSections = [
+type FeatureTier = "free" | "premium" | "beta";
+
+interface FeatureSection {
+  id: string;
+  icon: typeof Calendar;
+  title: string;
+  description: string;
+  features: Array<{
+    text: string;
+    tier?: FeatureTier;
+    beta?: boolean;
+  }>;
+  gradient: string;
+  link: string;
+  image: string;
+  tier: FeatureTier;
+  status?: "stable" | "beta" | "new";
+}
+
+const featureSections: FeatureSection[] = [
   {
     id: "calendar",
     icon: Calendar,
     title: "Smart Parenting Calendar",
     description: "Build and manage custody schedules that work for your family. Our intelligent calendar system adapts to your needs.",
     features: [
-      "Visual custody schedules with color-coded parent assignments",
-      "Pattern-based scheduling (2-2-3, week-on/week-off, custom)",
-      "Schedule change requests with approval workflows",
-      "Exchange check-ins and confirmations",
-      "Holiday schedule overrides and rotating arrangements"
+      { text: "Visual custody schedules with color-coded parent assignments" },
+      { text: "Pattern-based scheduling (2-2-3, week-on/week-off, custom)" },
+      { text: "Schedule change requests with approval workflows" },
+      { text: "Exchange check-ins and confirmations" },
+      { text: "Holiday schedule overrides", tier: "premium" },
+      { text: "AI schedule suggestions", tier: "premium", beta: true },
     ],
     gradient: "from-primary to-info",
     link: "/calendar",
-    image: calendarFeature
+    image: calendarFeature,
+    tier: "free",
+    status: "stable"
   },
   {
     id: "messaging",
@@ -49,15 +75,17 @@ const featureSections = [
     title: "Secure Communication",
     description: "Keep all co-parenting conversations in one documented, professional space. Every message is preserved for your records.",
     features: [
-      "Timestamped messaging with delivery confirmation",
-      "Read receipts for accountability",
-      "Complete communication history",
-      "AI tone assistance to maintain constructive dialogue",
-      "Court-ready message exports"
+      { text: "Timestamped messaging with delivery confirmation" },
+      { text: "Read receipts for accountability" },
+      { text: "Complete communication history" },
+      { text: "AI tone assistance for constructive dialogue", tier: "premium", beta: true },
+      { text: "Court-ready message exports", tier: "premium" },
     ],
     gradient: "from-warning to-destructive",
     link: "/messages",
-    image: messagingFeature
+    image: messagingFeature,
+    tier: "free",
+    status: "stable"
   },
   {
     id: "children",
@@ -65,31 +93,35 @@ const featureSections = [
     title: "Children Information Hub",
     description: "Centralize all important details about your children. Both parents stay informed with shared, up-to-date information.",
     features: [
-      "Medical information and medication tracking",
-      "School schedules and contact details",
-      "Emergency contacts and procedures",
-      "Clothing sizes and recent purchases",
-      "Shared access with permission controls"
+      { text: "Medical information and medication tracking" },
+      { text: "School schedules and contact details" },
+      { text: "Emergency contacts and procedures" },
+      { text: "Shared access with permission controls" },
+      { text: "Unlimited child profiles", tier: "premium" },
     ],
     gradient: "from-accent-foreground to-success",
     link: "/children",
-    image: childrenFeature
+    image: childrenFeature,
+    tier: "free",
+    status: "stable"
   },
   {
     id: "documents",
     icon: FileText,
-    title: "Documents & Records",
-    description: "Store and organize important documents securely. Track who accessed what and when for complete transparency.",
+    title: "Documents & Court-Ready Exports",
+    description: "Store and organize important documents securely. Generate comprehensive exports for legal proceedings.",
     features: [
-      "Secure document storage with encryption",
-      "Access logging and audit trails",
-      "Category organization by type",
-      "Court-ready PDF exports",
-      "Shared access between co-parents"
+      { text: "Secure document storage with encryption" },
+      { text: "Access logging and audit trails", tier: "premium" },
+      { text: "Category organization by type" },
+      { text: "Court-ready PDF exports with all records", tier: "premium" },
+      { text: "Shared access between co-parents" },
     ],
     gradient: "from-success to-info",
     link: "/documents",
-    image: documentsFeature
+    image: documentsFeature,
+    tier: "free",
+    status: "stable"
   },
   {
     id: "expenses",
@@ -97,15 +129,35 @@ const featureSections = [
     title: "Expenses & Reimbursements",
     description: "Track shared expenses and manage reimbursements fairly. Keep financial records organized and exportable.",
     features: [
-      "Shared expense tracking by category",
-      "Reimbursement request workflows",
-      "Split percentage calculations",
-      "Receipt uploads and attachments",
-      "Exportable expense reports"
+      { text: "Shared expense tracking by category" },
+      { text: "Reimbursement request workflows" },
+      { text: "Split percentage calculations" },
+      { text: "Receipt uploads and attachments" },
+      { text: "Exportable expense reports", tier: "premium" },
     ],
     gradient: "from-primary to-accent-foreground",
     link: "/expenses",
-    image: expensesFeature
+    image: expensesFeature,
+    tier: "free",
+    status: "stable"
+  },
+  {
+    id: "sports",
+    icon: Trophy,
+    title: "Sports & Activities Hub",
+    description: "Coordinate your children's activities and events. Keep both parents informed about practices, games, and equipment.",
+    features: [
+      { text: "Activity and event management" },
+      { text: "Coach contact information" },
+      { text: "Equipment checklists" },
+      { text: "Event reminders", beta: true },
+      { text: "Pickup/dropoff coordination" },
+    ],
+    gradient: "from-info to-primary",
+    link: "/sports",
+    image: professionalFeature,
+    tier: "premium",
+    status: "beta"
   },
   {
     id: "journal",
@@ -113,15 +165,17 @@ const featureSections = [
     title: "Journal & Notes",
     description: "Maintain private records of important moments and observations. Link notes to exchanges for context.",
     features: [
-      "Private journal entries for personal records",
-      "Mood tracking for children",
-      "Exchange-linked notes and observations",
-      "Tag-based organization",
-      "Searchable history"
+      { text: "Private journal entries for personal records" },
+      { text: "Mood tracking for children" },
+      { text: "Exchange-linked notes and observations" },
+      { text: "Tag-based organization" },
+      { text: "Searchable history" },
     ],
     gradient: "from-info to-primary",
     link: "/journal",
-    image: journalFeature
+    image: journalFeature,
+    tier: "free",
+    status: "stable"
   },
   {
     id: "law-library",
@@ -129,32 +183,18 @@ const featureSections = [
     title: "Law Library",
     description: "Access state-specific family law resources. Educational reference materials to help you understand your rights.",
     features: [
-      "State-specific legal resources",
-      "Custody and visitation guidelines",
-      "Educational reference documents",
-      "Regularly updated content",
-      "Disclaimer: For reference only, not legal advice"
+      { text: "State-specific legal resources" },
+      { text: "Custody and visitation guidelines" },
+      { text: "Educational reference documents" },
+      { text: "Regularly updated content" },
+      { text: "Disclaimer: For reference only, not legal advice" },
     ],
     gradient: "from-muted-foreground to-primary",
     link: "/law-library",
-    image: lawLibraryFeature
+    image: lawLibraryFeature,
+    tier: "free",
+    status: "stable"
   },
-  {
-    id: "professional",
-    icon: Briefcase,
-    title: "Professional Tools",
-    description: "For family law professionals managing multiple cases. Streamlined access to client information and documentation.",
-    features: [
-      "Multi-family case management",
-      "Centralized case dashboards",
-      "Bulk document exports",
-      "Client communication oversight",
-      "Professional reporting tools"
-    ],
-    gradient: "from-primary to-warning",
-    link: "/pricing",
-    image: professionalFeature
-  }
 ];
 
 const containerVariants = {
@@ -170,6 +210,37 @@ const containerVariants = {
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 }
+};
+
+const TierBadge = ({ tier, status }: { tier: FeatureTier; status?: string }) => {
+  if (status === "beta") {
+    return (
+      <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+        <FlaskConical className="w-3 h-3 mr-1" />
+        Beta
+      </Badge>
+    );
+  }
+  
+  if (tier === "premium") {
+    return (
+      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+        <Crown className="w-3 h-3 mr-1" />
+        Premium
+      </Badge>
+    );
+  }
+  
+  if (status === "new") {
+    return (
+      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+        <Sparkles className="w-3 h-3 mr-1" />
+        New
+      </Badge>
+    );
+  }
+  
+  return null;
 };
 
 export default function FeaturesPage() {
@@ -209,6 +280,29 @@ export default function FeaturesPage() {
                 <Link to="/pricing">View Pricing</Link>
               </Button>
             </motion.div>
+            
+            {/* Legend */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground"
+            >
+              <span className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                  <Crown className="w-3 h-3 mr-1" />
+                  Premium
+                </Badge>
+                Paid feature
+              </span>
+              <span className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                  <FlaskConical className="w-3 h-3 mr-1" />
+                  Beta
+                </Badge>
+                Under development
+              </span>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -231,10 +325,13 @@ export default function FeaturesPage() {
               >
                 {/* Content */}
                 <div className="flex-1 max-w-xl">
-                  <div
-                    className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${section.gradient} mb-6`}
-                  >
-                    <section.icon className="w-7 h-7 text-primary-foreground" />
+                  <div className="flex items-center gap-3 mb-6">
+                    <div
+                      className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${section.gradient}`}
+                    >
+                      <section.icon className="w-7 h-7 text-primary-foreground" />
+                    </div>
+                    <TierBadge tier={section.tier} status={section.status} />
                   </div>
                   
                   <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
@@ -249,7 +346,19 @@ export default function FeaturesPage() {
                     {section.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-3">
                         <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span className="text-foreground/80">{feature}</span>
+                        <span className="text-foreground/80 flex items-center gap-2 flex-wrap">
+                          {feature.text}
+                          {feature.tier === "premium" && (
+                            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                              Premium
+                            </Badge>
+                          )}
+                          {feature.beta && (
+                            <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                              Beta
+                            </Badge>
+                          )}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -296,14 +405,14 @@ export default function FeaturesPage() {
               Ready to simplify your co-parenting?
             </h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Join thousands of families using CoParrent to communicate better, stay organized, and focus on what matters most—their children.
+              Start free and upgrade when you're ready. No credit card required.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="text-base">
-                <Link to="/signup">Start Your Free Trial</Link>
+                <Link to="/signup">Get Started Free</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="text-base">
-                <Link to="/about">About CoParrent</Link>
+                <Link to="/pricing">View Pricing</Link>
               </Button>
             </div>
           </motion.div>

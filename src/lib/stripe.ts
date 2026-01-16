@@ -6,55 +6,42 @@
 const TEST_MODE_TIERS = {
   premium: {
     name: "Premium",
-    price: "$9.99",
+    price: "$5",
     period: "per month",
-    priceId: "price_1ShhNiHH6NsbcWgZd5TaJRr3",
-    productId: "prod_Tf1Qq9jGVEyUOM",
+    priceId: "price_1SqCiwHH6NsbcWgZB7TfWnhQ",
+    productId: "prod_TnoLYRDnjKqtA8",
   },
   mvp: {
     name: "MVP",
-    price: "$19.99",
+    price: "$10",
     period: "per month",
-    priceId: "price_1ShhNkHH6NsbcWgZWIFS07Q5",
-    productId: "prod_Tf1QUUhL8Tx1Ks",
-  },
-  law_office: {
-    name: "Law Office",
-    price: "$49.99",
-    period: "per month",
-    priceId: "price_1ShhNmHH6NsbcWgZJF025EfU",
-    productId: "prod_Tf1QG2gr5j0a3z",
+    priceId: "price_1SqCiyHH6NsbcWgZ8qD5XfWu",
+    productId: "prod_TnoLKasOQOvLwL",
   },
 };
 
 // Live mode IDs (use when STRIPE_SECRET_KEY starts with sk_live_)
+// TODO: Create live mode products with same pricing when ready for production
 const LIVE_MODE_TIERS = {
   premium: {
     name: "Premium",
-    price: "$12",
+    price: "$5",
     period: "per month",
-    priceId: "price_1SgZlqHpttmwwVs1qra7Wfew",
-    productId: "prod_TdrUhvfZzXYDTT",
+    priceId: "price_1SgZlqHpttmwwVs1qra7Wfew", // Update with new live price ID
+    productId: "prod_TdrUhvfZzXYDTT", // Update with new live product ID
   },
   mvp: {
     name: "MVP",
-    price: "$24",
+    price: "$10",
     period: "per month",
-    priceId: "price_1SgZlwHpttmwwVs1Tf2hv4p7",
-    productId: "prod_TdrUORgbP3ko1q",
-  },
-  law_office: {
-    name: "Law Office",
-    price: "$99",
-    period: "per month",
-    priceId: "price_1SgZlyHpttmwwVs14IW8cBth",
-    productId: "prod_TdrUXgQVj7yCqw",
+    priceId: "price_1SgZlwHpttmwwVs1Tf2hv4p7", // Update with new live price ID
+    productId: "prod_TdrUORgbP3ko1q", // Update with new live product ID
   },
 };
 
 // Toggle this to switch between test and live mode
 // Set to false for production with live Stripe keys
-const USE_TEST_MODE = false;
+const USE_TEST_MODE = true;
 
 export const STRIPE_TIERS = USE_TEST_MODE ? TEST_MODE_TIERS : LIVE_MODE_TIERS;
 
