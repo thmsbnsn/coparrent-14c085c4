@@ -14,6 +14,7 @@ import { MessageToneAssistant } from "@/components/messages/MessageToneAssistant
 import { Link } from "react-router-dom";
 import { exportMessagesToPDF } from "@/lib/pdfExport";
 import { toast } from "sonner";
+import { getScheduleRequestLabel } from "@/lib/displayLabels";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -38,16 +39,7 @@ const formatTimestamp = (dateString: string) => {
 };
 
 const getRequestTypeLabel = (type: string) => {
-  switch (type) {
-    case "swap":
-      return "Day Swap Request";
-    case "transfer":
-      return "Day Transfer Request";
-    case "modification":
-      return "Time Modification Request";
-    default:
-      return "Schedule Request";
-  }
+  return getScheduleRequestLabel(type);
 };
 
 const MessagesPage = () => {

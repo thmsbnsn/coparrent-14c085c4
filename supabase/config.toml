@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.login-notification]
 verify_jwt = true
+
+[functions.create-message-thread]
+verify_jwt = true

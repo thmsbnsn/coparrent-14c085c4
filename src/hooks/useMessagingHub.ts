@@ -345,89 +345,82 @@ export const useMessagingHub = () => {
     }
   };
 
-  // Create or get DM thread
+  // Create or get DM thread via edge function
   const getOrCreateDMThread = async (otherProfileId: string) => {
-    if (!primaryParentId || !profileId) return null;
-
-    // Sort IDs to ensure consistent ordering
-    const [participantA, participantB] = 
-      profileId < otherProfileId 
-        ? [profileId, otherProfileId] 
-        : [otherProfileId, profileId];
-
     try {
-      // Check if thread exists
-      const { data: existingThread } = await supabase
-        .from("message_threads")
-        .select("*")
-        .eq("primary_parent_id", primaryParentId)
-        .eq("thread_type", "direct_message")
-        .eq("participant_a_id", participantA)
-        .eq("participant_b_id", participantB)
-        .single();
+      const { data, error } = await supabase.functions.invoke("create-message-thread", {
+        body: {
+          thread_type: "direct_message",
+          other_profile_id: otherProfileId,
+        },
+      });
 
-      if (existingThread) {
-        // Refresh threads to ensure the sidebar is up-to-date
-        await fetchThreads();
-        return existingThread;
+      if (error) {
+        console.error("Error creating DM thread:", error);
+        toast({
+          title: "Error",
+          description: "Failed to start conversation",
+          variant: "destructive",
+        });
+        return null;
       }
 
-      // Create new thread
-      const { data: newThread, error } = await supabase
-        .from("message_threads")
-        .insert({
-          primary_parent_id: primaryParentId,
-          thread_type: "direct_message",
-          participant_a_id: participantA,
-          participant_b_id: participantB,
-        })
-        .select()
-        .single();
+      if (!data?.success) {
+        console.error("Failed to create DM thread:", data?.error);
+        toast({
+          title: "Error",
+          description: data?.error || "Failed to start conversation",
+          variant: "destructive",
+        });
+        return null;
+      }
 
-      if (error) throw error;
-      
       await fetchThreads();
-      return newThread;
+      return data.thread;
     } catch (error) {
       console.error("Error creating DM thread:", error);
+      toast({
+        title: "Error",
+        description: "Failed to start conversation",
+        variant: "destructive",
+      });
       return null;
     }
   };
 
-  // Create group chat
+  // Create group chat via edge function
   const createGroupChat = async (name: string, participantIds: string[]) => {
-    if (!primaryParentId || !profileId) return null;
-
     try {
-      // Create thread
-      const { data: newThread, error: threadError } = await supabase
-        .from("message_threads")
-        .insert({
-          primary_parent_id: primaryParentId,
+      const { data, error } = await supabase.functions.invoke("create-message-thread", {
+        body: {
           thread_type: "group_chat",
-          name,
-        })
-        .select()
-        .single();
+          participant_ids: participantIds,
+          group_name: name,
+        },
+      });
 
-      if (threadError) throw threadError;
+      if (error) {
+        console.error("Error creating group chat:", error);
+        toast({
+          title: "Error",
+          description: "Failed to create group chat",
+          variant: "destructive",
+        });
+        return null;
+      }
 
-      // Add all participants including creator
-      const allParticipants = [...new Set([profileId, ...participantIds])];
-      
-      const { error: participantError } = await supabase
-        .from("group_chat_participants")
-        .insert(
-          allParticipants.map(pid => ({
-            thread_id: newThread.id,
-            profile_id: pid,
-          }))
-        );
-
-      if (participantError) throw participantError;
+      if (!data?.success) {
+        console.error("Failed to create group chat:", data?.error);
+        toast({
+          title: "Error",
+          description: data?.error || "Failed to create group chat",
+          variant: "destructive",
+        });
+        return null;
+      }
 
       await fetchThreads();
-      return newThread;
+      return data.thread;
     } catch (error) {
       console.error("Error creating group chat:", error);
       toast({
@@ -439,38 +432,29 @@ export const useMessagingHub = () => {
     }
   };
 
-  // Create family channel if doesn't exist
+  // Create family channel via edge function
   const ensureFamilyChannel = async () => {
-    if (!primaryParentId || familyChannel) return familyChannel;
+    if (familyChannel) return familyChannel;
 
     try {
-      const { data: existingChannel } = await supabase
-        .from("message_threads")
-        .select("*")
-        .eq("primary_parent_id", primaryParentId)
-        .eq("thread_type", "family_channel")
-        .single();
+      const { data, error } = await supabase.functions.invoke("create-message-thread", {
+        body: {
+          thread_type: "family_channel",
+        },
+      });
 
-      if (existingChannel) {
-        setFamilyChannel(existingChannel);
-        return existingChannel;
+      if (error) {
+        console.error("Error creating family channel:", error);
+        return null;
       }
 
-      // Create new family channel
-      const { data: newChannel, error } = await supabase
-        .from("message_threads")
-        .insert({
-          primary_parent_id: primaryParentId,
-          thread_type: "family_channel",
-          name: "Family Chat",
-        })
-        .select()
-        .single();
+      if (!data?.success) {
+        console.error("Failed to create family channel:", data?.error);
+        return null;
+      }
 
-      if (error) throw error;
-      
-      setFamilyChannel(newChannel);
-      return newChannel;
+      setFamilyChannel(data.thread);
+      return data.thread;
     } catch (error) {
       console.error("Error creating family channel:", error);
       return null;
