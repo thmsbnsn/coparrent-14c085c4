@@ -51,6 +51,16 @@ export interface ExportExchangeCheckin {
   user_id: string;
 }
 
+export interface ExportDocumentAccessLog {
+  id: string;
+  document_id: string;
+  document_title: string;
+  action: string;
+  accessed_by: string;
+  accessed_by_name: string | null;
+  created_at: string;
+}
+
 export interface ExportSchedule {
   id: string;
   pattern: string;
@@ -67,6 +77,7 @@ export interface CourtExportData {
   expenses: ExportExpense[];
   scheduleRequests: ExportScheduleRequest[];
   exchangeCheckins: ExportExchangeCheckin[];
+  documentAccessLogs: ExportDocumentAccessLog[];
   schedule: ExportSchedule | null;
   dateRange: { start: Date; end: Date };
   children: { id: string; name: string }[];
@@ -120,6 +131,7 @@ export const useCourtExport = () => {
         exchangeCheckinsRes,
         scheduleRes,
         childrenRes,
+        documentAccessLogsRes,
       ] = await Promise.all([
         // Messages
         supabase
@@ -169,6 +181,21 @@ export const useCourtExport = () => {
           .from("parent_children")
           .select("child:children(id, name)")
           .eq("parent_id", profile.id),
+
+        // Document Access Logs - fetch documents first, then their access logs
+        supabase
+          .from("document_access_logs")
+          .select(`
+            id,
+            document_id,
+            action,
+            accessed_by,
+            created_at,
+            document:documents(title, uploaded_by)
+          `)
+          .gte("created_at", startStr)
+          .lte("created_at", endStr)
+          .order("created_at", { ascending: true }),
       ]);
 
       const messages = messagesRes.data || [];
@@ -180,6 +207,32 @@ export const useCourtExport = () => {
         .filter(pc => pc.child)
         .map(pc => pc.child as { id: string; name: string });
 
+      // Process document access logs - filter to only show logs for user's documents
+      const rawAccessLogs = documentAccessLogsRes.data || [];
+      const documentAccessLogs: ExportDocumentAccessLog[] = rawAccessLogs
+        .filter(log => {
+          const doc = log.document as { title: string; uploaded_by: string } | null;
+          return doc && (doc.uploaded_by === profile.id || log.accessed_by === profile.id);
+        })
+        .map(log => {
+          const doc = log.document as { title: string; uploaded_by: string } | null;
+          const isUser = log.accessed_by === profile.id;
+          const isCoParent = log.accessed_by === coParent?.id;
+          return {
+            id: log.id,
+            document_id: log.document_id,
+            document_title: doc?.title || 'Unknown Document',
+            action: log.action,
+            accessed_by: log.accessed_by,
+            accessed_by_name: isUser 
+              ? (profile.full_name || 'You') 
+              : isCoParent 
+                ? (coParent?.full_name || 'Co-Parent')
+                : 'Unknown',
+            created_at: log.created_at,
+          };
+        });
+
       return {
         userProfile: { id: profile.id, full_name: profile.full_name, email: profile.email },
         coParent,
@@ -190,6 +243,7 @@ export const useCourtExport = () => {
         })),
         scheduleRequests,
         exchangeCheckins,
+        documentAccessLogs,
         schedule,
         dateRange,
         children,

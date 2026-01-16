@@ -141,6 +141,7 @@ function addTableOfContents(doc: jsPDF, data: CourtExportData, y: number): numbe
     { name: 'Communication Log', count: data.messages.length },
     { name: 'Schedule Change Requests', count: data.scheduleRequests.length },
     { name: 'Exchange Check-ins', count: data.exchangeCheckins.length },
+    { name: 'Document Access Logs', count: data.documentAccessLogs.length },
     { name: 'Expense Records', count: data.expenses.length },
     { name: 'Custody Schedule Overview', count: data.schedule ? 1 : 0 },
   ];
@@ -381,6 +382,55 @@ function checkPageBreak(doc: jsPDF, currentY: number, requiredSpace: number = 60
   return currentY;
 }
 
+const ACTION_LABELS: Record<string, string> = {
+  upload: 'Uploaded',
+  view: 'Viewed',
+  download: 'Downloaded',
+  delete: 'Deleted',
+};
+
+function addDocumentAccessLogsSection(doc: jsPDF, data: CourtExportData, startY: number): number {
+  if (data.documentAccessLogs.length === 0) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.text('No document access logs in the selected date range.', 20, startY);
+    return startY + 15;
+  }
+  
+  const tableData = data.documentAccessLogs.map((log) => [
+    format(new Date(log.created_at), 'MMM d, yyyy h:mm a'),
+    log.document_title.length > 30 ? log.document_title.substring(0, 30) + '...' : log.document_title,
+    ACTION_LABELS[log.action] || log.action,
+    log.accessed_by_name || 'Unknown',
+  ]);
+  
+  autoTable(doc, {
+    startY,
+    head: [['Date & Time', 'Document', 'Action', 'Accessed By']],
+    body: tableData,
+    headStyles: {
+      fillColor: BRAND_COLOR,
+      textColor: 255,
+      fontStyle: 'bold',
+    },
+    columnStyles: {
+      0: { cellWidth: 45 },
+      1: { cellWidth: 60 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 40 },
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+    },
+    alternateRowStyles: {
+      fillColor: ALT_ROW_COLOR,
+    },
+  });
+  
+  return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+}
+
 export function generateCourtReadyPDF(data: CourtExportData): void {
   const doc = new jsPDF();
   
@@ -420,14 +470,19 @@ export function generateCourtReadyPDF(data: CourtExportData): void {
   y = addSectionHeader(doc, '3. Exchange Check-ins', y);
   y = addExchangeCheckinsSection(doc, data, y);
   
-  // Section 4: Expenses
+  // Section 4: Document Access Logs
   y = checkPageBreak(doc, y);
-  y = addSectionHeader(doc, '4. Expense Records', y);
+  y = addSectionHeader(doc, '4. Document Access Logs', y);
+  y = addDocumentAccessLogsSection(doc, data, y);
+  
+  // Section 5: Expenses
+  y = checkPageBreak(doc, y);
+  y = addSectionHeader(doc, '5. Expense Records', y);
   y = addExpensesSection(doc, data, y);
   
-  // Section 5: Schedule Overview
+  // Section 6: Schedule Overview
   y = checkPageBreak(doc, y);
-  y = addSectionHeader(doc, '5. Custody Schedule Overview', y);
+  y = addSectionHeader(doc, '6. Custody Schedule Overview', y);
   addScheduleOverviewSection(doc, data, y);
   
   // Add footers to all pages

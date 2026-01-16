@@ -33,6 +33,7 @@ import {
   Calendar as CalendarIconSolid,
   Clock,
   Shield,
+  Eye,
 } from "lucide-react";
 import { useCourtExport } from "@/hooks/useCourtExport";
 import { generateCourtReadyPDF } from "@/lib/courtExportPDF";
@@ -57,6 +58,7 @@ export const CourtExportDialog = ({ open, onOpenChange }: CourtExportDialogProps
   const [includeMessages, setIncludeMessages] = useState(true);
   const [includeScheduleRequests, setIncludeScheduleRequests] = useState(true);
   const [includeExchangeCheckins, setIncludeExchangeCheckins] = useState(true);
+  const [includeDocumentAccessLogs, setIncludeDocumentAccessLogs] = useState(true);
   const [includeExpenses, setIncludeExpenses] = useState(true);
   const [includeScheduleOverview, setIncludeScheduleOverview] = useState(true);
 
@@ -107,6 +109,7 @@ export const CourtExportDialog = ({ open, onOpenChange }: CourtExportDialogProps
         messages: includeMessages ? data.messages : [],
         scheduleRequests: includeScheduleRequests ? data.scheduleRequests : [],
         exchangeCheckins: includeExchangeCheckins ? data.exchangeCheckins : [],
+        documentAccessLogs: includeDocumentAccessLogs ? data.documentAccessLogs : [],
         expenses: includeExpenses ? data.expenses : [],
         schedule: includeScheduleOverview ? data.schedule : null,
       };
@@ -249,6 +252,18 @@ export const CourtExportDialog = ({ open, onOpenChange }: CourtExportDialogProps
                 <Label htmlFor="exchangeCheckins" className="flex items-center gap-2 cursor-pointer">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   Exchange Check-ins
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="documentAccessLogs"
+                  checked={includeDocumentAccessLogs}
+                  onCheckedChange={(checked) => setIncludeDocumentAccessLogs(checked === true)}
+                />
+                <Label htmlFor="documentAccessLogs" className="flex items-center gap-2 cursor-pointer">
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  Document Access Logs
                 </Label>
               </div>
 
