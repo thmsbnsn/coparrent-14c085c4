@@ -136,23 +136,6 @@ export const Hero = () => {
               )}
             </motion.div>
 
-            {/* Already have account helper text - only show if not logged in */}
-            {!loading && !user && (
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.35 }}
-                className="text-sm text-white/70 mb-4 lg:mb-6 text-center lg:text-left"
-              >
-                Already have an account?{" "}
-                <button 
-                  onClick={() => navigate("/login")}
-                  className="text-white underline underline-offset-4 hover:text-white/90 font-medium"
-                >
-                  Sign in here
-                </button>
-              </motion.p>
-            )}
 
             {/* Feature Pills */}
             <motion.div
