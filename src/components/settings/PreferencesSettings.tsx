@@ -1,12 +1,26 @@
 import { motion } from "framer-motion";
-import { Palette, Moon, Sun, Monitor } from "lucide-react";
+import { Palette, Moon, Sun, Monitor, RotateCcw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { useOnboardingTooltips } from "@/hooks/useOnboardingTooltips";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 export function PreferencesSettings() {
   const { preferences, updatePreferences, isLoading } = useUserPreferences();
+  const { resetOnboarding, isOnboardingComplete } = useOnboardingTooltips();
+  const { toast } = useToast();
+
+  const handleRestartTour = () => {
+    resetOnboarding();
+    toast({
+      title: "Tour restarted",
+      description: "The onboarding tour will show on your next dashboard visit.",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -91,6 +105,27 @@ export function PreferencesSettings() {
               <span className="text-sm font-medium">System</span>
             </Label>
           </RadioGroup>
+        </div>
+
+        <Separator />
+
+        {/* Onboarding Tour */}
+        <div className="space-y-3">
+          <Label className="text-base font-medium">Guided Tour</Label>
+          <p className="text-sm text-muted-foreground">
+            {isOnboardingComplete 
+              ? "You've completed the onboarding tour. Restart it to see feature tips again."
+              : "The onboarding tour is active and will show feature tips."}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRestartTour}
+            className="gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Restart Tour
+          </Button>
         </div>
       </div>
     </motion.div>

@@ -367,6 +367,8 @@ export const useMessagingHub = () => {
         .single();
 
       if (existingThread) {
+        // Refresh threads to ensure the sidebar is up-to-date
+        await fetchThreads();
         return existingThread;
       }
 
