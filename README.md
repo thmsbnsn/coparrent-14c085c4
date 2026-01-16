@@ -1086,8 +1086,9 @@ This section provides an honest assessment of what must be completed before depl
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Terms of Service page | ❌ Missing | No ToS page exists |
-| Privacy Policy page | ❌ Missing | No privacy policy exists |
+| Terms of Service page | ✅ Done | `/terms` - Beta-appropriate ToS with disclaimers |
+| Privacy Policy page | ✅ Done | `/privacy` - Covers data handling, COPPA, third parties |
+| Beta banner | ✅ Done | Session-dismissable banner with feedback/bug report links |
 | Cookie consent banner | ❌ Missing | Not implemented |
 | COPPA compliance for child accounts | ⚠️ Needs Validation | Defaults are safe, legal review pending |
 | GDPR data export capability | ❌ Missing | No user data export |

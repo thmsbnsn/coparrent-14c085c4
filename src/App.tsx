@@ -11,12 +11,15 @@ import { RouteErrorBoundary } from "@/components/ui/RouteErrorBoundary";
 import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
+import { BetaBanner } from "@/components/BetaBanner";
 import Index from "./pages/Index";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import FeaturesPage from "./pages/FeaturesPage";
 import HelpCenter from "./pages/HelpCenter";
 import CourtRecordsPage from "./pages/CourtRecordsPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -63,6 +66,7 @@ const App = () => (
             <PWAInstallPrompt />
             <PWAUpdatePrompt />
             <BrowserRouter>
+            <BetaBanner />
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<RouteErrorBoundary routeName="Home"><Index /></RouteErrorBoundary>} />
@@ -71,6 +75,8 @@ const App = () => (
               <Route path="/features" element={<RouteErrorBoundary routeName="Features"><FeaturesPage /></RouteErrorBoundary>} />
               <Route path="/help" element={<RouteErrorBoundary routeName="Help"><HelpCenter /></RouteErrorBoundary>} />
               <Route path="/court-records" element={<RouteErrorBoundary routeName="Court Records"><CourtRecordsPage /></RouteErrorBoundary>} />
+              <Route path="/terms" element={<RouteErrorBoundary routeName="Terms"><TermsPage /></RouteErrorBoundary>} />
+              <Route path="/privacy" element={<RouteErrorBoundary routeName="Privacy"><PrivacyPage /></RouteErrorBoundary>} />
               <Route path="/blog" element={<RouteErrorBoundary routeName="Blog"><BlogPage /></RouteErrorBoundary>} />
               <Route path="/blog/:slug" element={<RouteErrorBoundary routeName="Blog Post"><BlogPostPage /></RouteErrorBoundary>} />
               
