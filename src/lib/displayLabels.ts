@@ -24,6 +24,8 @@ export const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
   trial: "Trial",
   basic: "Basic",
   premium: "Premium",
+  mvp: "MVP",
+  law_office: "Law Office",
   pro: "Professional",
   enterprise: "Enterprise",
 } as const;
