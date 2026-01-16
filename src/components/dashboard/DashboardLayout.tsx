@@ -108,9 +108,9 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
   };
 
   const SidebarContent = () => (
-    <>
-      {/* Logo */}
-      <div className="p-4 border-b border-sidebar-border">
+    <div className="flex flex-col h-full">
+      {/* Logo - Fixed at top with safe area padding */}
+      <div className="p-4 border-b border-sidebar-border shrink-0" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 1rem))' }}>
         <div className="flex items-center justify-between gap-2">
           <Link to="/dashboard">
             <Logo size="md" showText={!sidebarCollapsed} className="[&_span]:text-sidebar-foreground" />
@@ -119,8 +119,8 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
+      {/* Navigation - Scrollable with custom scrollbar */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto sidebar-scroll">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -143,8 +143,8 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
         })}
       </nav>
 
-      {/* Bottom Section */}
-      <div className="p-3 border-t border-sidebar-border space-y-1">
+      {/* Bottom Section - Fixed at bottom with safe area padding */}
+      <div className="p-3 border-t border-sidebar-border space-y-1 shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}>
         <button
           onClick={handleSignOut}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
@@ -153,7 +153,7 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
           {!sidebarCollapsed && <span className="text-sm font-medium">Sign Out</span>}
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -163,11 +163,13 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
         initial={false}
         animate={{ width: sidebarCollapsed ? 72 : 256 }}
         className="hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border fixed left-0 top-0 bottom-0 z-40"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0)' }}
       >
         <SidebarContent />
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-sidebar border border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          className="absolute -right-3 w-6 h-6 rounded-full bg-sidebar border border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          style={{ top: 'calc(5rem + env(safe-area-inset-top, 0))' }}
         >
           <ChevronLeft className={cn("w-4 h-4 transition-transform", sidebarCollapsed && "rotate-180")} />
         </button>
@@ -197,9 +199,12 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className={cn("flex-1 flex flex-col", sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[256px]")}>
-        {/* Top Bar */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+      <div className={cn("flex-1 flex flex-col min-h-screen", sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[256px]")}>
+        {/* Top Bar with safe area support */}
+        <header 
+          className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30"
+          style={{ paddingTop: 'env(safe-area-inset-top, 0)', height: 'calc(4rem + env(safe-area-inset-top, 0))' }}
+        >
           <button
             className="lg:hidden p-2 rounded-lg hover:bg-muted"
             onClick={() => setMobileSidebarOpen(true)}
