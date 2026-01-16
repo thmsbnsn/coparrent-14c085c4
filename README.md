@@ -38,12 +38,14 @@ The application is designed with a **calm, professional, court-friendly aestheti
 
 ## 🧭 Project State
 
+**Current Maturity:** Beta-Candidate — core workflows function, but security, billing, and edge cases need validation before production.
+
 **Current Phase:** Active Development (Beta-Ready)  
 **Environment:** Lovable Cloud + Supabase  
 **Stripe Mode:** Test  
-**Last Verified Build:** 2026-01-13  
+**Last Verified Build:** 2026-01-16  
 **Verified By:** Lovable  
-**Last README Update:** 2026-01-13
+**Last README Update:** 2026-01-16
 
 > **Note:** The `Last Verified Build` and `Verified By` fields must be updated whenever a behavioral or architectural change is made.
 
@@ -53,12 +55,139 @@ The application is designed with a **calm, professional, court-friendly aestheti
 - Smart reminder notifications with leave-by time calculations
 - Delete child profile with cascade cleanup
 - Expanding Law Library with comprehensive state-by-state legal resources
+- Child account system with parental controls and COPPA compliance
+- PWA enhancements with iOS push notifications
 
 ### Known Blocking Issues
 
 _None currently. All previously identified blocking issues have been resolved._
 
-_Last updated: 2026-01-13_
+_Last updated: 2026-01-16_
+
+---
+
+## 📊 Feature Completion Matrix
+
+This section inventories the app's major features and systems with their current implementation status.
+
+### Authentication & User Management
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Email/Password Auth | Standard authentication with email confirmation | ✅ Complete | Lovable Cloud Auth | None | Low |
+| Google OAuth | Social login via Google | ✅ Complete | Google OAuth credentials | None | Low |
+| Apple OAuth | Social login via Apple | ⚠️ Partial | Apple OAuth credentials | Not tested in production | Medium |
+| Password Reset | Forgot password flow via email | ✅ Complete | Resend (email) | None | Low |
+| Session Management | Active session tracking and logout | ✅ Complete | None | Session invalidation on permission change | Low |
+| Two-Factor Auth | TOTP-based 2FA setup | ⚠️ Partial | None | Not persisted to database (UI only) | High |
+| Device Trust | Trusted device management | ⚠️ Partial | user_devices table | Login notification triggers need validation | Medium |
+| Recovery Codes | Backup codes for 2FA | ⚠️ Partial | None | Not persisted, UI placeholder only | High |
+
+### Parent / Co-Parent Permissions
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Co-Parent Invitation | Email-based invitation system | ✅ Complete | Resend, invitations table | None | Low |
+| Co-Parent Linking | Automatic linking on invite acceptance | ✅ Complete | profiles.co_parent_id | None | Low |
+| Third-Party Invitations | Invite step-parents, grandparents, etc. | ✅ Complete | family_members table | Plan limits not enforced in RLS | Medium |
+| Role Detection | Parent vs third-party role resolution | ✅ Complete | useFamilyRole hook | None | Low |
+| Feature Gating | Route/feature restrictions by role | ✅ Complete | ProtectedRoute, RoleGate | Some edge cases may bypass | Medium |
+
+### Child Account System
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Child Profile Creation | Create child records with medical/school info | ✅ Complete | children table, RPC | None | Low |
+| Child Account Linking | Link auth account to child profile | ✅ Complete | profiles.linked_child_id | None | Low |
+| Permission Controls | Parent manages child permissions | ✅ Complete | child_permissions table | Needs real-world testing | Low |
+| Kids Dashboard | Child-specific dashboard view | ✅ Complete | KidsDashboard component | Limited features exposed | Low |
+| Login Enable/Disable | Parent can disable child login | ✅ Complete | profiles.login_enabled | None | Low |
+| COPPA Compliance | Default-off notifications, no tracking | ✅ Complete | N/A | Legal review pending | Medium |
+
+### Youth Sports Hub
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Activity Management | Create/edit child activities | ✅ Complete | child_activities table | None | Low |
+| Event Scheduling | Create games, practices, tournaments | ✅ Complete | activity_events table | None | Low |
+| Calendar Integration | Sports events show in custody calendar | ✅ Complete | useSportsEvents hook | Visual differentiation could improve | Low |
+| Map Navigation | Directions to venues (Google/Apple/Waze) | ✅ Complete | useMapNavigation hook | Requires native app links | Low |
+| Parent Responsibilities | Assign drop-off/pick-up per event | ✅ Complete | activity_events columns | None | Low |
+| Smart Reminders | Leave-by time calculations | ⚠️ Partial | sports-event-reminders function | Not tested with real users | Medium |
+| Equipment Checklists | Track required gear per event | ✅ Complete | equipment_needed JSON | None | Low |
+
+### AI Features
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Message Tone Analysis | Analyze message for hostile patterns | ✅ Complete | ai-message-assist function | None | Low |
+| Message Rephrasing | AI rewrites for court-appropriate tone | ✅ Complete | ai-message-assist function | None | Low |
+| Quick Tone Check | Local pattern matching (no AI call) | ✅ Complete | Frontend only | None | Low |
+| Schedule Suggestions | AI-powered custody pattern recommendations | ✅ Complete | ai-schedule-suggest function | Limited pattern library | Low |
+| Rate Limiting | Per-user daily AI request limits | ✅ Complete | ai_usage_daily table | Limit thresholds need tuning | Low |
+
+### Payments & Subscriptions
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Stripe Checkout | Create checkout sessions | ✅ Complete | Stripe, create-checkout function | Test mode only | High |
+| Subscription Webhooks | Handle Stripe events | ✅ Complete | stripe-webhook function | Not tested with live events | High |
+| Customer Portal | Manage billing in Stripe | ✅ Complete | customer-portal function | None | Low |
+| Trial System | 14-day trial tracking | ✅ Complete | profiles.trial_ends_at | Auto-downgrade not tested | Medium |
+| Feature Gating | Premium features locked by tier | ✅ Complete | PremiumFeatureGate, usePremiumAccess | Some features may not gate properly | Medium |
+| Plan Limits | Third-party member limits by plan | ⚠️ Partial | count_third_party_members RPC | Not enforced at RLS level | Medium |
+
+### Notifications & Reminders
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| In-App Notifications | Notification bell and list | ✅ Complete | notifications table | None | Low |
+| Browser Push | Web push notifications | ⚠️ Partial | usePushNotifications hook | VAPID keys needed for production | Medium |
+| iOS Push | iOS PWA push support | ⚠️ Partial | Service worker, Push API | Limited iOS Safari support | High |
+| Email Notifications | Transactional emails | ⚠️ Partial | Resend, edge functions | Not all events trigger emails | Medium |
+| Exchange Reminders | Custody exchange alerts | ✅ Complete | exchange-reminders function | Cron trigger needs setup | Medium |
+| Sports Reminders | Activity event reminders | ✅ Complete | sports-event-reminders function | Cron trigger needs setup | Medium |
+
+### Exports (PDF / Calendar)
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Message PDF Export | Export messaging thread to PDF | ✅ Complete | jspdf, pdfExport.ts | Formatting could improve | Low |
+| Expense Report PDF | Generate expense reports | ✅ Complete | generate-expense-report function | None | Low |
+| Calendar Export (ICS) | Export schedule to ICS format | ✅ Complete | calendarExport.ts | None | Low |
+| Court-Ready Exports | Comprehensive legal documentation | ❌ Missing | N/A | Major gap for legal use case | High |
+
+### Admin & Moderation
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Admin Dashboard | User management interface | ✅ Complete | AdminDashboard, user_roles | Limited functionality | Low |
+| Role Management | Admin/moderator role assignment | ✅ Complete | user_roles table, has_role RPC | None | Low |
+| Law Library Admin | Upload/manage legal resources | ✅ Complete | AdminLawLibraryManager | None | Low |
+| Blog Management | Create/edit blog posts | ✅ Complete | blog_posts table | No preview before publish | Low |
+| User Administration | View/manage users | ⚠️ Partial | admin-manage-users function | Limited actions available | Medium |
+
+### Security Guards & Rate Limiting
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| Row Level Security | Database access control | ✅ Complete | RLS policies | Complex policies need audit | Medium |
+| Route Guards | Protected route enforcement | ✅ Complete | ProtectedRoute component | None | Low |
+| AI Rate Limiting | Per-user AI request limits | ✅ Complete | aiRateLimit.ts, aiGuard.ts | None | Low |
+| Function Rate Limiting | Edge function abuse prevention | ✅ Complete | functionRateLimit.ts | Not applied to all functions | Medium |
+| hCaptcha | Bot protection on auth forms | ✅ Complete | hCaptcha integration | None | Low |
+| Input Validation | Zod schema validation | ✅ Complete | validations.ts | Not comprehensive | Medium |
+| Audit Logging | Change tracking | ⚠️ Partial | audit_logs table, log_audit_event | Not all actions logged | Medium |
+
+### PWA & Offline
+
+| Feature | Description | Status | Dependencies | Known Gaps | Risk |
+|---------|-------------|--------|--------------|------------|------|
+| PWA Manifest | App installation metadata | ✅ Complete | vite-plugin-pwa | None | Low |
+| Service Worker | Offline caching | ✅ Complete | public/sw.js | Limited offline functionality | Medium |
+| Offline Indicator | Show offline status | ✅ Complete | OfflineIndicator component | None | Low |
+| Background Sync | Sync queued actions | ⚠️ Partial | Service worker | Not fully implemented | Medium |
+| Install Prompt | PWA install suggestion | ✅ Complete | PWAInstallPrompt component | None | Low |
 
 ---
 
@@ -891,6 +1020,131 @@ CoParrent Application
 - Public routes render without auth context
 - No dashboard UI or sidebar leaks on public pages
 - Blog pages are crawlable without JavaScript auth
+
+---
+
+## 🚦 Production Readiness Checklist
+
+This section provides an honest assessment of what must be completed before deploying to production.
+
+### Security & Auth
+
+| Item | Status | Notes |
+|------|--------|-------|
+| RLS policies enabled on all tables | ✅ Ready | All tables have RLS enabled |
+| RLS policies tested for edge cases | ⚠️ Needs Validation | Complex family member policies need audit |
+| Password strength requirements | ✅ Ready | Enforced on signup |
+| Two-factor authentication persisted | ❌ Missing | Currently UI-only, not saved to database |
+| Recovery codes stored securely | ❌ Missing | Not implemented in backend |
+| Session timeout/invalidation | ⚠️ Needs Validation | Basic implementation exists |
+| Rate limiting on auth endpoints | ✅ Ready | hCaptcha protects forms |
+| JWT token expiration configured | ✅ Ready | Supabase defaults |
+| Admin role protection | ✅ Ready | has_role() RPC enforces |
+| Child account isolation | ⚠️ Needs Validation | New feature, needs security review |
+
+### Payments & Billing
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Stripe live mode configured | ❌ Missing | Currently test mode only |
+| Webhook signature verification | ✅ Ready | Implemented in stripe-webhook |
+| Failed payment handling | ⚠️ Needs Validation | Logic exists, not tested live |
+| Subscription cancellation flow | ✅ Ready | Customer portal handles |
+| Trial expiration handling | ⚠️ Needs Validation | Auto-downgrade needs testing |
+| Plan feature enforcement | ⚠️ Needs Validation | Some features may not gate properly |
+| Refund handling | ❌ Missing | No refund workflow implemented |
+| Invoice/receipt emails | ⚠️ Needs Validation | Stripe handles, not customized |
+| Tax handling (VAT/Sales tax) | ❌ Missing | Not configured in Stripe |
+
+### Legal & Compliance
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Terms of Service page | ❌ Missing | No ToS page exists |
+| Privacy Policy page | ❌ Missing | No privacy policy exists |
+| Cookie consent banner | ❌ Missing | Not implemented |
+| COPPA compliance for child accounts | ⚠️ Needs Validation | Defaults are safe, legal review pending |
+| GDPR data export capability | ❌ Missing | No user data export |
+| GDPR data deletion capability | ⚠️ Needs Validation | Profile deletion exists, cascade unclear |
+| CCPA compliance | ❌ Missing | Not addressed |
+| Data retention policy | ❌ Missing | No defined retention limits |
+| Audit log completeness | ⚠️ Needs Validation | Partial coverage |
+
+### Performance & Scalability
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Database indexes on common queries | ⚠️ Needs Validation | Some indexes exist, need audit |
+| Image optimization | ⚠️ Needs Validation | Using src/assets, lazy loading partial |
+| Bundle size optimization | ⚠️ Needs Validation | No code splitting implemented |
+| CDN configuration | ✅ Ready | Lovable Cloud provides |
+| API response times < 500ms | ⚠️ Needs Validation | Not benchmarked |
+| Concurrent user testing | ❌ Missing | No load testing performed |
+| Realtime subscription cleanup | ⚠️ Needs Validation | Some components may leak |
+| Memory leak prevention | ⚠️ Needs Validation | Not profiled |
+
+### Data Integrity & Backups
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Database backups configured | ✅ Ready | Lovable Cloud provides |
+| Point-in-time recovery | ✅ Ready | Supabase feature |
+| Foreign key constraints | ⚠️ Needs Validation | Most exist, some missing |
+| Cascade delete behavior | ⚠️ Needs Validation | Child deletion RPC exists |
+| Data migration scripts | ✅ Ready | Migrations in supabase/migrations/ |
+| Seed data for testing | ❌ Missing | No seed scripts |
+
+### Monitoring & Observability
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Error tracking (Sentry/similar) | ❌ Missing | Not integrated |
+| Application performance monitoring | ❌ Missing | Not integrated |
+| Database query monitoring | ✅ Ready | Supabase dashboard |
+| Edge function logs | ✅ Ready | Supabase dashboard |
+| User action audit trail | ⚠️ Needs Validation | Partial implementation |
+| Health check endpoint | ❌ Missing | Not implemented |
+| Alerting on failures | ❌ Missing | Not configured |
+
+### UX & Edge Cases
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Empty states for all lists | ✅ Ready | Implemented |
+| Loading states for all async | ✅ Ready | Implemented |
+| Error handling with user feedback | ✅ Ready | Toast notifications |
+| Offline fallback experience | ⚠️ Needs Validation | Basic implementation |
+| Mobile responsive design | ✅ Ready | Tailwind responsive |
+| Accessibility (a11y) audit | ⚠️ Needs Validation | Not formally audited |
+| Browser compatibility testing | ⚠️ Needs Validation | Not systematically tested |
+| Form validation feedback | ✅ Ready | React Hook Form + Zod |
+| Deep link handling | ⚠️ Needs Validation | Basic routing works |
+
+### Operational Readiness
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Domain configured | ⚠️ Needs Validation | Using Lovable subdomain |
+| SSL certificate | ✅ Ready | Lovable Cloud provides |
+| Environment variables documented | ✅ Ready | In README |
+| Deployment pipeline | ✅ Ready | Lovable handles |
+| Rollback procedure | ⚠️ Needs Validation | Git history available |
+| Incident response plan | ❌ Missing | Not documented |
+| User support channel | ❌ Missing | Not established |
+| Status page | ❌ Missing | Not implemented |
+
+### Known Risks & Constraints
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| 2FA not persisted | High | Users think they have 2FA but don't; implement database storage |
+| Stripe in test mode | High | Cannot accept real payments; switch to live mode before launch |
+| No Terms of Service | High | Legal exposure; create and display ToS |
+| No Privacy Policy | High | Legal exposure and app store rejection risk; create policy |
+| Limited error monitoring | Medium | Bugs may go unnoticed; integrate Sentry or similar |
+| Untested payment webhooks | Medium | Revenue issues possible; test with live Stripe events |
+| Child account security | Medium | New feature; conduct security review |
+| Court export incomplete | Medium | Core value prop gap; implement comprehensive exports |
 
 ---
 
