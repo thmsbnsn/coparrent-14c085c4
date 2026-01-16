@@ -41,15 +41,14 @@ const formatReadTime = (dateString: string) => {
 };
 
 const getRoleBadge = (role: string) => {
-  switch (role) {
-    case "parent":
-    case "guardian":
-      return <Badge variant="default" className="text-xs">Parent</Badge>;
-    case "third_party":
-      return <Badge variant="secondary" className="text-xs">Family</Badge>;
-    default:
-      return null;
-  }
+  const roleLabels: Record<string, string> = {
+    parent: "Parent",
+    guardian: "Guardian",
+    third_party: "Family Member",
+  };
+  const label = roleLabels[role] || "Member";
+  const variant = role === "parent" || role === "guardian" ? "default" : "secondary";
+  return <Badge variant={variant} className="text-xs">{label}</Badge>;
 };
 
 const getInitials = (name: string | null | undefined, email: string | null | undefined) => {

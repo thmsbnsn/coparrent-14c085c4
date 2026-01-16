@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useSubscription } from "@/hooks/useSubscription";
 import { STRIPE_TIERS } from "@/lib/stripe";
+import { getSubscriptionTierLabel } from "@/lib/displayLabels";
 
 export const SubscriptionBanner = () => {
   const { 
@@ -22,7 +23,7 @@ export const SubscriptionBanner = () => {
   // Don't show anything while loading
   if (loading) return null;
 
-  const tierLabel = tier === "free" ? "Free" : STRIPE_TIERS[tier]?.name || tier;
+  const tierLabel = STRIPE_TIERS[tier]?.name || getSubscriptionTierLabel(tier);
 
   // Past due warning banner
   if (pastDue && subscribed) {

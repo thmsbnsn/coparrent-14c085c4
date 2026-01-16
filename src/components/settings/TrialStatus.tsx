@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubscription } from "@/hooks/useSubscription";
 import { STRIPE_TIERS } from "@/lib/stripe";
+import { getSubscriptionTierLabel, getAccessReasonLabel } from "@/lib/displayLabels";
 
 interface TrialStatusProps {
   trialStartedAt: string | null;
@@ -30,7 +31,7 @@ export const TrialStatus = ({ trialStartedAt, trialEndsAt, subscriptionStatus }:
     pastDue,
   } = useSubscription();
 
-  const tierLabel = tier === "free" ? "Free" : STRIPE_TIERS[tier]?.name || tier;
+  const tierLabel = STRIPE_TIERS[tier]?.name || getSubscriptionTierLabel(tier);
 
   // Show past due warning
   if (pastDue && subscribed) {
@@ -82,7 +83,7 @@ export const TrialStatus = ({ trialStartedAt, trialEndsAt, subscriptionStatus }:
           </div>
           {accessReason && (
             <p className="text-sm text-muted-foreground italic">
-              {accessReason}
+              {getAccessReasonLabel(accessReason)}
             </p>
           )}
         </CardContent>
