@@ -68,7 +68,7 @@ const ToolCard = ({ title, description, icon: Icon, comingSoon, premiumRequired,
 );
 
 const KidCenterPage = () => {
-  const { hasPremiumAccess } = usePremiumAccess();
+  const { hasAccess } = usePremiumAccess();
 
   const tools = [
     {
@@ -124,7 +124,7 @@ const KidCenterPage = () => {
         </motion.div>
 
         {/* Premium notice */}
-        {!hasPremiumAccess && (
+        {!hasAccess && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
