@@ -29,6 +29,24 @@ import {
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+const GRADE_OPTIONS = [
+  "Pre-K",
+  "Kindergarten",
+  "1st Grade",
+  "2nd Grade",
+  "3rd Grade",
+  "4th Grade",
+  "5th Grade",
+  "6th Grade",
+  "7th Grade",
+  "8th Grade",
+  "9th Grade (Freshman)",
+  "10th Grade (Sophomore)",
+  "11th Grade (Junior)",
+  "12th Grade (Senior)",
+  "College",
+  "Not in School",
+];
 const calculateAge = (dateOfBirth: string | null) => {
   if (!dateOfBirth) return null;
   const today = new Date();
@@ -849,12 +867,16 @@ const ChildrenPage = () => {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="edit-grade">Grade</Label>
-                        <Input
-                          id="edit-grade"
-                          placeholder="e.g., 3rd Grade"
-                          value={editGrade}
-                          onChange={(e) => setEditGrade(e.target.value)}
-                        />
+                        <Select value={editGrade} onValueChange={setEditGrade}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select grade" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {GRADE_OPTIONS.map((grade) => (
+                              <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </>

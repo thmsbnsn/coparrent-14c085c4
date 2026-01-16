@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { UserPlus, Check, X, Clock, Lock, Crown, Mail, Users2 } from "lucide-react";
+import { UserPlus, Check, X, Clock, Lock, Crown, Mail, Users2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,10 +28,26 @@ interface ThirdPartyMember {
   };
 }
 
+interface Child {
+  id: string;
+  name: string;
+}
+
 interface ThirdPartyManagerProps {
   subscriptionTier: string;
   isTrialActive: boolean;
 }
+
+const RELATIONSHIP_OPTIONS = [
+  { value: "step_parent", label: "Step-Parent" },
+  { value: "grandparent", label: "Grandparent" },
+  { value: "aunt_uncle", label: "Aunt/Uncle" },
+  { value: "sibling", label: "Sibling" },
+  { value: "babysitter", label: "Babysitter/Nanny" },
+  { value: "family_friend", label: "Family Friend" },
+  { value: "therapist", label: "Therapist/Counselor" },
+  { value: "other", label: "Other" },
+];
 
 const PLAN_LIMITS: Record<string, number> = {
   free: 0,
@@ -43,10 +62,14 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
   const { toast } = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [relationship, setRelationship] = useState("");
+  const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<ThirdPartyMember[]>([]);
+  const [children, setChildren] = useState<Child[]>([]);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [primaryParentId, setPrimaryParentId] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const tier = subscriptionTier || "free";
   const limit = PLAN_LIMITS[tier] || 0;
@@ -55,7 +78,7 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
   const isFeatureAvailable = isTrialActive || tier !== "free";
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       if (!user) return;
 
       const { data: profile } = await supabase
@@ -72,11 +95,31 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
           : profile.id;
         setPrimaryParentId(ppId);
         fetchMembers(ppId);
+        fetchChildren(profile.id);
       }
     };
 
-    fetchProfile();
+    fetchData();
   }, [user]);
+
+  const fetchChildren = async (profileId: string) => {
+    const { data } = await supabase
+      .from("parent_children")
+      .select("child_id, children(id, name)")
+      .eq("parent_id", profileId);
+
+    if (data) {
+      const childList = data
+        .filter(pc => pc.children)
+        .map(pc => ({
+          id: (pc.children as any).id,
+          name: (pc.children as any).name,
+        }));
+      setChildren(childList);
+      // Default to all children selected
+      setSelectedChildren(childList.map(c => c.id));
+    }
+  };
 
   const fetchMembers = async (ppId: string) => {
     const { data } = await supabase
@@ -89,6 +132,14 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
     setMembers((data as unknown as ThirdPartyMember[]) || []);
   };
 
+  const toggleChild = (childId: string) => {
+    setSelectedChildren(prev => 
+      prev.includes(childId)
+        ? prev.filter(id => id !== childId)
+        : [...prev, childId]
+    );
+  };
+
   const handleInviteThirdParty = async () => {
     if (!profileId || !primaryParentId || !email.trim()) return;
 
@@ -97,6 +148,24 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
       toast({
         title: "Invalid email",
         description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!relationship) {
+      toast({
+        title: "Relationship required",
+        description: "Please select the relationship to your family",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedChildren.length === 0) {
+      toast({
+        title: "Select children",
+        description: "Please select at least one child this person will have access to",
         variant: "destructive",
       });
       return;
@@ -114,7 +183,7 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
     setLoading(true);
 
     try {
-      // Create invitation record
+      // Create invitation record with relationship and child_ids
       const { data: invitation, error: inviteError } = await supabase
         .from("invitations")
         .insert({
@@ -122,6 +191,8 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
           invitee_email: email.trim().toLowerCase(),
           invitation_type: "third_party",
           role: "third_party",
+          relationship: relationship,
+          child_ids: selectedChildren,
         })
         .select()
         .single();
@@ -144,6 +215,7 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
           inviterName,
           token: invitation.token,
           primaryParentId,
+          relationship: RELATIONSHIP_OPTIONS.find(r => r.value === relationship)?.label || relationship,
         },
       });
 
@@ -158,6 +230,8 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
       });
 
       setEmail("");
+      setRelationship("");
+      setShowAdvanced(false);
       fetchMembers(primaryParentId);
     } catch (error: any) {
       console.error("Error inviting third-party:", error);
@@ -243,26 +317,78 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
             </p>
 
             {/* Invite form */}
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Label htmlFor="thirdparty-email" className="sr-only">
-                  Email address
-                </Label>
-                <Input
-                  id="thirdparty-email"
-                  type="email"
-                  placeholder="Enter email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={!canAddMore}
-                />
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1">
+                  <Label htmlFor="thirdparty-email" className="sr-only">
+                    Email address
+                  </Label>
+                  <Input
+                    id="thirdparty-email"
+                    type="email"
+                    placeholder="Enter email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={!canAddMore}
+                  />
+                </div>
+                <Select value={relationship} onValueChange={setRelationship} disabled={!canAddMore}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Relationship" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RELATIONSHIP_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Advanced options */}
+              <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                    {showAdvanced ? "Hide options" : "Show child access options"}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3">
+                  <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+                    <Label className="text-sm font-medium">Grant access to:</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {children.map((child) => (
+                        <div key={child.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`child-${child.id}`}
+                            checked={selectedChildren.includes(child.id)}
+                            onCheckedChange={() => toggleChild(child.id)}
+                            disabled={!canAddMore}
+                          />
+                          <label
+                            htmlFor={`child-${child.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {child.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    {children.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No children added yet.</p>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
               <Button 
                 onClick={handleInviteThirdParty} 
-                disabled={loading || !email.trim() || !canAddMore}
+                disabled={loading || !email.trim() || !relationship || !canAddMore}
+                className="w-full sm:w-auto"
               >
                 <Mail className="w-4 h-4 mr-2" />
-                {loading ? "Sending..." : "Invite"}
+                {loading ? "Sending..." : "Send Invitation"}
               </Button>
             </div>
 

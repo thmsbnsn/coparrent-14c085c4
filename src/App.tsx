@@ -43,6 +43,9 @@ import SportsPage from "./pages/SportsPage";
 import GiftsPage from "./pages/GiftsPage";
 import AuditLogPage from "./pages/AuditLogPage";
 import KidsDashboard from "./pages/KidsDashboard";
+import KidCenterPage from "./pages/KidCenterPage";
+import LawOfficeLogin from "./pages/LawOfficeLogin";
+import LawOfficeSignup from "./pages/LawOfficeSignup";
 import OfflinePage from "./pages/OfflinePage";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -80,6 +83,10 @@ const App = () => (
               <Route path="/payment-success" element={<RouteErrorBoundary routeName="Payment Success"><PaymentSuccess /></RouteErrorBoundary>} />
               <Route path="/accept-invite" element={<RouteErrorBoundary routeName="Accept Invite"><AcceptInvite /></RouteErrorBoundary>} />
               
+              {/* Law Office Portal Routes */}
+              <Route path="/law-office/login" element={<RouteErrorBoundary routeName="Law Office Login"><LawOfficeLogin /></RouteErrorBoundary>} />
+              <Route path="/law-office/signup" element={<RouteErrorBoundary routeName="Law Office Signup"><LawOfficeSignup /></RouteErrorBoundary>} />
+              
               {/* Child Account Dashboard (Kids only) */}
               <Route path="/kids" element={<ProtectedRoute><RouteErrorBoundary routeName="Kids Dashboard"><KidsDashboard /></RouteErrorBoundary></ProtectedRoute>} />
               
@@ -100,11 +107,11 @@ const App = () => (
               <Route path="/dashboard/expenses" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Expenses"><ExpensesPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/sports" element={<ProtectedRoute><RouteErrorBoundary routeName="Sports"><SportsPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/gifts" element={<ProtectedRoute><RouteErrorBoundary routeName="Gifts"><GiftsPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kid-center" element={<ProtectedRoute><RouteErrorBoundary routeName="Kid Center"><KidCenterPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/audit" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Audit Log"><AuditLogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog"><BlogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog/:slug" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog Post"><BlogPostPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Admin"><AdminDashboard /></RouteErrorBoundary></ProtectedRoute>} />
-              
               {/* Offline Route */}
               <Route path="/offline" element={<RouteErrorBoundary routeName="Offline"><OfflinePage /></RouteErrorBoundary>} />
               
