@@ -34,9 +34,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
-import LawArticlesPage from "./pages/LawArticlesPage";
+import UnifiedLawLibraryPage from "./pages/UnifiedLawLibraryPage";
 import LawArticleDetailPage from "./pages/LawArticleDetailPage";
-import LawLibraryPage from "./pages/LawLibraryPage";
 import JournalPage from "./pages/JournalPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import SportsPage from "./pages/SportsPage";
@@ -100,8 +99,8 @@ const App = () => (
               <Route path="/dashboard/documents" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Documents"><DocumentsPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/settings" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Settings"><SettingsPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/notifications" element={<ProtectedRoute><RouteErrorBoundary routeName="Notifications"><NotificationsPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/law-library" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Law Library"><LawArticlesPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/law-library/resources" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Law Library Resources"><LawLibraryPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/law-library" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Law Library"><UnifiedLawLibraryPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/law-library/resources" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Law Library"><UnifiedLawLibraryPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/law-library/:slug" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Law Article"><LawArticleDetailPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/journal" element={<ProtectedRoute><RouteErrorBoundary routeName="Journal"><JournalPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/expenses" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Expenses"><ExpensesPage /></RouteErrorBoundary></ProtectedRoute>} />
