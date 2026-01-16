@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
 export interface MessageSearchResult {
   id: string;
   thread_id: string;
@@ -61,7 +61,12 @@ export const useMessageSearch = (options: UseMessageSearchOptions = {}) => {
           return;
         }
 
-        setResults((data as MessageSearchResult[]) || []);
+        // Sanitize HTML snippets to prevent XSS attacks
+        const sanitizedResults = (data as MessageSearchResult[] || []).map(result => ({
+          ...result,
+          snippet: DOMPurify.sanitize(result.snippet, { ALLOWED_TAGS: ['b', 'em'] })
+        }));
+        setResults(sanitizedResults);
       } catch (err) {
         console.error("Unexpected search error:", err);
         setError("An unexpected error occurred");
