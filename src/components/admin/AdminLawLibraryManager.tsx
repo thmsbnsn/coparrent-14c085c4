@@ -44,6 +44,7 @@ import {
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { LawLibraryUploadDialog } from './LawLibraryUploadDialog';
 import { LawLibraryEditDialog } from './LawLibraryEditDialog';
+import { LawLibraryCleanupTool } from './LawLibraryCleanupTool';
 import {
   useAdminLawLibrary,
   US_STATES,
@@ -301,6 +302,9 @@ export const AdminLawLibraryManager = () => {
           </div>
         )}
       </CardContent>
+
+      {/* Cleanup Tool */}
+      <LawLibraryCleanupTool resources={resources} onCleanupComplete={fetchResources} />
 
       {/* Upload Dialog */}
       <LawLibraryUploadDialog

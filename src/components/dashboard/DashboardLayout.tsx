@@ -45,7 +45,6 @@ const parentNavItems = [
   { icon: DollarSign, label: "Expenses", href: "/dashboard/expenses", thirdPartyAllowed: false, id: "nav-expenses" },
   { icon: BookHeart, label: "Journal", href: "/dashboard/journal", thirdPartyAllowed: true, id: "nav-journal" },
   { icon: Scale, label: "Law Library", href: "/dashboard/law-library", thirdPartyAllowed: true, id: "nav-law-library" },
-  { icon: FileText, label: "Resources (PDF)", href: "/dashboard/law-library/resources", thirdPartyAllowed: true, id: "nav-resources" },
   { icon: BookOpen, label: "Blog", href: "/dashboard/blog", thirdPartyAllowed: true, id: "nav-blog" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings", thirdPartyAllowed: false, id: "nav-settings" },
 ];

@@ -601,18 +601,18 @@ When modifying AI functionality:
 | **Smart Reminders**       | `sports-event-reminders` edge function  | Leave-by time, responsibility reminders |
 | **Edit/Cancel Events**    | `EditActivityDialog`, `EditEventDialog` | Full CRUD with cancel toggle            |
 
-### 11. Law Library
+### 11. Law Library (Unified)
 
-| Feature                   | Components                         | Description                                |
-| ------------------------- | ---------------------------------- | ------------------------------------------ |
-| **Legal Resources**       | `LawLibraryPage`, `LawLibraryCard` | State-specific legal documents             |
-| **State Filtering**       | Filter by state                    | Find jurisdiction-relevant resources       |
-| **Category Organization** | Legal categories                   | Parenting time, child support, custody law |
-| **Disclaimer**            | `LawLibraryDisclaimer`             | Legal information disclaimer               |
-| **Parenting Guidelines**  | All 50 states + DC                 | State parenting time guidelines            |
-| **Child Support**         | All 50 states + DC                 | Child support calculators and guidelines   |
-| **Custody Laws**          | All 50 states + DC                 | Modification and enforcement laws          |
-| **Relocation Laws**       | All 50 states + DC                 | Move-away requirements and procedures      |
+| Feature                   | Components                                | Description                                |
+| ------------------------- | ----------------------------------------- | ------------------------------------------ |
+| **Unified Law Library**   | `UnifiedLawLibraryPage`                   | Single page with state-grouped resources   |
+| **State Accordion**       | Collapsible state sections                | Only shows states with content             |
+| **Indiana Articles**      | Indiana Code Title 31 articles            | Chapter 31 family law integrated           |
+| **PDF Resources**         | Downloadable legal documents              | State-specific legal documents             |
+| **Search & Filter**       | Search by title, filter by type           | Articles vs PDFs tab filtering             |
+| **Disclaimer**            | `LawLibraryDisclaimer`                    | Legal information disclaimer               |
+| **Admin Cleanup Tool**    | `LawLibraryCleanupTool`                   | Scan and delete empty placeholder files    |
+| **Backward-Compatible**   | `/law-library/resources` redirects        | Old URLs still work                        |
 
 ### 12. Settings & Account
 
@@ -628,12 +628,13 @@ When modifying AI functionality:
 
 ### 13. Admin
 
-| Feature                 | Components                | Description                       |
-| ----------------------- | ------------------------- | --------------------------------- |
-| **Admin Dashboard**     | `AdminDashboard`          | User management, analytics        |
-| **User Roles**          | Role-based access control | admin, moderator, user roles      |
-| **Law Library Manager** | `AdminLawLibraryManager`  | Upload and manage legal resources |
-| **Blog Management**     | Blog CRUD                 | Create and edit blog posts        |
+| Feature                   | Components                 | Description                          |
+| ------------------------- | -------------------------- | ------------------------------------ |
+| **Admin Dashboard**       | `AdminDashboard`           | User management, analytics           |
+| **User Roles**            | Role-based access control  | admin, moderator, user roles         |
+| **Law Library Manager**   | `AdminLawLibraryManager`   | Upload and manage legal resources    |
+| **Placeholder Cleanup**   | `LawLibraryCleanupTool`    | Bulk delete empty/placeholder files  |
+| **Blog Management**       | Blog CRUD                  | Create and edit blog posts           |
 
 ### 14. UI Components (shadcn/ui + Custom)
 
