@@ -343,6 +343,69 @@ export type Database = {
           },
         ]
       }
+      child_permissions: {
+        Row: {
+          allow_calendar_reminders: boolean
+          allow_family_chat: boolean
+          allow_mood_checkins: boolean
+          allow_notes_to_parents: boolean
+          allow_parent_messaging: boolean
+          allow_push_notifications: boolean
+          allow_sibling_messaging: boolean
+          child_profile_id: string
+          created_at: string
+          id: string
+          parent_profile_id: string
+          show_full_event_details: boolean
+          updated_at: string
+        }
+        Insert: {
+          allow_calendar_reminders?: boolean
+          allow_family_chat?: boolean
+          allow_mood_checkins?: boolean
+          allow_notes_to_parents?: boolean
+          allow_parent_messaging?: boolean
+          allow_push_notifications?: boolean
+          allow_sibling_messaging?: boolean
+          child_profile_id: string
+          created_at?: string
+          id?: string
+          parent_profile_id: string
+          show_full_event_details?: boolean
+          updated_at?: string
+        }
+        Update: {
+          allow_calendar_reminders?: boolean
+          allow_family_chat?: boolean
+          allow_mood_checkins?: boolean
+          allow_notes_to_parents?: boolean
+          allow_parent_messaging?: boolean
+          allow_push_notifications?: boolean
+          allow_sibling_messaging?: boolean
+          child_profile_id?: string
+          created_at?: string
+          id?: string
+          parent_profile_id?: string
+          show_full_event_details?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_permissions_child_profile_id_fkey"
+            columns: ["child_profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "child_permissions_parent_profile_id_fkey"
+            columns: ["parent_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       child_photos: {
         Row: {
           caption: string | null
@@ -1364,6 +1427,7 @@ export type Database = {
       profiles: {
         Row: {
           access_reason: string | null
+          account_role: string | null
           avatar_url: string | null
           co_parent_id: string | null
           created_at: string
@@ -1371,6 +1435,8 @@ export type Database = {
           free_premium_access: boolean
           full_name: string | null
           id: string
+          linked_child_id: string | null
+          login_enabled: boolean | null
           notification_preferences: Json | null
           preferences: Json | null
           subscription_status: string | null
@@ -1382,6 +1448,7 @@ export type Database = {
         }
         Insert: {
           access_reason?: string | null
+          account_role?: string | null
           avatar_url?: string | null
           co_parent_id?: string | null
           created_at?: string
@@ -1389,6 +1456,8 @@ export type Database = {
           free_premium_access?: boolean
           full_name?: string | null
           id?: string
+          linked_child_id?: string | null
+          login_enabled?: boolean | null
           notification_preferences?: Json | null
           preferences?: Json | null
           subscription_status?: string | null
@@ -1400,6 +1469,7 @@ export type Database = {
         }
         Update: {
           access_reason?: string | null
+          account_role?: string | null
           avatar_url?: string | null
           co_parent_id?: string | null
           created_at?: string
@@ -1407,6 +1477,8 @@ export type Database = {
           free_premium_access?: boolean
           full_name?: string | null
           id?: string
+          linked_child_id?: string | null
+          login_enabled?: boolean | null
           notification_preferences?: Json | null
           preferences?: Json | null
           subscription_status?: string | null
@@ -1422,6 +1494,13 @@ export type Database = {
             columns: ["co_parent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_linked_child_id_fkey"
+            columns: ["linked_child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
             referencedColumns: ["id"]
           },
         ]
@@ -1809,11 +1888,16 @@ export type Database = {
         Args: { _primary_parent_id: string }
         Returns: number
       }
+      create_child_account: {
+        Args: { _child_id: string; _password: string; _username: string }
+        Returns: Json
+      }
       create_child_with_link: {
         Args: { _date_of_birth?: string; _name: string }
         Returns: Json
       }
       get_child_details: { Args: { p_child_id: string }; Returns: Json }
+      get_child_permissions: { Args: { _user_id: string }; Returns: Json }
       get_invitation_by_token: {
         Args: { _token: string }
         Returns: {
@@ -1844,6 +1928,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_child_account: { Args: { _user_id: string }; Returns: boolean }
       is_family_member: {
         Args: { _primary_parent_id: string; _user_id: string }
         Returns: boolean

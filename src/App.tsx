@@ -42,6 +42,7 @@ import ExpensesPage from "./pages/ExpensesPage";
 import SportsPage from "./pages/SportsPage";
 import GiftsPage from "./pages/GiftsPage";
 import AuditLogPage from "./pages/AuditLogPage";
+import KidsDashboard from "./pages/KidsDashboard";
 import OfflinePage from "./pages/OfflinePage";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -79,27 +80,30 @@ const App = () => (
               <Route path="/payment-success" element={<RouteErrorBoundary routeName="Payment Success"><PaymentSuccess /></RouteErrorBoundary>} />
               <Route path="/accept-invite" element={<RouteErrorBoundary routeName="Accept Invite"><AcceptInvite /></RouteErrorBoundary>} />
               
-              {/* Protected Routes */}
+              {/* Child Account Dashboard (Kids only) */}
+              <Route path="/kids" element={<ProtectedRoute><RouteErrorBoundary routeName="Kids Dashboard"><KidsDashboard /></RouteErrorBoundary></ProtectedRoute>} />
+              
+              {/* Protected Routes (Parent/Guardian) */}
               <Route path="/onboarding" element={<ProtectedRoute><RouteErrorBoundary routeName="Onboarding"><Onboarding /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><RouteErrorBoundary routeName="Dashboard"><Dashboard /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/calendar" element={<ProtectedRoute><RouteErrorBoundary routeName="Calendar"><CalendarPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/children" element={<ProtectedRoute><RouteErrorBoundary routeName="Children"><ChildrenPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/children" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Children"><ChildrenPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/messages" element={<ProtectedRoute><RouteErrorBoundary routeName="Messages"><MessagingHubPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/messages-legacy" element={<ProtectedRoute><RouteErrorBoundary routeName="Messages Legacy"><MessagesPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/documents" element={<ProtectedRoute><RouteErrorBoundary routeName="Documents"><DocumentsPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/settings" element={<ProtectedRoute><RouteErrorBoundary routeName="Settings"><SettingsPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/documents" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Documents"><DocumentsPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/settings" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Settings"><SettingsPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/notifications" element={<ProtectedRoute><RouteErrorBoundary routeName="Notifications"><NotificationsPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/law-library" element={<ProtectedRoute><RouteErrorBoundary routeName="Law Library"><LawArticlesPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/law-library/resources" element={<ProtectedRoute><RouteErrorBoundary routeName="Law Library Resources"><LawLibraryPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/law-library/:slug" element={<ProtectedRoute><RouteErrorBoundary routeName="Law Article"><LawArticleDetailPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/law-library" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Law Library"><LawArticlesPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/law-library/resources" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Law Library Resources"><LawLibraryPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/law-library/:slug" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Law Article"><LawArticleDetailPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/journal" element={<ProtectedRoute><RouteErrorBoundary routeName="Journal"><JournalPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/expenses" element={<ProtectedRoute><RouteErrorBoundary routeName="Expenses"><ExpensesPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/expenses" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Expenses"><ExpensesPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/sports" element={<ProtectedRoute><RouteErrorBoundary routeName="Sports"><SportsPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/gifts" element={<ProtectedRoute><RouteErrorBoundary routeName="Gifts"><GiftsPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/audit" element={<ProtectedRoute><RouteErrorBoundary routeName="Audit Log"><AuditLogPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/audit" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Audit Log"><AuditLogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog"><BlogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog/:slug" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog Post"><BlogPostPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><RouteErrorBoundary routeName="Admin"><AdminDashboard /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Admin"><AdminDashboard /></RouteErrorBoundary></ProtectedRoute>} />
               
               {/* Offline Route */}
               <Route path="/offline" element={<RouteErrorBoundary routeName="Offline"><OfflinePage /></RouteErrorBoundary>} />
