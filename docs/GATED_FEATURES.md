@@ -24,6 +24,7 @@ Features requiring subscription, trial, or free_access grant.
 | AI Message Analyze | `MessageToneAssistant.tsx` | `ai-message-assist/index.ts` - aiGuard | Allowed for all auth users |
 | AI Schedule Suggest | `CalendarWizard.tsx` | `ai-schedule-suggest/index.ts` - aiGuard | Parent/Admin + plan |
 | Rewrite Style Modes | `MessageToneAssistant.tsx` - dropdown hidden for non-premium | Mode passed to server but neutral default works for all | |
+| Kid Center AI Tools | `KidCenterPage.tsx` - `PremiumFeatureGate` | Coming soon | Coloring, crafts, activities, recipes |
 
 ---
 
@@ -49,6 +50,9 @@ Features restricted from Third-Party members.
 - `/dashboard/law-library` - Law Library
 - `/dashboard/blog` - Blog
 - `/dashboard/notifications` - Notifications
+- `/dashboard/kid-center` - Kid Center (premium features gated separately)
+- `/dashboard/sports` - Sports activities
+- `/dashboard/gifts` - Gift lists
 
 ---
 

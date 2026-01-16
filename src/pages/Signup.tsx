@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, ArrowRight, Users, Briefcase } from "lucide-react";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { cn } from "@/lib/utils";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
-
-type AccountType = "parent" | "lawoffice";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -22,14 +19,10 @@ const Signup = () => {
   const { user, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [accountType, setAccountType] = useState<AccountType>(
-    searchParams.get("type") === "lawoffice" ? "lawoffice" : "parent"
-  );
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     fullName: "",
-    firmName: "",
   });
 
   // Redirect if already logged in
@@ -91,8 +84,7 @@ const Signup = () => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: formData.fullName,
-          account_type: accountType,
-          firm_name: accountType === "lawoffice" ? formData.firmName : null,
+          account_type: "parent",
         },
       },
     });
@@ -147,45 +139,9 @@ const Signup = () => {
               Start organizing your co-parenting journey
             </p>
 
-            {/* Account Type Selector */}
-            <div className="grid grid-cols-2 gap-3 mb-8">
-              <button
-                type="button"
-                onClick={() => setAccountType("parent")}
-                className={cn(
-                  "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                  accountType === "parent"
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                <Users className={cn("w-6 h-6", accountType === "parent" ? "text-primary" : "text-muted-foreground")} />
-                <span className={cn("text-sm font-medium", accountType === "parent" ? "text-primary" : "text-muted-foreground")}>
-                  I'm a Parent
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setAccountType("lawoffice")}
-                className={cn(
-                  "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                  accountType === "lawoffice"
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                <Briefcase className={cn("w-6 h-6", accountType === "lawoffice" ? "text-primary" : "text-muted-foreground")} />
-                <span className={cn("text-sm font-medium", accountType === "lawoffice" ? "text-primary" : "text-muted-foreground")}>
-                  Law Office
-                </span>
-              </button>
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="fullName">
-                  {accountType === "parent" ? "Full name" : "Your name"}
-                </Label>
+                <Label htmlFor="fullName">Full name</Label>
                 <Input
                   id="fullName"
                   type="text"
@@ -195,20 +151,6 @@ const Signup = () => {
                   required
                 />
               </div>
-
-              {accountType === "lawoffice" && (
-                <div className="space-y-2">
-                  <Label htmlFor="firmName">Firm name</Label>
-                  <Input
-                    id="firmName"
-                    type="text"
-                    placeholder="Your law firm's name"
-                    value={formData.firmName}
-                    onChange={(e) => setFormData({ ...formData, firmName: e.target.value })}
-                    required
-                  />
-                </div>
-              )}
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email address</Label>
@@ -277,6 +219,13 @@ const Signup = () => {
               Already have an account?{" "}
               <Link to="/login" className="text-primary hover:underline font-medium">
                 Sign in
+              </Link>
+            </p>
+
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              Are you a law office?{" "}
+              <Link to="/law-office/signup" className="text-primary hover:underline">
+                Sign up here
               </Link>
             </p>
           </motion.div>
