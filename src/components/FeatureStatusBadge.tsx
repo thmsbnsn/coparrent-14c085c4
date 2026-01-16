@@ -102,7 +102,7 @@ export const FEATURE_STATUS: Record<string, FeatureStatus> = {
   journal: "stable",
   
   // Coming soon
-  court_export: "coming_soon",
+  court_export: "stable",
   
   // New features
   messaging_hub: "new",

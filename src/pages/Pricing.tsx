@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, FlaskConical, Sparkles } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { Navbar } from "@/components/landing/Navbar";
@@ -10,18 +10,20 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { StripeTier } from "@/lib/stripe";
+import { Badge } from "@/components/ui/badge";
 
 const tiers = [
   {
-    name: "Free",
+    name: "Free Forever",
     price: "$0",
     period: "forever",
-    description: "Get started with basic co-parenting tools",
+    description: "Get started with essential co-parenting tools",
     features: [
-      "Basic parenting calendar",
-      "1 child profile",
-      "30-day message history",
-      "Email notifications",
+      { text: "Core parenting calendar", included: true },
+      { text: "Basic messaging with co-parent", included: true },
+      { text: "1 child profile", included: true },
+      { text: "30-day message history", included: true },
+      { text: "Email notifications", included: true },
     ],
     cta: "Start Free",
     variant: "outline" as const,
@@ -30,16 +32,18 @@ const tiers = [
   },
   {
     name: "Premium",
-    price: "$12",
+    price: "$5",
     period: "per month",
     description: "Full features for active co-parents",
     features: [
-      "Advanced calendar with holidays",
-      "Unlimited child profiles",
-      "Full message history",
-      "Document vault access",
-      "Court-ready exports",
-      "Priority email support",
+      { text: "Everything in Free", included: true },
+      { text: "Unlimited child profiles", included: true },
+      { text: "Full message history", included: true },
+      { text: "AI message rewrite & tone analysis", included: true, beta: true },
+      { text: "Sports & activities hub", included: true, beta: true },
+      { text: "Court-ready document exports", included: true },
+      { text: "Smart exchange reminders", included: true, beta: true },
+      { text: "Priority email support", included: true },
     ],
     cta: "Start Premium Trial",
     variant: "default" as const,
@@ -48,40 +52,21 @@ const tiers = [
   },
   {
     name: "MVP",
-    price: "$24",
+    price: "$10",
     period: "per month",
-    description: "For power users & early adopters",
+    description: "For power users & founding members",
     features: [
-      "Everything in Premium",
-      "Early access to new features",
-      "Priority support",
-      "Custom templates",
-      "API access (coming soon)",
-      "Founding member badge",
+      { text: "Everything in Premium", included: true },
+      { text: "Early access to new features", included: true },
+      { text: "AI schedule suggestions", included: true, beta: true },
+      { text: "Priority support", included: true },
+      { text: "Beta feature influence", included: true },
+      { text: "Founding member badge", included: true, badge: true },
     ],
     cta: "Join as MVP",
     variant: "outline" as const,
     popular: false,
     stripeTier: "mvp" as StripeTier,
-  },
-  {
-    name: "Law Office",
-    price: "$99",
-    period: "per month",
-    description: "Multi-family management for professionals",
-    features: [
-      "Manage unlimited families",
-      "Case dashboard & filters",
-      "Bulk export tools",
-      "Custom document templates",
-      "Dedicated account manager",
-      "Onboarding & training",
-      "Priority phone support",
-    ],
-    cta: "Contact Sales",
-    variant: "outline" as const,
-    popular: false,
-    stripeTier: "law_office" as StripeTier,
   },
 ];
 
@@ -123,11 +108,6 @@ const Pricing = () => {
       return;
     }
 
-    if (tier.name === "Law Office") {
-      window.open("mailto:support@coparrent.com?subject=Law Office Plan Inquiry", "_blank");
-      return;
-    }
-
     await createCheckout(tier.stripeTier);
   };
 
@@ -163,12 +143,12 @@ const Pricing = () => {
               transition={{ delay: 0.1 }}
               className="text-lg text-muted-foreground"
             >
-              Choose the plan that fits your needs. All plans include a 14-day free trial.
+              Start free, upgrade when you're ready. All paid plans include a 14-day free trial.
             </motion.p>
           </div>
 
-          {/* Pricing Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
+          {/* Pricing Grid - 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
             {tiers.map((tier, index) => (
               <motion.div
                 key={tier.name}
@@ -201,9 +181,23 @@ const Pricing = () => {
                 {/* Features */}
                 <ul className="space-y-3 mb-8">
                   {tier.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3">
+                    <li key={feature.text} className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
+                      <span className="text-sm flex items-center gap-2 flex-wrap">
+                        {feature.text}
+                        {feature.beta && (
+                          <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                            <FlaskConical className="w-3 h-3 mr-1" />
+                            Beta
+                          </Badge>
+                        )}
+                        {feature.badge && (
+                          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Exclusive
+                          </Badge>
+                        )}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -245,19 +239,22 @@ const Pricing = () => {
                     <th className="text-center py-4 px-4 font-medium">Free</th>
                     <th className="text-center py-4 px-4 font-medium text-primary">Premium</th>
                     <th className="text-center py-4 px-4 font-medium">MVP</th>
-                    <th className="text-center py-4 px-4 font-medium">Law Office</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
                   {[
-                    ["Parenting calendar", "Basic", "Advanced", "Advanced", "Advanced"],
-                    ["Child profiles", "1", "Unlimited", "Unlimited", "Unlimited"],
-                    ["Message history", "30 days", "Full", "Full", "Full"],
-                    ["Document exports", "—", "✓", "✓", "✓"],
-                    ["Court view", "—", "✓", "✓", "✓"],
-                    ["Custom templates", "—", "—", "✓", "✓"],
-                    ["Multi-family management", "—", "—", "—", "✓"],
-                    ["Priority support", "—", "—", "✓", "✓"],
+                    ["Parenting calendar", "Basic", "Advanced", "Advanced"],
+                    ["Child profiles", "1", "Unlimited", "Unlimited"],
+                    ["Message history", "30 days", "Full", "Full"],
+                    ["Messaging", "✓", "✓", "✓"],
+                    ["AI message assist", "—", "Beta", "Beta"],
+                    ["Sports & activities hub", "—", "Beta", "Beta"],
+                    ["Court-ready exports", "—", "✓", "✓"],
+                    ["Smart reminders", "—", "Beta", "Beta"],
+                    ["AI schedule suggestions", "—", "—", "Beta"],
+                    ["Early access features", "—", "—", "✓"],
+                    ["Priority support", "—", "Email", "Priority"],
+                    ["Founding member badge", "—", "—", "✓"],
                   ].map(([feature, ...values], i) => (
                     <tr key={feature} className={cn("border-b border-border/50", i % 2 === 0 && "bg-muted/30")}>
                       <td className="py-3 px-4">{feature}</td>
@@ -265,6 +262,10 @@ const Pricing = () => {
                         <td key={j} className="text-center py-3 px-4 text-muted-foreground">
                           {value === "✓" ? (
                             <Check className="w-5 h-5 text-success mx-auto" />
+                          ) : value === "Beta" ? (
+                            <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                              Beta
+                            </Badge>
                           ) : (
                             value
                           )}
@@ -275,6 +276,20 @@ const Pricing = () => {
                 </tbody>
               </table>
             </div>
+          </motion.div>
+
+          {/* FAQ/Trust Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mt-16 max-w-2xl mx-auto text-center"
+          >
+            <p className="text-sm text-muted-foreground">
+              No credit card required for free plan. Cancel paid plans anytime.
+              <br />
+              <span className="text-xs">Features marked as "Beta" are under active development.</span>
+            </p>
           </motion.div>
         </div>
       </main>

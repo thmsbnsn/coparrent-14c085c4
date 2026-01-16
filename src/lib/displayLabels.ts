@@ -20,14 +20,10 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
 
 // Subscription Tier Labels
 export const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
-  free: "Free",
+  free: "Free Forever",
   trial: "Trial",
-  basic: "Basic",
   premium: "Premium",
   mvp: "MVP",
-  law_office: "Law Office",
-  pro: "Professional",
-  enterprise: "Enterprise",
 } as const;
 
 // User Role Labels (for family members)
