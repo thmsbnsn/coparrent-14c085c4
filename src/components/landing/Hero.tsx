@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Calendar, MessageSquare, Users, Shield } from "lucide-react";
+import { ArrowRight, Calendar, MessageSquare, Users, Shield, LayoutDashboard, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 import heroIllustration from "@/assets/hero-illustration.png";
 
 const features = [
@@ -15,6 +16,7 @@ const features = [
 
 export const Hero = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
@@ -95,23 +97,62 @@ export const Hero = () => {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 mb-6 lg:mb-10"
             >
-              <Button 
-                size="lg" 
-                onClick={() => navigate("/signup")} 
-                className="w-full sm:w-auto text-base px-8 h-12 bg-white text-primary hover:bg-white/90 shadow-lg"
-              >
-                Get Started Free
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate("/signup?type=lawoffice")}
-                className="w-full sm:w-auto text-base px-8 h-12 border-primary/60 text-primary dark:border-white/60 dark:text-white hover:bg-primary/10 dark:hover:bg-white/10 backdrop-blur-sm"
-              >
-                For Law Offices
-              </Button>
+              {!loading && user ? (
+                // User is logged in - show dashboard button prominently
+                <>
+                  <Button 
+                    size="lg" 
+                    onClick={() => navigate("/dashboard")} 
+                    className="w-full sm:w-auto text-base px-8 h-12 bg-white text-primary hover:bg-white/90 shadow-lg"
+                  >
+                    <LayoutDashboard className="mr-2 w-4 h-4" />
+                    Go to Dashboard
+                  </Button>
+                  <p className="text-sm text-white/80">
+                    You're signed in — pick up where you left off
+                  </p>
+                </>
+              ) : (
+                // User is not logged in - show signup and signin
+                <>
+                  <Button 
+                    size="lg" 
+                    onClick={() => navigate("/signup")} 
+                    className="w-full sm:w-auto text-base px-8 h-12 bg-white text-primary hover:bg-white/90 shadow-lg"
+                  >
+                    Get Started Free
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => navigate("/login")}
+                    className="w-full sm:w-auto text-base px-8 h-12 border-white/60 text-white hover:bg-white/10 backdrop-blur-sm"
+                  >
+                    <LogIn className="mr-2 w-4 h-4" />
+                    Sign In
+                  </Button>
+                </>
+              )}
             </motion.div>
+
+            {/* Already have account helper text - only show if not logged in */}
+            {!loading && !user && (
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.35 }}
+                className="text-sm text-white/70 mb-4 lg:mb-6 text-center lg:text-left"
+              >
+                Already have an account?{" "}
+                <button 
+                  onClick={() => navigate("/login")}
+                  className="text-white underline underline-offset-4 hover:text-white/90 font-medium"
+                >
+                  Sign in here
+                </button>
+              </motion.p>
+            )}
 
             {/* Feature Pills */}
             <motion.div

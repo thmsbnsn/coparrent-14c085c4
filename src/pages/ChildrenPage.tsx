@@ -32,7 +32,9 @@ const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const calculateAge = (dateOfBirth: string | null) => {
   if (!dateOfBirth) return null;
   const today = new Date();
-  const birthDate = new Date(dateOfBirth);
+  // Parse date as local date (YYYY-MM-DD string without time conversion)
+  const [year, month, day] = dateOfBirth.split('-').map(Number);
+  const birthDate = new Date(year, month - 1, day);
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
@@ -41,9 +43,13 @@ const calculateAge = (dateOfBirth: string | null) => {
   return age;
 };
 
+// Format date without timezone conversion
 const formatDate = (dateString: string | null) => {
   if (!dateString) return "Not set";
-  return new Date(dateString).toLocaleDateString("en-US", {
+  // Parse as local date to avoid timezone offset
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
