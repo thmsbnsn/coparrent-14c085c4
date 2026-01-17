@@ -113,26 +113,15 @@ export const Hero = () => {
                   </p>
                 </>
               ) : (
-                // User is not logged in - show signup and signin
-                <>
-                  <Button 
-                    size="lg" 
-                    onClick={() => navigate("/signup")} 
-                    className="w-full sm:w-auto text-base px-8 h-12 bg-white text-primary hover:bg-white/90 shadow-lg"
-                  >
-                    Get Started Free
-                    <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={() => navigate("/login")}
-                    className="w-full sm:w-auto text-base px-8 h-12 border-white/60 text-white hover:bg-white/10 backdrop-blur-sm"
-                  >
-                    <LogIn className="mr-2 w-4 h-4" />
-                    Sign In
-                  </Button>
-                </>
+              // User is not logged in - show signup button only (Sign In is in navbar)
+                <Button 
+                  size="lg" 
+                  onClick={() => navigate("/signup")} 
+                  className="w-full sm:w-auto text-base px-8 h-12 bg-white text-primary hover:bg-white/90 shadow-lg"
+                >
+                  Get Started Free
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
               )}
             </motion.div>
 
