@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeChildren } from "@/hooks/useRealtimeChildren";
 import { BlogDashboardCard } from "@/components/dashboard/BlogDashboardCard";
+import { resolveSenderName } from "@/lib/displayResolver";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
@@ -316,7 +317,7 @@ const Dashboard = () => {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-sm font-medium">
-                        {msg.sender?.full_name || msg.sender?.email || "Unknown"}
+                        {resolveSenderName(msg.sender?.full_name, msg.sender?.email)}
                       </p>
                       <span className="text-xs text-muted-foreground">
                         {formatMessageTime(msg.created_at)}

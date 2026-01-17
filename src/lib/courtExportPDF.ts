@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { resolveDisplayValue, resolveChildName, resolvePersonName } from '@/lib/displayResolver';
 import type { CourtExportData } from '@/hooks/useCourtExport';
 
 const BRAND_COLOR: [number, number, number] = [33, 176, 254];
@@ -262,7 +263,7 @@ function addExchangeCheckinsSection(doc: jsPDF, data: CourtExportData, startY: n
   const tableData = data.exchangeCheckins.map((checkin) => [
     format(new Date(checkin.exchange_date), 'MMM d, yyyy'),
     format(new Date(checkin.checked_in_at), 'h:mm a'),
-    checkin.note || '-',
+    resolveDisplayValue(checkin.note, 'No notes'),
   ]);
   
   autoTable(doc, {
@@ -308,11 +309,11 @@ function addExpensesSection(doc: jsPDF, data: CourtExportData, startY: number): 
   
   const tableData = data.expenses.map((exp) => [
     format(new Date(exp.expense_date), 'MMM d, yyyy'),
-    CATEGORY_LABELS[exp.category] || exp.category,
+    CATEGORY_LABELS[exp.category] ?? 'Other',
     exp.description.length > 35 ? exp.description.substring(0, 35) + '...' : exp.description,
     `$${exp.amount.toFixed(2)}`,
     exp.split_percentage ? `${exp.split_percentage}%` : '50%',
-    exp.child?.name || '-',
+    resolveChildName(exp.child?.name),
   ]);
   
   autoTable(doc, {

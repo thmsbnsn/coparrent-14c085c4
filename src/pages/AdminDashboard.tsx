@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale } from "lucide-react";
+import { resolveDisplayValue } from "@/lib/displayResolver";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -314,7 +315,7 @@ const AdminDashboard = () => {
                         {users.map((profile) => (
                           <TableRow key={profile.id}>
                             <TableCell className="font-medium">{profile.email}</TableCell>
-                            <TableCell>{profile.full_name || "-"}</TableCell>
+                            <TableCell>{resolveDisplayValue(profile.full_name, "Not set")}</TableCell>
                             <TableCell>
                               {profile.stripe_status === "active" ? (
                                 <Badge variant="default" className="bg-green-500">Active</Badge>

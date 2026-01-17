@@ -5,6 +5,7 @@ import {
   Receipt, CheckCircle, XCircle, Clock, Download,
   Trash2, Send, Eye, FileText, Users, TrendingUp, AlertCircle
 } from "lucide-react";
+import { resolveChildName, resolvePersonName } from "@/lib/displayResolver";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -271,12 +272,12 @@ function ExpensesPageContent() {
     const headers = ['Date', 'Category', 'Description', 'Amount', 'Split %', 'Child', 'Added By', 'Notes'];
     const rows = filteredExpenses.map(e => [
       format(parseISO(e.expense_date), 'yyyy-MM-dd'),
-      EXPENSE_CATEGORIES.find(c => c.value === e.category)?.label || e.category,
+      EXPENSE_CATEGORIES.find(c => c.value === e.category)?.label ?? 'Other',
       e.description,
       e.amount.toFixed(2),
       e.split_percentage,
-      e.child?.name || '',
-      e.creator?.full_name || e.creator?.email || '',
+      resolveChildName(e.child?.name),
+      resolvePersonName(e.creator?.full_name, e.creator?.email),
       e.notes || ''
     ]);
 

@@ -117,13 +117,13 @@ export const ACCESS_REASON_LABELS: Record<string, string> = {
  */
 
 export function getSubscriptionStatusLabel(status: string | null | undefined): string {
-  if (!status) return "Unknown";
-  return SUBSCRIPTION_STATUS_LABELS[status.toLowerCase()] || "Unknown";
+  if (!status) return "Free Plan";
+  return SUBSCRIPTION_STATUS_LABELS[status.toLowerCase()] || "Free Plan";
 }
 
 export function getSubscriptionTierLabel(tier: string | null | undefined): string {
   if (!tier) return "Free";
-  return SUBSCRIPTION_TIER_LABELS[tier.toLowerCase()] || tier;
+  return SUBSCRIPTION_TIER_LABELS[tier.toLowerCase()] || "Free";
 }
 
 export function getMemberRoleLabel(role: string | null | undefined): string {
@@ -142,8 +142,8 @@ export function getInvitationTypeLabel(type: string | null | undefined): string 
 }
 
 export function getInvitationStatusLabel(status: string | null | undefined): string {
-  if (!status) return "Unknown";
-  return INVITATION_STATUS_LABELS[status.toLowerCase()] || "Unknown";
+  if (!status) return "Pending";
+  return INVITATION_STATUS_LABELS[status.toLowerCase()] || "Pending";
 }
 
 export function getScheduleRequestLabel(type: string | null | undefined): string {
@@ -152,8 +152,8 @@ export function getScheduleRequestLabel(type: string | null | undefined): string
 }
 
 export function getScheduleStatusLabel(status: string | null | undefined): string {
-  if (!status) return "Unknown";
-  return SCHEDULE_STATUS_LABELS[status.toLowerCase()] || "Unknown";
+  if (!status) return "Pending";
+  return SCHEDULE_STATUS_LABELS[status.toLowerCase()] || "Pending";
 }
 
 export function getExpenseCategoryLabel(category: string | null | undefined): string {
