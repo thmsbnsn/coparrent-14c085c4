@@ -33,6 +33,7 @@ import {
   getActionLabel,
   getActionVariant,
 } from "@/hooks/useAuditLogs";
+import { resolvePersonName, resolveChildName } from "@/lib/displayResolver";
 import type { Child } from "@/hooks/useChildren";
 
 interface AuditLogTableProps {
@@ -209,7 +210,7 @@ export const AuditLogTable = ({ children = [] }: AuditLogTableProps) => {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <p className="font-medium">{log.actor_name || "Unknown"}</p>
+                      <p className="font-medium">{resolvePersonName(log.actor_name, log.actor_email)}</p>
                       {log.actor_email && (
                         <p className="text-xs text-muted-foreground">
                           {log.actor_email}
@@ -226,7 +227,7 @@ export const AuditLogTable = ({ children = [] }: AuditLogTableProps) => {
                       {getActionLabel(log.action)}
                     </Badge>
                   </TableCell>
-                  <TableCell>{log.child_name || "-"}</TableCell>
+                  <TableCell>{resolveChildName(log.child_name)}</TableCell>
                   <TableCell>
                     {(log.before || log.after) && (
                       <Button

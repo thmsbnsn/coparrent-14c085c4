@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { resolveChildName, resolvePersonName } from '@/lib/displayResolver';
 
 interface Message {
   id: string;
@@ -322,11 +323,11 @@ export function exportExpensesToPDF(
   // Expenses table
   const tableData = expenses.map((exp) => [
     format(new Date(exp.expense_date), 'MMM d, yyyy'),
-    CATEGORY_LABELS[exp.category] || exp.category,
+    CATEGORY_LABELS[exp.category] ?? 'Other',
     exp.description.length > 40 ? exp.description.substring(0, 40) + '...' : exp.description,
     `$${exp.amount.toFixed(2)}`,
-    exp.child?.name || '-',
-    exp.creator?.full_name || '-'
+    resolveChildName(exp.child?.name),
+    resolvePersonName(exp.creator?.full_name)
   ]);
   
   autoTable(doc, {

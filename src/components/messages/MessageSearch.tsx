@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { resolveSenderName } from "@/lib/displayResolver";
 import {
   useMessageSearch,
   MessageSearchResult,
@@ -106,7 +107,7 @@ export const MessageSearch = ({
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium">
-                      {result.sender_name || "Unknown"}
+                      {resolveSenderName(result.sender_name)}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(result.created_at), "MMM d, h:mm a")}

@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFamilyRole } from "./useFamilyRole";
 import { useToast } from "./use-toast";
 import { Database } from "@/integrations/supabase/types";
+import { resolvePersonName, ENTITY_PLACEHOLDERS } from "@/lib/displayResolver";
 
 type ThreadType = Database["public"]["Enums"]["thread_type"];
 
@@ -257,7 +258,7 @@ export const useMessagingHub = () => {
         .in("id", senderIds);
 
       const profileMap = new Map(
-        (profiles || []).map(p => [p.id, p.full_name || p.email || "Unknown"])
+        (profiles || []).map(p => [p.id, resolvePersonName(p.full_name, p.email)])
       );
 
       // Fetch read receipts
@@ -280,7 +281,7 @@ export const useMessagingHub = () => {
         const list = receiptsByMessage.get(r.message_id) || [];
         list.push({
           reader_id: r.reader_id,
-          reader_name: r.profiles?.full_name || r.profiles?.email || "Unknown",
+          reader_name: resolvePersonName(r.profiles?.full_name, r.profiles?.email),
           read_at: r.read_at,
         });
         receiptsByMessage.set(r.message_id, list);
@@ -288,7 +289,7 @@ export const useMessagingHub = () => {
 
       const formattedMessages: ThreadMessage[] = (data || []).map(msg => ({
         ...msg,
-        sender_name: profileMap.get(msg.sender_id) || "Unknown",
+        sender_name: profileMap.get(msg.sender_id) || ENTITY_PLACEHOLDERS.sender,
         is_from_me: msg.sender_id === profileId,
         read_by: receiptsByMessage.get(msg.id) || [],
       }));

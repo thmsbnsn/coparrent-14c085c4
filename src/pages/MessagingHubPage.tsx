@@ -26,6 +26,7 @@ import { useMessagingHub, MessageThread, FamilyMember } from "@/hooks/useMessagi
 import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { MessageSearch } from "@/components/messages/MessageSearch";
+import { resolveSenderName } from "@/lib/displayResolver";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
@@ -244,7 +245,7 @@ const MessagingHubPage = () => {
 
     const tableData = messages.map((msg) => [
       formatTimestamp(msg.created_at),
-      msg.sender_name || "Unknown",
+      resolveSenderName(msg.sender_name),
       msg.sender_role,
       msg.content,
     ]);
