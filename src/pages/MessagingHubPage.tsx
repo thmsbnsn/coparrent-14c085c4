@@ -10,7 +10,9 @@ import {
   Check,
   CheckCheck,
   UsersRound,
-  Search
+  Search,
+  ChevronLeft,
+  Menu
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -22,11 +24,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useMessagingHub, MessageThread, FamilyMember } from "@/hooks/useMessagingHub";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { MessageSearch } from "@/components/messages/MessageSearch";
 import { resolveSenderName } from "@/lib/displayResolver";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
@@ -35,6 +39,10 @@ import { toast } from "sonner";
 
 const formatTimestamp = (dateString: string) => {
   return format(new Date(dateString), "MMM d, yyyy h:mm a");
+};
+
+const formatShortTime = (dateString: string) => {
+  return format(new Date(dateString), "h:mm a");
 };
 
 const formatReadTime = (dateString: string) => {
@@ -82,6 +90,8 @@ const MessagingHubPage = () => {
   
   const { isThirdParty } = useFamilyRole();
   const { typingText, setTyping, clearTyping } = useTypingIndicator(activeThread?.id || null);
+  const isMobile = useIsMobile();
+  
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
@@ -91,6 +101,7 @@ const MessagingHubPage = () => {
   const [groupName, setGroupName] = useState("");
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Handle typing indicator on input change
@@ -159,12 +170,10 @@ const MessagingHubPage = () => {
     }
     
     if (selectedMembers.length > 1) {
-      // Show confirmation for group message
       setShowGroupConfirm(true);
       return;
     }
     
-    // Start DM with single member
     const member = selectedMembers[0];
     const thread = await getOrCreateDMThread(member.profile_id);
     if (thread) {
@@ -180,6 +189,7 @@ const MessagingHubPage = () => {
       setShowNewDM(false);
       setSelectedMembers([]);
       setActiveTab("direct");
+      setShowSidebar(false);
     }
   };
 
@@ -211,6 +221,7 @@ const MessagingHubPage = () => {
       setSelectedMembers([]);
       setGroupName("");
       setActiveTab("groups");
+      setShowSidebar(false);
     }
     setCreatingGroup(false);
   };
@@ -231,6 +242,14 @@ const MessagingHubPage = () => {
       });
       setShowNewDM(false);
       setActiveTab("direct");
+      setShowSidebar(false);
+    }
+  };
+
+  const handleSelectThread = (thread: MessageThread) => {
+    setActiveThread(thread);
+    if (isMobile) {
+      setShowSidebar(false);
     }
   };
 
@@ -278,6 +297,174 @@ const MessagingHubPage = () => {
            "Unknown";
   };
 
+  // Sidebar content - extracted for reuse in mobile sheet and desktop sidebar
+  const SidebarContent = () => (
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "family" | "groups" | "direct")} className="flex flex-col h-full">
+      <TabsList className="grid w-full grid-cols-3 mx-2 mb-0" style={{ width: "calc(100% - 16px)" }}>
+        <TabsTrigger value="family" className="gap-1 text-xs">
+          <Hash className="w-3 h-3" />
+          <span className="hidden sm:inline">Family</span>
+        </TabsTrigger>
+        <TabsTrigger value="groups" className="gap-1 text-xs">
+          <UsersRound className="w-3 h-3" />
+          <span className="hidden sm:inline">Groups</span>
+        </TabsTrigger>
+        <TabsTrigger value="direct" className="gap-1 text-xs">
+          <MessageSquare className="w-3 h-3" />
+          <span className="hidden sm:inline">Direct</span>
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="family" className="flex-1 m-0 p-2 overflow-auto">
+        {familyChannel && (
+          <button
+            onClick={() => handleSelectThread(familyChannel)}
+            className={cn(
+              "w-full p-3 rounded-lg text-left transition-colors",
+              activeThread?.id === familyChannel.id
+                ? "bg-primary/10 border border-primary/20"
+                : "hover:bg-muted"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium">Family Chat</p>
+                <p className="text-xs text-muted-foreground">
+                  {familyMembers.length} members
+                </p>
+              </div>
+            </div>
+          </button>
+        )}
+
+        <div className="mt-4">
+          <p className="text-xs font-medium text-muted-foreground px-3 mb-2">
+            MEMBERS
+          </p>
+          {familyMembers.map((member) => (
+            <div
+              key={member.id}
+              className="flex items-center gap-3 px-3 py-2"
+            >
+              <Avatar className="w-8 h-8 flex-shrink-0">
+                <AvatarFallback className="text-xs">
+                  {getInitials(member.full_name, member.email)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {member.full_name || member.email}
+                  {member.profile_id === profileId && " (you)"}
+                </p>
+              </div>
+              {getRoleBadge(member.role)}
+            </div>
+          ))}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="groups" className="flex-1 m-0 p-2 overflow-auto">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 mb-2"
+          onClick={() => setShowNewDM(true)}
+        >
+          <Plus className="w-4 h-4" />
+          New Group Chat
+        </Button>
+
+        {groupChats.map((thread) => (
+          <button
+            key={thread.id}
+            onClick={() => handleSelectThread(thread)}
+            className={cn(
+              "w-full p-3 rounded-lg text-left transition-colors mb-1",
+              activeThread?.id === thread.id
+                ? "bg-primary/10 border border-primary/20"
+                : "hover:bg-muted"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                <UsersRound className="w-5 h-5 text-secondary-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">
+                  {thread.name || "Group Chat"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {thread.participants?.length || 0} members
+                </p>
+              </div>
+            </div>
+          </button>
+        ))}
+
+        {groupChats.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No group chats yet
+          </p>
+        )}
+      </TabsContent>
+
+      <TabsContent value="direct" className="flex-1 m-0 p-2 overflow-auto">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 mb-2"
+          onClick={() => setShowNewDM(true)}
+        >
+          <Plus className="w-4 h-4" />
+          New Message
+        </Button>
+
+        {threads.map((thread) => (
+          <button
+            key={thread.id}
+            onClick={() => handleSelectThread(thread)}
+            className={cn(
+              "w-full p-3 rounded-lg text-left transition-colors mb-1",
+              activeThread?.id === thread.id
+                ? "bg-primary/10 border border-primary/20"
+                : "hover:bg-muted"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <Avatar className="w-10 h-10 flex-shrink-0">
+                <AvatarFallback>
+                  {getInitials(
+                    thread.other_participant?.full_name,
+                    thread.other_participant?.email
+                  )}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">
+                  {thread.other_participant?.full_name || 
+                   thread.other_participant?.email || 
+                   "Unknown"}
+                </p>
+                {thread.other_participant?.role && (
+                  <div className="mt-1">
+                    {getRoleBadge(thread.other_participant.role)}
+                  </div>
+                )}
+              </div>
+            </div>
+          </button>
+        ))}
+
+        {threads.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No direct messages yet
+          </p>
+        )}
+      </TabsContent>
+    </Tabs>
+  );
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -291,26 +478,46 @@ const MessagingHubPage = () => {
   return (
     <DashboardLayout>
       <TooltipProvider>
-        <div className="h-[calc(100vh-8rem)] flex flex-col">
-          {/* Header */}
+        <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-8rem)] flex flex-col">
+          {/* Header - Mobile optimized */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-4"
+            className="mb-2 md:mb-4"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl lg:text-3xl font-display font-bold">Messaging Hub</h1>
-                <p className="text-muted-foreground mt-1">
-                  Communicate with your family group
-                </p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                {isMobile && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="flex-shrink-0"
+                    onClick={() => setShowSidebar(true)}
+                  >
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                )}
+                <div className="min-w-0">
+                  <h1 className="text-xl md:text-2xl lg:text-3xl font-display font-bold truncate">
+                    {isMobile && activeThread ? getThreadDisplayName(activeThread) : "Messages"}
+                  </h1>
+                  {!isMobile && (
+                    <p className="text-muted-foreground mt-1 text-sm">
+                      Communicate with your family group
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setShowSearch(true)}>
-                  <Search className="w-4 h-4 mr-2" />
-                  Search
+              <div className="flex gap-1 md:gap-2 flex-shrink-0">
+                <Button 
+                  variant="ghost" 
+                  size={isMobile ? "icon" : "sm"} 
+                  onClick={() => setShowSearch(true)}
+                >
+                  <Search className="w-4 h-4" />
+                  {!isMobile && <span className="ml-2">Search</span>}
                 </Button>
-                {activeThread && messages.length > 0 && (
+                {activeThread && messages.length > 0 && !isMobile && (
                   <Button variant="outline" size="sm" onClick={handleExportPDF}>
                     <FileText className="w-4 h-4 mr-2" />
                     Export PDF
@@ -322,7 +529,7 @@ const MessagingHubPage = () => {
 
           {/* Search Dialog */}
           <Dialog open={showSearch} onOpenChange={setShowSearch}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg mx-4 md:mx-auto">
               <DialogHeader>
                 <DialogTitle>Search Messages</DialogTitle>
               </DialogHeader>
@@ -337,232 +544,76 @@ const MessagingHubPage = () => {
             </DialogContent>
           </Dialog>
 
+          {/* Mobile Sidebar Sheet */}
+          <Sheet open={showSidebar} onOpenChange={setShowSidebar}>
+            <SheetContent side="left" className="w-[300px] p-0">
+              <SheetHeader className="p-4 border-b">
+                <SheetTitle>Conversations</SheetTitle>
+              </SheetHeader>
+              <div className="h-[calc(100%-60px)]">
+                <SidebarContent />
+              </div>
+            </SheetContent>
+          </Sheet>
+
           {/* Main content */}
           <div className="flex-1 flex gap-4 min-h-0">
-            {/* Sidebar - Thread list */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="w-80 flex-shrink-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col"
-            >
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "family" | "groups" | "direct")} className="flex flex-col h-full">
-                <TabsList className="grid w-full grid-cols-3 m-2 mb-0" style={{ width: "calc(100% - 16px)" }}>
-                  <TabsTrigger value="family" className="gap-1 text-xs">
-                    <Hash className="w-3 h-3" />
-                    Family
-                  </TabsTrigger>
-                  <TabsTrigger value="groups" className="gap-1 text-xs">
-                    <UsersRound className="w-3 h-3" />
-                    Groups
-                  </TabsTrigger>
-                  <TabsTrigger value="direct" className="gap-1 text-xs">
-                    <MessageSquare className="w-3 h-3" />
-                    Direct
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="family" className="flex-1 m-0 p-2">
-                  <ScrollArea className="h-full">
-                    {familyChannel && (
-                      <button
-                        onClick={() => setActiveThread(familyChannel)}
-                        className={cn(
-                          "w-full p-3 rounded-lg text-left transition-colors",
-                          activeThread?.id === familyChannel.id
-                            ? "bg-primary/10 border border-primary/20"
-                            : "hover:bg-muted"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                            <Users className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium">Family Chat</p>
-                            <p className="text-xs text-muted-foreground">
-                              {familyMembers.length} members
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    )}
-
-                    {/* Family members list */}
-                    <div className="mt-4">
-                      <p className="text-xs font-medium text-muted-foreground px-3 mb-2">
-                        MEMBERS
-                      </p>
-                      {familyMembers.map((member) => (
-                        <div
-                          key={member.id}
-                          className="flex items-center gap-3 px-3 py-2"
-                        >
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="text-xs">
-                              {getInitials(member.full_name, member.email)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {member.full_name || member.email}
-                              {member.profile_id === profileId && " (you)"}
-                            </p>
-                          </div>
-                          {getRoleBadge(member.role)}
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="groups" className="flex-1 m-0 p-2">
-                  <ScrollArea className="h-full">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-2 mb-2"
-                      onClick={() => setShowNewDM(true)}
-                    >
-                      <Plus className="w-4 h-4" />
-                      New Group Chat
-                    </Button>
-
-                    {groupChats.map((thread) => (
-                      <button
-                        key={thread.id}
-                        onClick={() => setActiveThread(thread)}
-                        className={cn(
-                          "w-full p-3 rounded-lg text-left transition-colors mb-1",
-                          activeThread?.id === thread.id
-                            ? "bg-primary/10 border border-primary/20"
-                            : "hover:bg-muted"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                            <UsersRound className="w-5 h-5 text-secondary-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
-                              {thread.name || "Group Chat"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {thread.participants?.length || 0} members
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-
-                    {groupChats.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        No group chats yet
-                      </p>
-                    )}
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="direct" className="flex-1 m-0 p-2">
-                  <ScrollArea className="h-full">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-2 mb-2"
-                      onClick={() => setShowNewDM(true)}
-                    >
-                      <Plus className="w-4 h-4" />
-                      New Message
-                    </Button>
-
-                    {threads.map((thread) => (
-                      <button
-                        key={thread.id}
-                        onClick={() => setActiveThread(thread)}
-                        className={cn(
-                          "w-full p-3 rounded-lg text-left transition-colors mb-1",
-                          activeThread?.id === thread.id
-                            ? "bg-primary/10 border border-primary/20"
-                            : "hover:bg-muted"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-10 h-10">
-                            <AvatarFallback>
-                              {getInitials(
-                                thread.other_participant?.full_name,
-                                thread.other_participant?.email
-                              )}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
-                              {thread.other_participant?.full_name || 
-                               thread.other_participant?.email || 
-                               "Unknown"}
-                            </p>
-                            {thread.other_participant?.role && (
-                              <div className="mt-1">
-                                {getRoleBadge(thread.other_participant.role)}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-
-                    {threads.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        No direct messages yet
-                      </p>
-                    )}
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
-            </motion.div>
+            {/* Desktop Sidebar */}
+            {!isMobile && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="w-72 lg:w-80 flex-shrink-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col"
+              >
+                <SidebarContent />
+              </motion.div>
+            )}
 
             {/* Chat area */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex-1 rounded-xl border border-border bg-card overflow-hidden flex flex-col"
+              className="flex-1 rounded-xl border border-border bg-card overflow-hidden flex flex-col min-w-0"
             >
               {/* Chat header */}
               {activeThread && (
-                <div className="p-4 border-b border-border flex items-center gap-3">
+                <div className="p-3 md:p-4 border-b border-border flex items-center gap-3">
                   {activeThread.thread_type === "family_channel" ? (
                     <>
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                        <Users className="w-5 h-5 text-primary" />
+                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <Users className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                       </div>
-                      <div>
-                        <h2 className="font-semibold">Family Chat</h2>
-                        <p className="text-xs text-muted-foreground">
+                      <div className="min-w-0">
+                        <h2 className="font-semibold text-sm md:text-base">Family Chat</h2>
+                        <p className="text-xs text-muted-foreground truncate">
                           All messages are saved for records
                         </p>
                       </div>
                     </>
                   ) : activeThread.thread_type === "group_chat" ? (
                     <>
-                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                        <UsersRound className="w-5 h-5 text-secondary-foreground" />
+                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                        <UsersRound className="w-4 h-4 md:w-5 md:h-5 text-secondary-foreground" />
                       </div>
-                      <div>
-                        <h2 className="font-semibold">{activeThread.name || "Group Chat"}</h2>
-                        <p className="text-xs text-muted-foreground">
+                      <div className="min-w-0">
+                        <h2 className="font-semibold text-sm md:text-base truncate">{activeThread.name || "Group Chat"}</h2>
+                        <p className="text-xs text-muted-foreground truncate">
                           {activeThread.participants?.map(p => p.full_name || p.email).join(", ")}
                         </p>
                       </div>
                     </>
                   ) : (
                     <>
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback>
+                      <Avatar className="w-9 h-9 md:w-10 md:h-10 flex-shrink-0">
+                        <AvatarFallback className="text-sm">
                           {getInitials(
                             activeThread.other_participant?.full_name,
                             activeThread.other_participant?.email
                           )}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <h2 className="font-semibold">
+                      <div className="min-w-0">
+                        <h2 className="font-semibold text-sm md:text-base truncate">
                           {activeThread.other_participant?.full_name || 
                            activeThread.other_participant?.email || 
                            "Unknown"}
@@ -577,55 +628,55 @@ const MessagingHubPage = () => {
               )}
 
               {/* Messages */}
-              <ScrollArea className="flex-1 p-4">
+              <ScrollArea className="flex-1 p-3 md:p-4">
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                    <MessageSquare className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                    <MessageSquare className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground/50 mb-4" />
                     <p className="text-muted-foreground">No messages yet</p>
                     <p className="text-sm text-muted-foreground/70">
                       Start the conversation!
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     {messages.map((message) => (
                       <motion.div
                         key={message.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={cn(
-                          "flex gap-3",
+                          "flex gap-2 md:gap-3",
                           message.is_from_me ? "flex-row-reverse" : ""
                         )}
                       >
-                        <Avatar className="w-8 h-8 flex-shrink-0">
+                        <Avatar className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0">
                           <AvatarFallback className="text-xs">
                             {getInitials(message.sender_name, null)}
                           </AvatarFallback>
                         </Avatar>
                         <div className={cn(
-                          "max-w-[70%]",
+                          "max-w-[85%] md:max-w-[70%]",
                           message.is_from_me ? "items-end" : ""
                         )}>
                           <div className={cn(
-                            "flex items-center gap-2 mb-1",
+                            "flex items-center gap-1 md:gap-2 mb-1 flex-wrap",
                             message.is_from_me ? "flex-row-reverse" : ""
                           )}>
-                            <span className="text-sm font-medium">
+                            <span className="text-xs md:text-sm font-medium">
                               {message.sender_name}
                             </span>
-                            {getRoleBadge(message.sender_role)}
-                            <span className="text-xs text-muted-foreground">
-                              {formatTimestamp(message.created_at)}
+                            <span className="hidden md:inline">{getRoleBadge(message.sender_role)}</span>
+                            <span className="text-[10px] md:text-xs text-muted-foreground">
+                              {isMobile ? formatShortTime(message.created_at) : formatTimestamp(message.created_at)}
                             </span>
                           </div>
                           <div className={cn(
-                            "p-3 rounded-lg",
+                            "p-2.5 md:p-3 rounded-lg",
                             message.is_from_me
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted"
                           )}>
-                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                           </div>
                           
                           {/* Read receipts */}
@@ -633,9 +684,9 @@ const MessagingHubPage = () => {
                             <div className={cn("flex items-center gap-1 mt-1", message.is_from_me ? "justify-end" : "")}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1 text-xs text-muted-foreground cursor-default">
-                                    <CheckCheck className="w-3.5 h-3.5 text-primary" />
-                                    <span>Read by {message.read_by.length}</span>
+                                  <div className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground cursor-default">
+                                    <CheckCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary" />
+                                    <span>Read</span>
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" align={message.is_from_me ? "end" : "start"}>
@@ -657,8 +708,8 @@ const MessagingHubPage = () => {
                           {/* Sent indicator for messages without reads yet */}
                           {message.is_from_me && (!message.read_by || message.read_by.length === 0) && (
                             <div className="flex items-center gap-1 mt-1 justify-end">
-                              <Check className="w-3.5 h-3.5 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">Sent</span>
+                              <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-muted-foreground" />
+                              <span className="text-[10px] md:text-xs text-muted-foreground">Sent</span>
                             </div>
                           )}
                         </div>
@@ -671,7 +722,7 @@ const MessagingHubPage = () => {
 
               {/* Input area */}
               {activeThread && (
-                <div className="p-4 border-t border-border">
+                <div className="p-3 md:p-4 border-t border-border">
                   {/* Typing indicator */}
                   <AnimatePresence>
                     {typingText && (
@@ -681,25 +732,25 @@ const MessagingHubPage = () => {
                         exit={{ opacity: 0, height: 0 }}
                         className="mb-2"
                       >
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
                           <div className="flex gap-1">
                             <motion.span
                               animate={{ opacity: [0.4, 1, 0.4] }}
                               transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
-                              className="w-1.5 h-1.5 bg-primary rounded-full"
+                              className="w-1 h-1 md:w-1.5 md:h-1.5 bg-primary rounded-full"
                             />
                             <motion.span
                               animate={{ opacity: [0.4, 1, 0.4] }}
                               transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
-                              className="w-1.5 h-1.5 bg-primary rounded-full"
+                              className="w-1 h-1 md:w-1.5 md:h-1.5 bg-primary rounded-full"
                             />
                             <motion.span
                               animate={{ opacity: [0.4, 1, 0.4] }}
                               transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
-                              className="w-1.5 h-1.5 bg-primary rounded-full"
+                              className="w-1 h-1 md:w-1.5 md:h-1.5 bg-primary rounded-full"
                             />
                           </div>
-                          <span>{typingText}</span>
+                          <span className="truncate">{typingText}</span>
                         </div>
                       </motion.div>
                     )}
@@ -712,181 +763,179 @@ const MessagingHubPage = () => {
                       onChange={handleInputChange}
                       onKeyPress={handleKeyPress}
                       disabled={sending}
-                      className="flex-1"
+                      className="flex-1 text-base"
                     />
-                    <Button onClick={handleSend} disabled={!newMessage.trim() || sending}>
+                    <Button 
+                      onClick={handleSend} 
+                      disabled={!newMessage.trim() || sending}
+                      size={isMobile ? "icon" : "default"}
+                    >
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Messages are immutable and saved for court records
-                  </p>
+                  {!isMobile && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Messages are immutable and saved for court records
+                    </p>
+                  )}
                 </div>
               )}
             </motion.div>
           </div>
 
           {/* New DM Modal */}
-          <AnimatePresence>
-            {showNewDM && !showGroupConfirm && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50"
+          <Dialog open={showNewDM && !showGroupConfirm} onOpenChange={(open) => {
+            setShowNewDM(open);
+            if (!open) setSelectedMembers([]);
+          }}>
+            <DialogContent className="max-w-md mx-4 md:mx-auto max-h-[85vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle>New Conversation</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                Select one person for a direct message, or multiple for a group chat:
+              </p>
+              <ScrollArea className="flex-1 max-h-64">
+                <div className="space-y-2 pr-2">
+                  {familyMembers
+                    .filter((m) => m.profile_id !== profileId)
+                    .map((member) => {
+                      const isSelected = selectedMembers.some(m => m.profile_id === member.profile_id);
+                      return (
+                        <button
+                          key={member.id}
+                          onClick={() => toggleMemberSelection(member)}
+                          className={cn(
+                            "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+                            isSelected 
+                              ? "bg-primary/10 border border-primary/30" 
+                              : "hover:bg-muted border border-transparent"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                            isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
+                          )}>
+                            {isSelected && <Check className="w-3 h-3 md:w-4 md:h-4 text-primary-foreground" />}
+                          </div>
+                          <Avatar className="w-9 h-9 md:w-10 md:h-10 flex-shrink-0">
+                            <AvatarFallback>
+                              {getInitials(member.full_name, member.email)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">
+                              {member.full_name || member.email}
+                            </p>
+                          </div>
+                          {getRoleBadge(member.role)}
+                        </button>
+                      );
+                    })}
+                </div>
+              </ScrollArea>
+              
+              {selectedMembers.length > 0 && (
+                <div className="p-3 rounded-lg bg-muted/50 text-sm">
+                  <span className="font-medium">{selectedMembers.length} selected:</span>{" "}
+                  <span className="truncate">{selectedMembers.map(m => m.full_name || m.email).join(", ")}</span>
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
                   onClick={() => {
                     setShowNewDM(false);
                     setSelectedMembers([]);
                   }}
-                />
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-card rounded-xl border border-border p-6 z-50"
                 >
-                  <h2 className="text-lg font-semibold mb-2">New Conversation</h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Select one person for a direct message, or multiple for a group chat:
-                  </p>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {familyMembers
-                      .filter((m) => m.profile_id !== profileId)
-                      .map((member) => {
-                        const isSelected = selectedMembers.some(m => m.profile_id === member.profile_id);
-                        return (
-                          <button
-                            key={member.id}
-                            onClick={() => toggleMemberSelection(member)}
-                            className={cn(
-                              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
-                              isSelected 
-                                ? "bg-primary/10 border border-primary/30" 
-                                : "hover:bg-muted border border-transparent"
-                            )}
-                          >
-                            <div className={cn(
-                              "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                              isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
-                            )}>
-                              {isSelected && <Check className="w-4 h-4 text-primary-foreground" />}
-                            </div>
-                            <Avatar className="w-10 h-10">
-                              <AvatarFallback>
-                                {getInitials(member.full_name, member.email)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <p className="font-medium">
-                                {member.full_name || member.email}
-                              </p>
-                            </div>
-                            {getRoleBadge(member.role)}
-                          </button>
-                        );
-                      })}
-                  </div>
-                  
-                  {selectedMembers.length > 0 && (
-                    <div className="mt-4 p-3 rounded-lg bg-muted/50 text-sm">
-                      <span className="font-medium">{selectedMembers.length} selected:</span>{" "}
-                      {selectedMembers.map(m => m.full_name || m.email).join(", ")}
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        setShowNewDM(false);
-                        setSelectedMembers([]);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={handleStartConversation}
-                      disabled={selectedMembers.length === 0}
-                    >
-                      {selectedMembers.length > 1 ? "Create Group" : "Start Message"}
-                    </Button>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleStartConversation}
+                  disabled={selectedMembers.length === 0}
+                >
+                  {selectedMembers.length > 1 ? "Create Group" : "Start Message"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Group Chat Creation Modal */}
-          <AnimatePresence>
-            {showGroupConfirm && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-50"
+          <Dialog open={showGroupConfirm} onOpenChange={setShowGroupConfirm}>
+            <DialogContent className="max-w-md mx-4 md:mx-auto">
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <UsersRound className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle>Create Group Chat</DialogTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedMembers.length} people selected
+                    </p>
+                  </div>
+                </div>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Group Name</label>
+                  <Input
+                    placeholder="e.g., Weekend Planning"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    autoFocus
+                    className="text-base"
+                  />
+                </div>
+                
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Members:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedMembers.map((member) => (
+                      <div key={member.profile_id} className="flex items-center gap-1.5 bg-background rounded-full px-2.5 py-1 text-sm">
+                        <Avatar className="w-5 h-5">
+                          <AvatarFallback className="text-[10px]">
+                            {getInitials(member.full_name, member.email)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="truncate max-w-[100px]">{member.full_name || member.email}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
                   onClick={() => setShowGroupConfirm(false)}
-                />
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-card rounded-xl border border-border p-6 z-50"
+                  disabled={creatingGroup}
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                      <UsersRound className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold">Create Group Chat</h2>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedMembers.length} people selected
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Group Name</label>
-                      <Input
-                        placeholder="e.g., Weekend Planning"
-                        value={groupName}
-                        onChange={(e) => setGroupName(e.target.value)}
-                        autoFocus
-                      />
-                    </div>
-                    
-                    <div className="p-3 rounded-lg bg-muted/50">
-                      <p className="text-sm font-medium mb-1">Members:</p>
-                      <p className="text-sm text-muted-foreground">
-                        You, {selectedMembers.map(m => m.full_name || m.email).join(", ")}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setShowGroupConfirm(false)}
-                    >
-                      Go Back
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={handleCreateGroupChat}
-                      disabled={!groupName.trim() || creatingGroup}
-                    >
-                      {creatingGroup ? "Creating..." : "Create Group"}
-                    </Button>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+                  Back
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleCreateGroupChat}
+                  disabled={!groupName.trim() || creatingGroup}
+                >
+                  {creatingGroup ? (
+                    <>
+                      <LoadingSpinner size="sm" />
+                      <span className="ml-2">Creating...</span>
+                    </>
+                  ) : (
+                    "Create Group"
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </TooltipProvider>
     </DashboardLayout>
