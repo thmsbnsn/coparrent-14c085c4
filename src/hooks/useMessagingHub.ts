@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFamilyRole } from "./useFamilyRole";
 import { useToast } from "./use-toast";
 import { Database } from "@/integrations/supabase/types";
-import { resolvePersonName, ENTITY_PLACEHOLDERS } from "@/lib/displayResolver";
+import { resolveDisplayName } from "@/lib/safeText";
+import { logger } from "@/lib/logger";
 
 type ThreadType = Database["public"]["Enums"]["thread_type"];
 
@@ -258,7 +259,7 @@ export const useMessagingHub = () => {
         .in("id", senderIds);
 
       const profileMap = new Map(
-        (profiles || []).map(p => [p.id, resolvePersonName(p.full_name, p.email)])
+        (profiles || []).map(p => [p.id, resolveDisplayName({ primary: p.full_name, fallback: "Family member" })])
       );
 
       // Fetch read receipts
@@ -281,7 +282,7 @@ export const useMessagingHub = () => {
         const list = receiptsByMessage.get(r.message_id) || [];
         list.push({
           reader_id: r.reader_id,
-          reader_name: resolvePersonName(r.profiles?.full_name, r.profiles?.email),
+          reader_name: resolveDisplayName({ primary: r.profiles?.full_name, fallback: "Family member" }),
           read_at: r.read_at,
         });
         receiptsByMessage.set(r.message_id, list);
@@ -289,7 +290,7 @@ export const useMessagingHub = () => {
 
       const formattedMessages: ThreadMessage[] = (data || []).map(msg => ({
         ...msg,
-        sender_name: profileMap.get(msg.sender_id) || ENTITY_PLACEHOLDERS.sender,
+        sender_name: profileMap.get(msg.sender_id) || "Family member",
         is_from_me: msg.sender_id === profileId,
         read_by: receiptsByMessage.get(msg.id) || [],
       }));
@@ -510,7 +511,11 @@ export const useMessagingHub = () => {
             ...prev,
             {
               ...newMsg,
-              sender_name: senderProfile?.full_name || senderProfile?.email || "Unknown",
+              sender_name: resolveDisplayName({
+                primary: senderProfile?.full_name,
+                secondary: null,
+                fallback: "Family member",
+              }),
               is_from_me: newMsg.sender_id === profileId,
               read_by: [],
             },
@@ -573,7 +578,11 @@ export const useMessagingHub = () => {
                   ...existingReceipts,
                   {
                     reader_id: receipt.reader_id,
-                    reader_name: readerProfile?.full_name || readerProfile?.email || "Unknown",
+                    reader_name: resolveDisplayName({
+                      primary: readerProfile?.full_name,
+                      secondary: null,
+                      fallback: "Family member",
+                    }),
                     read_at: receipt.read_at,
                   },
                 ],

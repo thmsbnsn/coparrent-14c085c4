@@ -1,23 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
+import { logger } from "@/lib/logger";
+import { safeErrorMessage } from "@/lib/safeText";
 
 const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user, loading } = useAuth();
-  const [showPassword, setShowPassword] = useState(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -92,8 +95,13 @@ const Signup = () => {
     setIsLoading(false);
 
     if (error) {
-      let errorMessage = error.message;
-      if (error.message.includes("already registered")) {
+      logger.warn("Signup failed", { email: formData.email });
+      // Clear password on error
+      setFormData(prev => ({ ...prev, password: "" }));
+      if (passwordRef.current) passwordRef.current.value = "";
+      
+      let errorMessage = safeErrorMessage(error, "Account creation failed. Please try again.");
+      if (error.message?.includes("already registered")) {
         errorMessage = "An account with this email already exists. Please sign in instead.";
       }
       toast({
@@ -166,24 +174,16 @@ const Signup = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Create a password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    minLength={8}
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                <PasswordInput
+                  id="password"
+                  ref={passwordRef}
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                />
                 <PasswordStrengthIndicator password={formData.password} className="mt-3" />
               </div>
 

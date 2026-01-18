@@ -1,23 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
 import { TwoFactorVerify } from "@/components/auth/TwoFactorVerify";
+import { logger } from "@/lib/logger";
+import { safeErrorMessage } from "@/lib/safeText";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading } = useAuth();
-  const [showPassword, setShowPassword] = useState(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
@@ -78,9 +81,14 @@ const Login = () => {
     setIsLoading(false);
 
     if (error) {
+      logger.warn("Login failed", { email: formData.email });
+      // Clear password on error
+      setFormData(prev => ({ ...prev, password: "" }));
+      if (passwordRef.current) passwordRef.current.value = "";
+      
       toast({
         title: "Sign in failed",
-        description: error.message,
+        description: safeErrorMessage(error, "Invalid email or password. Please try again."),
         variant: "destructive",
       });
       return;
@@ -189,23 +197,15 @@ const Login = () => {
                       Forgot password?
                     </Link>
                   </div>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+                  <PasswordInput
+                    id="password"
+                    ref={passwordRef}
+                    placeholder="Enter your password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    autoComplete="current-password"
+                    required
+                  />
                 </div>
 
                 <div className="flex items-center space-x-2">
