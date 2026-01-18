@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFamilyRole } from "./useFamilyRole";
-
+import { resolveDisplayName } from "@/lib/safeText";
+import { logger } from "@/lib/logger";
 interface TypingUser {
   profile_id: string;
   full_name: string | null;
@@ -40,7 +41,7 @@ export const useTypingIndicator = (threadId: string | null) => {
         clearTyping();
       }, 3000);
     } catch (error) {
-      console.error("Error setting typing indicator:", error);
+      logger.error("Error setting typing indicator:", error);
     }
   }, [threadId, profileId]);
 
@@ -133,12 +134,15 @@ export const useTypingIndicator = (threadId: string | null) => {
     };
   }, [threadId, clearTyping]);
 
-  // Format typing text
+  // Format typing text with safe display names
+  const getTypingUserName = (user: TypingUser) => 
+    resolveDisplayName({ primary: user.full_name, fallback: "Someone" });
+
   const typingText = typingUsers.length > 0
     ? typingUsers.length === 1
-      ? `${typingUsers[0].full_name || "Someone"} is typing...`
+      ? `${getTypingUserName(typingUsers[0])} is typing...`
       : typingUsers.length === 2
-        ? `${typingUsers[0].full_name || "Someone"} and ${typingUsers[1].full_name || "someone"} are typing...`
+        ? `${getTypingUserName(typingUsers[0])} and ${getTypingUserName(typingUsers[1])} are typing...`
         : `${typingUsers.length} people are typing...`
     : null;
 
