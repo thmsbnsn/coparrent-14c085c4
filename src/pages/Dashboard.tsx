@@ -67,28 +67,41 @@ const Dashboard = () => {
         setCoParent(coParentData);
       }
 
-      // Fetch recent messages if profile exists
+      // Fetch recent thread messages if profile exists
       if (profileData) {
-        const { data: messagesData } = await supabase
-          .from("messages")
-          .select("*")
-          .or(`sender_id.eq.${profileData.id},recipient_id.eq.${profileData.id}`)
-          .order("created_at", { ascending: false })
-          .limit(3);
+        // Get threads where user is a participant
+        const { data: threads } = await supabase
+          .from("message_threads")
+          .select("id")
+          .or(`participant_a_id.eq.${profileData.id},participant_b_id.eq.${profileData.id},thread_type.eq.family_channel`);
 
-        if (messagesData && messagesData.length > 0) {
-          // Get sender profiles for messages
-          const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
-          const { data: senderProfiles } = await supabase
-            .from("profiles")
+        if (threads && threads.length > 0) {
+          const threadIds = threads.map(t => t.id);
+          const { data: messagesData } = await supabase
+            .from("thread_messages")
             .select("*")
-            .in("id", senderIds);
+            .in("thread_id", threadIds)
+            .order("created_at", { ascending: false })
+            .limit(3);
 
-          const messagesWithSenders = messagesData.map(msg => ({
-            ...msg,
-            sender: senderProfiles?.find(p => p.id === msg.sender_id)
-          }));
-          setMessages(messagesWithSenders);
+          if (messagesData && messagesData.length > 0) {
+            const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
+            const { data: senderProfiles } = await supabase
+              .from("profiles")
+              .select("*")
+              .in("id", senderIds);
+
+            const messagesWithSenders = messagesData.map(msg => ({
+              id: msg.id,
+              content: msg.content,
+              created_at: msg.created_at,
+              sender_id: msg.sender_id,
+              recipient_id: msg.sender_id,
+              read_at: null,
+              sender: senderProfiles?.find(p => p.id === msg.sender_id)
+            }));
+            setMessages(messagesWithSenders as any);
+          }
         }
       }
 

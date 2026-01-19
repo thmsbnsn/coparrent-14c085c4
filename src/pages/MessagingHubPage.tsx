@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageSquare, 
@@ -11,8 +11,8 @@ import {
   CheckCheck,
   UsersRound,
   Search,
-  ChevronLeft,
-  Menu
+  Menu,
+  RefreshCw
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useMessagingHub, MessageThread, FamilyMember } from "@/hooks/useMessagingHub";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { MessageSearch } from "@/components/messages/MessageSearch";
+import { MessageReactions } from "@/components/messages/MessageReactions";
+import { PullToRefreshIndicator } from "@/components/messages/PullToRefreshIndicator";
+import { UnreadBadge } from "@/components/messages/UnreadBadge";
+import { SwipeableTabs } from "@/components/messages/SwipeableTabs";
 import { resolveSenderName } from "@/lib/displayResolver";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -36,6 +42,7 @@ import { format } from "date-fns";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const formatTimestamp = (dateString: string) => {
   return format(new Date(dateString), "MMM d, yyyy h:mm a");
@@ -86,10 +93,18 @@ const MessagingHubPage = () => {
     getOrCreateDMThread,
     createGroupChat,
     ensureFamilyChannel,
+    fetchThreads,
   } = useMessagingHub();
   
   const { isThirdParty } = useFamilyRole();
   const { typingText, setTyping, clearTyping } = useTypingIndicator(activeThread?.id || null);
+  const { 
+    totalUnread, 
+    getUnreadForThread, 
+    getUnreadByType, 
+    showIndicator,
+    refresh: refreshUnread 
+  } = useUnreadMessages();
   const isMobile = useIsMobile();
   
   const [newMessage, setNewMessage] = useState("");
@@ -102,7 +117,146 @@ const MessagingHubPage = () => {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [messageReactions, setMessageReactions] = useState<Map<string, { emoji: string; count: number; hasReacted: boolean }[]>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Pull-to-refresh for messages
+  const handleRefresh = useCallback(async () => {
+    await fetchThreads();
+    await refreshUnread();
+  }, [fetchThreads, refreshUnread]);
+
+  const { 
+    isRefreshing, 
+    pullDistance, 
+    bindEvents 
+  } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    enabled: isMobile,
+  });
+
+  // Bind pull-to-refresh to scroll area
+  useEffect(() => {
+    if (scrollAreaRef.current && isMobile) {
+      return bindEvents(scrollAreaRef.current);
+    }
+  }, [bindEvents, isMobile]);
+
+  // Fetch reactions for current messages
+  useEffect(() => {
+    const fetchReactions = async () => {
+      if (!messages.length || !profileId) return;
+
+      const messageIds = messages.map(m => m.id);
+      const { data: reactions } = await supabase
+        .from("message_reactions")
+        .select("*")
+        .in("message_id", messageIds);
+
+      if (reactions) {
+        const reactionsMap = new Map<string, { emoji: string; count: number; hasReacted: boolean }[]>();
+        
+        reactions.forEach((r: any) => {
+          const existing = reactionsMap.get(r.message_id) || [];
+          const emojiEntry = existing.find(e => e.emoji === r.emoji);
+          
+          if (emojiEntry) {
+            emojiEntry.count++;
+            if (r.profile_id === profileId) emojiEntry.hasReacted = true;
+          } else {
+            existing.push({
+              emoji: r.emoji,
+              count: 1,
+              hasReacted: r.profile_id === profileId,
+            });
+          }
+          
+          reactionsMap.set(r.message_id, existing);
+        });
+        
+        setMessageReactions(reactionsMap);
+      }
+    };
+
+    fetchReactions();
+  }, [messages, profileId]);
+
+  // Subscribe to reaction changes
+  useEffect(() => {
+    if (!activeThread) return;
+
+    const channel = supabase
+      .channel(`reactions-${activeThread.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "message_reactions",
+        },
+        async () => {
+          // Refetch reactions when changes occur
+          const messageIds = messages.map(m => m.id);
+          if (messageIds.length === 0) return;
+
+          const { data: reactions } = await supabase
+            .from("message_reactions")
+            .select("*")
+            .in("message_id", messageIds);
+
+          if (reactions) {
+            const reactionsMap = new Map<string, { emoji: string; count: number; hasReacted: boolean }[]>();
+            
+            reactions.forEach((r: any) => {
+              const existing = reactionsMap.get(r.message_id) || [];
+              const emojiEntry = existing.find(e => e.emoji === r.emoji);
+              
+              if (emojiEntry) {
+                emojiEntry.count++;
+                if (r.profile_id === profileId) emojiEntry.hasReacted = true;
+              } else {
+                existing.push({
+                  emoji: r.emoji,
+                  count: 1,
+                  hasReacted: r.profile_id === profileId,
+                });
+              }
+              
+              reactionsMap.set(r.message_id, existing);
+            });
+            
+            setMessageReactions(reactionsMap);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeThread, messages, profileId]);
+
+  // Handle adding/toggling a reaction
+  const handleReaction = async (messageId: string, emoji: string) => {
+    if (!profileId) return;
+
+    const existingReactions = messageReactions.get(messageId) || [];
+    const hasReacted = existingReactions.find(r => r.emoji === emoji)?.hasReacted;
+
+    if (hasReacted) {
+      // Remove reaction
+      await supabase
+        .from("message_reactions")
+        .delete()
+        .match({ message_id: messageId, profile_id: profileId, emoji });
+    } else {
+      // Add reaction
+      await supabase
+        .from("message_reactions")
+        .insert({ message_id: messageId, profile_id: profileId, emoji });
+    }
+  };
 
   // Handle typing indicator on input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -298,29 +452,62 @@ const MessagingHubPage = () => {
   };
 
   // Sidebar content - extracted for reuse in mobile sheet and desktop sidebar
-  const SidebarContent = () => (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "family" | "groups" | "direct")} className="flex flex-col h-full">
-      <TabsList className="grid w-full grid-cols-3 mx-2 mb-0" style={{ width: "calc(100% - 16px)" }}>
-        <TabsTrigger value="family" className="gap-1 text-xs">
-          <Hash className="w-3 h-3" />
-          <span className="hidden sm:inline">Family</span>
-        </TabsTrigger>
-        <TabsTrigger value="groups" className="gap-1 text-xs">
-          <UsersRound className="w-3 h-3" />
-          <span className="hidden sm:inline">Groups</span>
-        </TabsTrigger>
-        <TabsTrigger value="direct" className="gap-1 text-xs">
-          <MessageSquare className="w-3 h-3" />
-          <span className="hidden sm:inline">Direct</span>
-        </TabsTrigger>
-      </TabsList>
+  const SidebarContent = () => {
+    const tabItems = ["family", "groups", "direct"] as const;
+    const familyUnread = showIndicator ? getUnreadByType("family_channel") : 0;
+    const groupsUnread = showIndicator ? getUnreadByType("group_chat") : 0;
+    const directUnread = showIndicator ? getUnreadByType("direct_message") : 0;
 
+    return (
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "family" | "groups" | "direct")} className="flex flex-col h-full">
+        <TabsList className="grid w-full grid-cols-3 mx-2 mb-0" style={{ width: "calc(100% - 16px)" }}>
+          <TabsTrigger value="family" className="gap-1 text-xs relative">
+            <Hash className="w-3 h-3" />
+            <span className="hidden sm:inline">Family</span>
+            {familyUnread > 0 && (
+              <UnreadBadge count={familyUnread} className="absolute -top-1 -right-1" />
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="gap-1 text-xs relative">
+            <UsersRound className="w-3 h-3" />
+            <span className="hidden sm:inline">Groups</span>
+            {groupsUnread > 0 && (
+              <UnreadBadge count={groupsUnread} className="absolute -top-1 -right-1" />
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="direct" className="gap-1 text-xs relative">
+            <MessageSquare className="w-3 h-3" />
+            <span className="hidden sm:inline">Direct</span>
+            {directUnread > 0 && (
+              <UnreadBadge count={directUnread} className="absolute -top-1 -right-1" />
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        {isMobile ? (
+          <SwipeableTabs
+            tabs={[...tabItems]}
+            activeTab={activeTab}
+            onTabChange={(t) => setActiveTab(t as typeof activeTab)}
+            className="flex-1"
+          >
+            <TabContentInner />
+          </SwipeableTabs>
+        ) : (
+          <TabContentInner />
+        )}
+      </Tabs>
+    );
+  };
+
+  const TabContentInner = () => (
+    <>
       <TabsContent value="family" className="flex-1 m-0 p-2 overflow-auto">
         {familyChannel && (
           <button
             onClick={() => handleSelectThread(familyChannel)}
             className={cn(
-              "w-full p-3 rounded-lg text-left transition-colors",
+              "w-full p-3 rounded-lg text-left transition-colors relative",
               activeThread?.id === familyChannel.id
                 ? "bg-primary/10 border border-primary/20"
                 : "hover:bg-muted"
@@ -330,12 +517,15 @@ const MessagingHubPage = () => {
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                 <Users className="w-5 h-5 text-primary" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="font-medium">Family Chat</p>
                 <p className="text-xs text-muted-foreground">
                   {familyMembers.length} members
                 </p>
               </div>
+              {showIndicator && getUnreadForThread(familyChannel.id) > 0 && (
+                <UnreadBadge count={getUnreadForThread(familyChannel.id)} />
+              )}
             </div>
           </button>
         )}
@@ -381,7 +571,7 @@ const MessagingHubPage = () => {
             key={thread.id}
             onClick={() => handleSelectThread(thread)}
             className={cn(
-              "w-full p-3 rounded-lg text-left transition-colors mb-1",
+              "w-full p-3 rounded-lg text-left transition-colors mb-1 relative",
               activeThread?.id === thread.id
                 ? "bg-primary/10 border border-primary/20"
                 : "hover:bg-muted"
@@ -399,6 +589,9 @@ const MessagingHubPage = () => {
                   {thread.participants?.length || 0} members
                 </p>
               </div>
+              {showIndicator && getUnreadForThread(thread.id) > 0 && (
+                <UnreadBadge count={getUnreadForThread(thread.id)} />
+              )}
             </div>
           </button>
         ))}
@@ -425,7 +618,7 @@ const MessagingHubPage = () => {
             key={thread.id}
             onClick={() => handleSelectThread(thread)}
             className={cn(
-              "w-full p-3 rounded-lg text-left transition-colors mb-1",
+              "w-full p-3 rounded-lg text-left transition-colors mb-1 relative",
               activeThread?.id === thread.id
                 ? "bg-primary/10 border border-primary/20"
                 : "hover:bg-muted"
@@ -452,6 +645,9 @@ const MessagingHubPage = () => {
                   </div>
                 )}
               </div>
+              {showIndicator && getUnreadForThread(thread.id) > 0 && (
+                <UnreadBadge count={getUnreadForThread(thread.id)} />
+              )}
             </div>
           </button>
         ))}
@@ -462,7 +658,7 @@ const MessagingHubPage = () => {
           </p>
         )}
       </TabsContent>
-    </Tabs>
+    </>
   );
 
   if (loading) {
@@ -491,10 +687,17 @@ const MessagingHubPage = () => {
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 relative"
                     onClick={() => setShowSidebar(true)}
                   >
                     <Menu className="w-5 h-5" />
+                    {showIndicator && totalUnread > 0 && (
+                      <UnreadBadge 
+                        count={totalUnread} 
+                        className="absolute -top-1 -right-1"
+                        size="sm"
+                      />
+                    )}
                   </Button>
                 )}
                 <div className="min-w-0">
@@ -509,6 +712,16 @@ const MessagingHubPage = () => {
                 </div>
               </div>
               <div className="flex gap-1 md:gap-2 flex-shrink-0">
+                {isMobile && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   size={isMobile ? "icon" : "sm"} 
@@ -548,7 +761,12 @@ const MessagingHubPage = () => {
           <Sheet open={showSidebar} onOpenChange={setShowSidebar}>
             <SheetContent side="left" className="w-[300px] p-0">
               <SheetHeader className="p-4 border-b">
-                <SheetTitle>Conversations</SheetTitle>
+                <SheetTitle className="flex items-center gap-2">
+                  Conversations
+                  {showIndicator && totalUnread > 0 && (
+                    <UnreadBadge count={totalUnread} size="md" />
+                  )}
+                </SheetTitle>
               </SheetHeader>
               <div className="h-[calc(100%-60px)]">
                 <SidebarContent />
@@ -627,98 +845,116 @@ const MessagingHubPage = () => {
                 </div>
               )}
 
-              {/* Messages */}
-              <ScrollArea className="flex-1 p-3 md:p-4">
-                {messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                    <MessageSquare className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground/50 mb-4" />
-                    <p className="text-muted-foreground">No messages yet</p>
-                    <p className="text-sm text-muted-foreground/70">
-                      Start the conversation!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 md:space-y-4">
-                    {messages.map((message) => (
-                      <motion.div
-                        key={message.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={cn(
-                          "flex gap-2 md:gap-3",
-                          message.is_from_me ? "flex-row-reverse" : ""
-                        )}
-                      >
-                        <Avatar className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0">
-                          <AvatarFallback className="text-xs">
-                            {getInitials(message.sender_name, null)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={cn(
-                          "max-w-[85%] md:max-w-[70%]",
-                          message.is_from_me ? "items-end" : ""
-                        )}>
-                          <div className={cn(
-                            "flex items-center gap-1 md:gap-2 mb-1 flex-wrap",
+              {/* Messages with pull-to-refresh */}
+              <div className="flex-1 relative overflow-hidden" ref={scrollAreaRef} data-scroll-area>
+                <PullToRefreshIndicator 
+                  pullDistance={pullDistance} 
+                  isRefreshing={isRefreshing}
+                />
+                <ScrollArea className="h-full p-3 md:p-4">
+                  {messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                      <MessageSquare className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground/50 mb-4" />
+                      <p className="text-muted-foreground">No messages yet</p>
+                      <p className="text-sm text-muted-foreground/70">
+                        Start the conversation!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 md:space-y-4">
+                      {messages.map((message) => (
+                        <motion.div
+                          key={message.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={cn(
+                            "flex gap-2 md:gap-3 group",
                             message.is_from_me ? "flex-row-reverse" : ""
-                          )}>
-                            <span className="text-xs md:text-sm font-medium">
-                              {message.sender_name}
-                            </span>
-                            <span className="hidden md:inline">{getRoleBadge(message.sender_role)}</span>
-                            <span className="text-[10px] md:text-xs text-muted-foreground">
-                              {isMobile ? formatShortTime(message.created_at) : formatTimestamp(message.created_at)}
-                            </span>
-                          </div>
+                          )}
+                        >
+                          <Avatar className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0">
+                            <AvatarFallback className="text-xs">
+                              {getInitials(message.sender_name, null)}
+                            </AvatarFallback>
+                          </Avatar>
                           <div className={cn(
-                            "p-2.5 md:p-3 rounded-lg",
-                            message.is_from_me
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
+                            "max-w-[85%] md:max-w-[70%]",
+                            message.is_from_me ? "items-end" : ""
                           )}>
-                            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                            <div className={cn(
+                              "flex items-center gap-1 md:gap-2 mb-1 flex-wrap",
+                              message.is_from_me ? "flex-row-reverse" : ""
+                            )}>
+                              <span className="text-xs md:text-sm font-medium">
+                                {message.sender_name}
+                              </span>
+                              <span className="hidden md:inline">{getRoleBadge(message.sender_role)}</span>
+                              <span className="text-[10px] md:text-xs text-muted-foreground">
+                                {isMobile ? formatShortTime(message.created_at) : formatTimestamp(message.created_at)}
+                              </span>
+                            </div>
+                            <div className={cn(
+                              "p-2.5 md:p-3 rounded-lg",
+                              message.is_from_me
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
+                            )}>
+                              <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                            </div>
+                            
+                            {/* Message Reactions */}
+                            <div className={cn(
+                              "mt-1",
+                              message.is_from_me ? "flex justify-end" : ""
+                            )}>
+                              <MessageReactions
+                                messageId={message.id}
+                                reactions={messageReactions.get(message.id)}
+                                onReact={handleReaction}
+                              />
+                            </div>
+                            
+                            {/* Read receipts */}
+                            {message.is_from_me && message.read_by && message.read_by.length > 0 && (
+                              <div className={cn("flex items-center gap-1 mt-1", message.is_from_me ? "justify-end" : "")}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground cursor-default">
+                                      <CheckCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary" />
+                                      <span>Read</span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" align={message.is_from_me ? "end" : "start"}>
+                                    <div className="space-y-1">
+                                      {message.read_by.map((receipt) => (
+                                        <div key={receipt.reader_id} className="text-xs">
+                                          <span className="font-medium">{receipt.reader_name}</span>
+                                          <span className="text-muted-foreground ml-2">
+                                            {formatReadTime(receipt.read_at)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            )}
+                            
+                            {/* Sent indicator for messages without reads yet */}
+                            {message.is_from_me && (!message.read_by || message.read_by.length === 0) && (
+                              <div className="flex items-center gap-1 mt-1 justify-end">
+                                <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-muted-foreground" />
+                                <span className="text-[10px] md:text-xs text-muted-foreground">Sent</span>
+                              </div>
+                            )}
                           </div>
-                          
-                          {/* Read receipts */}
-                          {message.is_from_me && message.read_by && message.read_by.length > 0 && (
-                            <div className={cn("flex items-center gap-1 mt-1", message.is_from_me ? "justify-end" : "")}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground cursor-default">
-                                    <CheckCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary" />
-                                    <span>Read</span>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" align={message.is_from_me ? "end" : "start"}>
-                                  <div className="space-y-1">
-                                    {message.read_by.map((receipt) => (
-                                      <div key={receipt.reader_id} className="text-xs">
-                                        <span className="font-medium">{receipt.reader_name}</span>
-                                        <span className="text-muted-foreground ml-2">
-                                          {formatReadTime(receipt.read_at)}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                          )}
-                          
-                          {/* Sent indicator for messages without reads yet */}
-                          {message.is_from_me && (!message.read_by || message.read_by.length === 0) && (
-                            <div className="flex items-center gap-1 mt-1 justify-end">
-                              <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-muted-foreground" />
-                              <span className="text-[10px] md:text-xs text-muted-foreground">Sent</span>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
-              </ScrollArea>
+                        </motion.div>
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  )}
+                </ScrollArea>
+              </div>
 
               {/* Input area */}
               {activeThread && (
