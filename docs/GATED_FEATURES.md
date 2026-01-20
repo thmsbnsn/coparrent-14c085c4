@@ -3,6 +3,8 @@
 This document lists all premium, role-gated, and admin-restricted features in CoParrent,
 along with where each gate is enforced (UI component + server-side).
 
+**Last Updated:** 2026-01-20
+
 ## Gate Types
 
 | Gate Type | Description | UI Component | Server Check |
@@ -10,6 +12,7 @@ along with where each gate is enforced (UI component + server-side).
 | **PremiumGate** | Requires active subscription or trial | `PremiumFeatureGate` | Edge function `aiGuard` |
 | **RoleGate** | Requires parent/guardian role (not third-party) | `RoleGate`, `ProtectedRoute` | RLS policies, edge function `aiGuard` |
 | **AdminGate** | Requires admin role in user_roles table | `AdminGate` | `is_admin()` DB function, RLS |
+| **ChildGate** | Enforces child account restrictions | `ChildAccountGate` | `get_child_permissions()` RPC |
 
 ---
 
@@ -40,7 +43,8 @@ Features restricted from Third-Party members.
 | Manage Expenses | `ProtectedRoute` - `/dashboard/expenses` | RLS on `expenses` | |
 | Settings Access | `ProtectedRoute` - `/dashboard/settings` | Profile RLS | |
 | Submit Schedule Requests | Component-level disable | RLS on `schedule_requests` | Third-party can view |
-| Send Messages | Open for all family members | RLS on `messages`, `thread_messages` | |
+| Send Messages | Open for all family members | RLS on `thread_messages` | Family channel access for all |
+| Add Message Reactions | Open for all family members | RLS on `message_reactions` | Emoji reactions on messages |
 
 ### Third-Party Allowed Routes (Read Access)
 - `/dashboard` - Dashboard overview
@@ -85,6 +89,46 @@ Features restricted to users with `admin` role in `user_roles` table.
 - `deescalate` - Premium mode selector
 - `facts_only` - Premium mode selector
 - `boundary_setting` - Premium mode selector
+
+---
+
+## Messaging System Features
+
+The messaging system uses a thread-based architecture with the following components:
+
+### Data Model
+| Table | Purpose | RLS Enforcement |
+|-------|---------|-----------------|
+| `message_threads` | Thread metadata (type, participants) | `is_family_member()` function |
+| `thread_messages` | Message content and sender | `can_access_thread()` function |
+| `message_read_receipts` | Read status per user per message | Reader ID = auth.uid() |
+| `message_reactions` | Emoji reactions on messages | Family membership via thread access |
+| `typing_indicators` | Real-time typing status | Thread participant only |
+| `group_chat_participants` | Group membership | Participant ID = profile ID |
+
+### Messaging Features by Access Level
+
+| Feature | All Family Members | Parents Only | Notes |
+|---------|-------------------|--------------|-------|
+| View Family Channel | ✅ | - | All family members see family_channel |
+| Send Messages | ✅ | - | Any thread they can access |
+| Add Reactions | ✅ | - | Emoji reactions with toggle |
+| Direct Messages | ✅ | - | 1:1 with any family member |
+| Create Group Chats | ✅ | - | With any family members |
+| View Unread Counts | ✅ | - | Per-thread and total |
+| Search Messages | ✅ | - | Full-text search via RPC |
+| Export to PDF | ✅ | - | Court-ready export |
+
+### Unread Message Indicators
+
+Unread counts are displayed when:
+1. User has `notification_preferences.enabled = true`
+2. User has `notification_preferences.new_messages = true`
+3. Messages exist that the user hasn't read (no read receipt)
+
+The indicator disappears when:
+- The message is read (read receipt created)
+- User disables notifications in settings
 
 ---
 

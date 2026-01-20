@@ -1,3 +1,26 @@
+/**
+ * useMessagingHub - Primary messaging hook for CoParrent
+ * 
+ * This is the AUTHORITATIVE messaging implementation. All new messaging
+ * features should use this hook. It provides:
+ * 
+ * - Thread management (direct messages, group chats, family channel)
+ * - Message fetching with read receipts
+ * - Thread creation via edge function (bypasses RLS for secure creation)
+ * - Realtime subscriptions for messages
+ * 
+ * Data Model:
+ * - `message_threads` - Thread metadata (type, participants, primary_parent_id)
+ * - `thread_messages` - Actual messages (content, sender, timestamps)
+ * - `message_read_receipts` - Read status tracking
+ * - `group_chat_participants` - Group membership for group_chat threads
+ * 
+ * Edge Functions:
+ * - `create-message-thread` - Server-side thread creation with validation
+ * 
+ * @see useUnreadMessages for unread count tracking
+ * @see useTypingIndicator for typing status
+ */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";

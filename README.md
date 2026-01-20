@@ -43,11 +43,79 @@ The application is designed with a **calm, professional, court-friendly aestheti
 **Current Phase:** Active Development (Beta-Ready)  
 **Environment:** Lovable Cloud + Supabase  
 **Stripe Mode:** Test  
-**Last Verified Build:** 2026-01-16  
+**Last Verified Build:** 2026-01-20  
 **Verified By:** Lovable  
-**Last README Update:** 2026-01-16
+**Last README Update:** 2026-01-20
 
 > **Note:** The `Last Verified Build` and `Verified By` fields must be updated whenever a behavioral or architectural change is made.
+
+---
+
+## 🚀 Migration Notes
+
+This section documents recent architectural changes for developers migrating or maintaining the codebase.
+
+### Database Tables Added (January 2026)
+
+| Table | Purpose | Migration File |
+|-------|---------|---------------|
+| `message_reactions` | Emoji reactions on thread messages | `20260119035212_*.sql` |
+| `message_read_receipts` | Read status tracking per user | Earlier migration |
+| `typing_indicators` | Real-time typing status | Earlier migration |
+| `group_chat_participants` | Group chat membership | Earlier migration |
+
+### Major Architectural Decisions
+
+1. **Message Threading Model**: The messaging system uses `thread_messages` as the single source of truth. The legacy `messages` table remains for historical 1:1 co-parent messages but is deprecated for new features. See `useMessagingHub.ts` for the authoritative implementation.
+
+2. **Thread Creation via Edge Function**: Thread creation bypasses RLS via `create-message-thread` edge function to ensure proper server-side validation of family membership.
+
+3. **Unread Counts Architecture**: Unread counts are calculated by comparing `thread_messages` against `message_read_receipts`. Indicators respect `notification_preferences` settings.
+
+4. **Mobile-First Messaging**: The messaging hub includes pull-to-refresh, swipe navigation between tabs, and touch-friendly emoji reactions.
+
+### Files Recently Touched (January 2026)
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useMessagingHub.ts` | Primary messaging hook (authoritative) |
+| `src/hooks/useUnreadMessages.ts` | NEW - Unread count tracking |
+| `src/hooks/usePullToRefresh.ts` | NEW - Mobile pull-to-refresh |
+| `src/hooks/useMessages.ts` | DEPRECATED - Legacy 1:1 messaging |
+| `src/pages/MessagingHubPage.tsx` | Mobile-first refactor, reactions, unread badges |
+| `src/pages/Dashboard.tsx` | Updated to use `thread_messages` for recent messages |
+| `src/components/messages/MessageReactions.tsx` | NEW - Emoji picker and reactions UI |
+| `src/components/messages/SwipeableTabs.tsx` | NEW - Mobile swipe navigation |
+| `src/components/messages/UnreadBadge.tsx` | NEW - Unread count indicator |
+| `src/components/messages/PullToRefreshIndicator.tsx` | NEW - Pull indicator UI |
+
+### Known TODOs / Intentional Limitations
+
+1. **Legacy `messages` Table**: Retained for backward compatibility with `MessagesPage.tsx`. New features should use `thread_messages`.
+
+2. **Reaction Aggregation**: Reactions are fetched and aggregated client-side. Consider a database view for performance at scale.
+
+3. **Typing Indicator Cleanup**: Uses polling (2-second interval) to clean stale indicators. This is intentional for simplicity but could be optimized.
+
+4. **Search Result Highlighting**: Uses React-based text highlighting (not `dangerouslySetInnerHTML`) for security.
+
+### Local Development
+
+This project runs identically in local environments:
+
+```bash
+npm install
+npm run dev
+```
+
+Required environment variables (auto-configured by Lovable Cloud):
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_PROJECT_ID`
+
+No Lovable-specific runtime dependencies exist in the application code.
+
+---
 
 ### Current Focus
 
@@ -62,7 +130,7 @@ The application is designed with a **calm, professional, court-friendly aestheti
 
 _None currently. All previously identified blocking issues have been resolved._
 
-_Last updated: 2026-01-16_
+_Last updated: 2026-01-20_
 
 ---
 
@@ -550,15 +618,22 @@ When modifying AI functionality:
 
 ### 6. Messaging Hub
 
-| Feature               | Components             | Description                              |
-| --------------------- | ---------------------- | ---------------------------------------- |
-| **Family Channel**    | `MessagingHubPage`     | Group messaging for entire family        |
-| **Direct Messages**   | `MessagingHubPage`     | 1-on-1 messaging between family members  |
-| **AI Tone Assistant** | `MessageToneAssistant` | AI-powered message tone suggestions      |
-| **Typing Indicators** | `useTypingIndicator`   | Real-time typing status display          |
-| **Message History**   | `useMessagingHub`      | Thread and message data management       |
-| **Role Badges**       | Visual role indicators | Show parent/third-party role in messages |
-| **Court-Friendly**    | Immutable messages     | Messages cannot be edited or deleted     |
+| Feature                   | Components               | Description                              |
+| ------------------------- | ------------------------ | ---------------------------------------- |
+| **Family Channel**        | `MessagingHubPage`       | Group messaging for entire family        |
+| **Direct Messages**       | `MessagingHubPage`       | 1-on-1 messaging between family members  |
+| **Group Chats**           | `MessagingHubPage`       | Multi-person group conversations         |
+| **AI Tone Assistant**     | `MessageToneAssistant`   | AI-powered message tone suggestions      |
+| **Typing Indicators**     | `useTypingIndicator`     | Real-time typing status display          |
+| **Message History**       | `useMessagingHub`        | Thread and message data management       |
+| **Message Reactions**     | `MessageReactions`       | Emoji reactions on messages              |
+| **Unread Counts**         | `useUnreadMessages`      | Per-thread and total unread tracking     |
+| **Full-Text Search**      | `MessageSearch`          | Search across message history            |
+| **Pull-to-Refresh**       | `usePullToRefresh`       | Mobile gesture to refresh messages       |
+| **Swipe Navigation**      | `SwipeableTabs`          | Mobile swipe between conversation tabs   |
+| **Role Badges**           | Visual role indicators   | Show parent/third-party role in messages |
+| **Court-Friendly**        | Immutable messages       | Messages cannot be edited or deleted     |
+| **PDF Export**            | Court-ready export       | Export conversation logs for court       |
 
 ### 7. Documents
 
@@ -659,32 +734,34 @@ When modifying AI functionality:
 
 ### 14. Custom Hooks
 
-| Hook                     | Purpose                                    |
-| ------------------------ | ------------------------------------------ |
-| `useAuth`                | Authentication state management            |
-| `useFamilyRole`          | Family role detection (parent/third-party) |
-| `useMessagingHub`        | Messaging threads and messages             |
-| `useTypingIndicator`     | Typing indicator broadcast/subscribe       |
-| `useGiftLists`           | Gift list and item management              |
-| `useChildren`            | Children data CRUD                         |
-| `useRealtimeChildren`    | Realtime children updates                  |
-| `useDocuments`           | Document management                        |
-| `useMessages`            | Legacy messaging functionality             |
-| `useExpenses`            | Expense tracking and reimbursements        |
-| `useLawLibrary`          | Law library resource access                |
-| `useAdminLawLibrary`     | Admin law library management               |
-| `useNotifications`       | Notification management                    |
-| `useNotificationService` | Notification dispatch service              |
-| `usePushNotifications`   | Browser push notifications                 |
-| `useRealtimeSchedule`    | Live schedule updates                      |
-| `useSchedulePersistence` | Schedule data persistence                  |
-| `useScheduleRequests`    | Schedule change requests                   |
-| `useSubscription`        | Stripe subscription status                 |
-| `usePremiumAccess`       | Premium feature access checks              |
-| `useUserPreferences`     | User preference management                 |
-| `useLoginNotification`   | Device tracking and login alerts           |
-| `useMobile`              | Responsive breakpoint detection            |
-| `useToast`               | Toast notifications                        |
+| Hook                     | Purpose                                    | Status |
+| ------------------------ | ------------------------------------------ | ------ |
+| `useAuth`                | Authentication state management            | Active |
+| `useFamilyRole`          | Family role detection (parent/third-party) | Active |
+| `useMessagingHub`        | Primary messaging hook (threads, messages) | **Active** |
+| `useUnreadMessages`      | Unread count tracking across threads       | Active |
+| `useTypingIndicator`     | Typing indicator broadcast/subscribe       | Active |
+| `usePullToRefresh`       | Mobile pull-to-refresh gesture             | Active |
+| `useGiftLists`           | Gift list and item management              | Active |
+| `useChildren`            | Children data CRUD                         | Active |
+| `useRealtimeChildren`    | Realtime children updates                  | Active |
+| `useDocuments`           | Document management                        | Active |
+| `useMessages`            | **DEPRECATED** - Legacy 1:1 messaging      | Legacy |
+| `useExpenses`            | Expense tracking and reimbursements        | Active |
+| `useLawLibrary`          | Law library resource access                | Active |
+| `useAdminLawLibrary`     | Admin law library management               | Active |
+| `useNotifications`       | Notification management                    | Active |
+| `useNotificationService` | Notification dispatch service              | Active |
+| `usePushNotifications`   | Browser push notifications                 | Active |
+| `useRealtimeSchedule`    | Live schedule updates                      | Active |
+| `useSchedulePersistence` | Schedule data persistence                  | Active |
+| `useScheduleRequests`    | Schedule change requests                   | Active |
+| `useSubscription`        | Stripe subscription status                 | Active |
+| `usePremiumAccess`       | Premium feature access checks              | Active |
+| `useUserPreferences`     | User preference management                 | Active |
+| `useLoginNotification`   | Device tracking and login alerts           | Active |
+| `useMobile`              | Responsive breakpoint detection            | Active |
+| `useToast`               | Toast notifications                        | Active |
 
 ---
 
@@ -1224,7 +1301,6 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [ ] **Holiday Schedules**: Add holiday/special occasion override scheduling with templates
 - [ ] **Recurring Events**: Child activities, doctor appointments, school events scheduling
 - [ ] **File Previews**: In-app document preview for PDFs and images without download
-- [ ] **Message Search**: Full-text search through message history
 - [ ] **Mobile App**: Native iOS/Android apps (currently PWA only)
 - [ ] **Grandparent Rights**: Add grandparent visitation laws to law library
 - [ ] **Domestic Violence Resources**: Add protective order and DV resources to law library
@@ -1258,6 +1334,10 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [x] **Blog System**: Full blog with categories, tags, and sharing
 - [x] **Error Boundaries**: Comprehensive error handling with fallback UIs
 - [x] **Children CRUD**: Add, edit, and manage child profiles with medical/school info
+- [x] **Message Search**: Full-text search across message history with GIN index
+- [x] **Message Reactions**: Emoji reactions on messages with toggle and realtime sync
+- [x] **Unread Message Indicators**: Per-thread and total unread counts with notification settings
+- [x] **Mobile Messaging UX**: Pull-to-refresh, swipe navigation, touch-friendly reactions
 
 ### Technical Debt
 
