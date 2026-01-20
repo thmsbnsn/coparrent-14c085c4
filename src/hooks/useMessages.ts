@@ -1,3 +1,19 @@
+/**
+ * @deprecated LEGACY HOOK - Use useMessagingHub instead
+ * 
+ * This hook uses the old `messages` table for 1:1 co-parent messaging.
+ * The modern messaging system uses `thread_messages` with support for:
+ * - Direct messages (1:1)
+ * - Group chats
+ * - Family channel
+ * 
+ * This file is retained for backward compatibility with MessagesPage.tsx
+ * but should not be used for new features. See useMessagingHub.ts for
+ * the authoritative messaging implementation.
+ * 
+ * Migration note: The old `messages` table remains in the database
+ * for historical data access. New messages go to `thread_messages`.
+ */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";

@@ -1,3 +1,18 @@
+/**
+ * useUnreadMessages - Tracks unread message counts across all messaging threads
+ * 
+ * Architecture:
+ * - Uses `thread_messages` as the single source of truth
+ * - Uses `message_read_receipts` to track read status per user
+ * - Subscribes to realtime updates for both tables
+ * - Respects notification preferences (showIndicator flag)
+ * 
+ * Integration:
+ * - Used by MessagingHubPage for sidebar unread badges
+ * - Used by DashboardLayout for navigation indicators
+ * 
+ * @see useMessagingHub for message fetching and sending
+ */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFamilyRole } from "./useFamilyRole";
