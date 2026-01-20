@@ -1,16 +1,14 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { Search, X, MessageSquare, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { resolveSenderName } from "@/lib/displayResolver";
 import {
   useMessageSearch,
   MessageSearchResult,
-  groupResultsByThread,
 } from "@/hooks/useMessageSearch";
 
 interface MessageSearchProps {
@@ -19,6 +17,65 @@ interface MessageSearchProps {
   onClose?: () => void;
   className?: string;
 }
+
+/**
+ * Highlights search terms in text using React elements instead of HTML strings
+ * This prevents XSS vulnerabilities from dangerouslySetInnerHTML
+ */
+const HighlightedText = ({ text, searchQuery }: { text: string; searchQuery: string }) => {
+  const parts = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return [{ text, highlight: false }];
+    }
+
+    // Split search query into words for matching
+    const searchTerms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (searchTerms.length === 0) {
+      return [{ text, highlight: false }];
+    }
+
+    // Create a regex pattern that matches any of the search terms
+    const escapedTerms = searchTerms.map(term => 
+      term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    );
+    const pattern = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+
+    const segments: { text: string; highlight: boolean }[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = pattern.exec(text)) !== null) {
+      // Add text before match
+      if (match.index > lastIndex) {
+        segments.push({ text: text.slice(lastIndex, match.index), highlight: false });
+      }
+      // Add matched text
+      segments.push({ text: match[0], highlight: true });
+      lastIndex = pattern.lastIndex;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      segments.push({ text: text.slice(lastIndex), highlight: false });
+    }
+
+    return segments.length > 0 ? segments : [{ text, highlight: false }];
+  }, [text, searchQuery]);
+
+  return (
+    <>
+      {parts.map((part, index) => 
+        part.highlight ? (
+          <mark key={index} className="bg-primary/20 text-foreground rounded-sm px-0.5">
+            {part.text}
+          </mark>
+        ) : (
+          <span key={index}>{part.text}</span>
+        )
+      )}
+    </>
+  );
+};
 
 export const MessageSearch = ({
   threadId,
@@ -34,8 +91,6 @@ export const MessageSearch = ({
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-  const groupedResults = groupResultsByThread(results);
 
   const handleResultClick = (result: MessageSearchResult) => {
     onResultClick?.(result);
@@ -113,10 +168,9 @@ export const MessageSearch = ({
                       {format(new Date(result.created_at), "MMM d, h:mm a")}
                     </span>
                   </div>
-                  <p
-                    className="text-sm text-muted-foreground line-clamp-2"
-                    dangerouslySetInnerHTML={{ __html: result.snippet }}
-                  />
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    <HighlightedText text={result.content} searchQuery={query} />
+                  </p>
                 </button>
               ))}
             </div>
