@@ -2,8 +2,8 @@
 // These price IDs and product IDs must match your Stripe dashboard
 // NOTE: When switching between test/live mode, update these IDs accordingly
 
-// Test mode IDs (use when STRIPE_SECRET_KEY starts with sk_test_)
-const TEST_MODE_TIERS = {
+// Live mode IDs (CoParrent account - acct_1Sg5Y5HH6NsbcWgZ)
+const LIVE_MODE_TIERS = {
   premium: {
     name: "Premium",
     price: "$5",
@@ -20,30 +20,27 @@ const TEST_MODE_TIERS = {
   },
 };
 
-// Live mode IDs (use when STRIPE_SECRET_KEY starts with sk_live_)
-// IMPORTANT: Before going live, create products in Stripe Dashboard live mode
-// and update these IDs with the live mode product/price IDs
-const LIVE_MODE_TIERS = {
+// Test mode IDs (sandbox) - same account, different environment
+const TEST_MODE_TIERS = {
   premium: {
     name: "Premium",
     price: "$5",
     period: "per month",
-    priceId: "", // Set your live price ID (price_live_...)
-    productId: "", // Set your live product ID (prod_...)
+    priceId: "price_1ShhNiHH6NsbcWgZd5TaJRr3",
+    productId: "prod_Tf1Qq9jGVEyUOM",
   },
   mvp: {
     name: "MVP",
     price: "$10",
     period: "per month",
-    priceId: "", // Set your live price ID (price_live_...)
-    productId: "", // Set your live product ID (prod_...)
+    priceId: "price_1ShhNkHH6NsbcWgZWIFS07Q5",
+    productId: "prod_Tf1QUUhL8Tx1Ks",
   },
 };
 
-// Toggle this to switch between test and live mode
-// Set to false for production with live Stripe keys
-// CRITICAL: Ensure STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are live keys when false
-const USE_TEST_MODE = true;
+// PRODUCTION MODE ENABLED
+// Set to true to use sandbox/test mode for development
+const USE_TEST_MODE = false;
 
 // Helper to check if we're in test mode based on secret key prefix
 export const isStripeTestMode = () => USE_TEST_MODE;

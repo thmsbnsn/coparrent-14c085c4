@@ -16,12 +16,12 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 
 // Valid price IDs for verification - KEEP IN SYNC with src/lib/stripe.ts
 const VALID_PRICE_IDS = [
-  // Test mode (acct_1Sg5Y5HH6NsbcWgZ)
+  // Live mode (acct_1Sg5Y5HH6NsbcWgZ)
   "price_1SqCiwHH6NsbcWgZB7TfWnhQ", // Premium $5/mo
   "price_1SqCiyHH6NsbcWgZ8qD5XfWu", // MVP $10/mo
-  // Live mode - Add your live price IDs here when switching to production
-  // "price_live_premium_xxx",
-  // "price_live_mvp_xxx",
+  // Sandbox/Test mode
+  "price_1ShhNiHH6NsbcWgZd5TaJRr3", // Premium
+  "price_1ShhNkHH6NsbcWgZWIFS07Q5", // MVP
 ];
 
 serve(async (req) => {
