@@ -73,7 +73,6 @@ const KidsHubContent = () => {
           description="Get age-appropriate health guidance and symptom checks for your children with our AI assistant."
           icon={Stethoscope}
           href="/dashboard/kids-hub/nurse-nancy"
-          comingSoon
         />
         <HubCard
           title="Coloring Page Creator"
