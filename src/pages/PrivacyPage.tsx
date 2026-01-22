@@ -162,9 +162,20 @@ const PrivacyPage = () => {
               <h2 className="text-xl font-display font-semibold mb-4">8. Data Retention</h2>
               <p className="text-muted-foreground">
                 We retain your data for as long as your account is active or as needed to provide 
-                services. After account deletion:
+                services. Our retention schedule:
               </p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-2 mt-4">
+                <li><strong>Account data:</strong> Retained while account is active</li>
+                <li><strong>Messages & communications:</strong> 7 years (for court documentation purposes)</li>
+                <li><strong>Expense records:</strong> 7 years (tax and legal compliance)</li>
+                <li><strong>Documents:</strong> Retained until you delete them or close your account</li>
+                <li><strong>Audit logs:</strong> 3 years (security and compliance requirements)</li>
+                <li><strong>Session data:</strong> 30 days after last activity</li>
+              </ul>
+              <p className="text-muted-foreground mt-4">
+                After account deletion:
+              </p>
+              <ul className="list-disc pl-6 text-muted-foreground space-y-2 mt-2">
                 <li>Personal data is deleted within 30 days</li>
                 <li>Backups are purged within 90 days</li>
                 <li>Aggregated, anonymized data may be retained for analytics</li>
@@ -172,7 +183,48 @@ const PrivacyPage = () => {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-display font-semibold mb-4">9. Third-Party Services</h2>
+              <h2 className="text-xl font-display font-semibold mb-4">9. California Privacy Rights (CCPA)</h2>
+              <p className="text-muted-foreground">
+                If you are a California resident, you have the following additional rights under the 
+                California Consumer Privacy Act (CCPA):
+              </p>
+              <ul className="list-disc pl-6 text-muted-foreground space-y-2 mt-4">
+                <li>
+                  <strong>Right to Know:</strong> You can request disclosure of the categories and 
+                  specific pieces of personal information we have collected about you
+                </li>
+                <li>
+                  <strong>Right to Delete:</strong> You can request deletion of your personal 
+                  information, subject to certain exceptions
+                </li>
+                <li>
+                  <strong>Right to Opt-Out:</strong> We do not sell your personal information. 
+                  If this changes, you will have the right to opt-out
+                </li>
+                <li>
+                  <strong>Right to Non-Discrimination:</strong> We will not discriminate against 
+                  you for exercising your CCPA rights
+                </li>
+              </ul>
+              <p className="text-muted-foreground mt-4">
+                To exercise your CCPA rights, contact us at{" "}
+                <a href="mailto:privacy@coparrent.com" className="text-primary hover:underline">
+                  privacy@coparrent.com
+                </a>{" "}
+                or use the "Download My Data" feature in your account settings.
+              </p>
+              <p className="text-muted-foreground mt-2">
+                <strong>Categories of Personal Information Collected:</strong> Identifiers (name, email), 
+                commercial information (subscription data), internet activity (usage logs), and 
+                professional information (legal documents you upload).
+              </p>
+              <p className="text-muted-foreground mt-2">
+                <strong>Disclosure:</strong> We do not sell personal information to third parties.
+              </p>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-xl font-display font-semibold mb-4">10. Third-Party Services</h2>
               <p className="text-muted-foreground">
                 We use the following third-party services:
               </p>
@@ -187,7 +239,7 @@ const PrivacyPage = () => {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-display font-semibold mb-4">10. Changes to This Policy</h2>
+              <h2 className="text-xl font-display font-semibold mb-4">11. Changes to This Policy</h2>
               <p className="text-muted-foreground">
                 We may update this Privacy Policy from time to time. We will notify you of 
                 significant changes via email or in-app notification. Your continued use of 
@@ -196,7 +248,7 @@ const PrivacyPage = () => {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-xl font-display font-semibold mb-4">11. Contact Us</h2>
+              <h2 className="text-xl font-display font-semibold mb-4">12. Contact Us</h2>
               <p className="text-muted-foreground">
                 For privacy-related questions or concerns:
               </p>

@@ -20,6 +20,7 @@ import { RecoveryCodes } from "@/components/auth/RecoveryCodes";
 import { SessionManager } from "@/components/auth/SessionManager";
 import { TrustedDevicesManager } from "@/components/auth/TrustedDevicesManager";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { DataExportSection } from "@/components/settings/DataExportSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications, NotificationPreferences } from "@/hooks/useNotifications";
@@ -486,6 +487,10 @@ const SettingsPage = () => {
             <Link to="/forgot-password">
               <Button variant="outline">Change Password</Button>
             </Link>
+            
+            <Separator />
+            
+            <DataExportSection />
             
             <Separator />
             

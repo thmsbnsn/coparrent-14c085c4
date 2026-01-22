@@ -12,6 +12,7 @@ import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
 import { PWAUpdatePrompt } from "@/components/pwa/PWAUpdatePrompt";
 import { BetaBanner } from "@/components/BetaBanner";
+import { CookieConsentBanner } from "@/components/legal/CookieConsentBanner";
 import Index from "./pages/Index";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
@@ -67,6 +68,7 @@ const App = () => (
             <PWAUpdatePrompt />
             <BrowserRouter>
             <BetaBanner />
+            <CookieConsentBanner />
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<RouteErrorBoundary routeName="Home"><Index /></RouteErrorBoundary>} />
