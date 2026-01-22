@@ -399,8 +399,21 @@ const NurseNancyContent = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
+      {/* Pinned Disclaimer Banner */}
+      <div className="bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-900/50 px-4 py-2">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center text-xs">
+          <span className="text-amber-800 dark:text-amber-300 font-medium flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span>Nurse Nancy provides general educational support only. Not medical or legal advice.</span>
+          </span>
+          <span className="text-amber-700 dark:text-amber-400">
+            For emergencies call <strong>911</strong> (US) or your local emergency number.
+          </span>
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -426,7 +439,7 @@ const NurseNancyContent = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-1 mt-4 gap-4 overflow-hidden">
+      <div className="flex flex-1 p-4 gap-4 overflow-hidden">
         {/* Sidebar - Desktop */}
         <div className="hidden md:block w-64 border rounded-lg bg-card shrink-0">
           <ThreadSidebar

@@ -7,6 +7,7 @@ import {
   acquireMutationLock, 
   releaseMutationLock 
 } from '@/lib/mutations';
+import { downloadCreationPng } from '@/lib/creationsExport';
 
 export type Difficulty = 'simple' | 'medium' | 'detailed';
 
@@ -278,12 +279,7 @@ export const useColoringPages = () => {
 
   const downloadPNG = useCallback((imageUrl: string, prompt: string) => {
     try {
-      const link = document.createElement('a');
-      link.href = imageUrl;
-      link.download = `${prompt.slice(0, 30).replace(/[^a-zA-Z0-9]/g, '-')}-coloring-page.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      downloadCreationPng(imageUrl, `${prompt.slice(0, 30)}-coloring-page`);
       toast.success('PNG downloaded!');
     } catch (error) {
       console.error('Error downloading PNG:', error);
