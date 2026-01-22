@@ -43,16 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
   declined: 'Declined',
 };
 
-const MOOD_LABELS: Record<string, string> = {
-  happy: '😊 Happy',
-  calm: '😌 Calm',
-  anxious: '😟 Anxious',
-  sad: '😢 Sad',
-  frustrated: '😤 Frustrated',
-  angry: '😠 Angry',
-  hopeful: '🌟 Hopeful',
-  grateful: '🙏 Grateful',
-};
+// Journal entries are intentionally excluded from court exports to preserve privacy
 
 const THREAD_TYPE_LABELS: Record<string, string> = {
   family_channel: 'Family Channel',
@@ -161,7 +152,6 @@ function addTableOfContents(doc: jsPDF, data: CourtExportData, y: number): numbe
     { name: 'Exchange Check-ins', count: data.exchangeCheckins.length },
     { name: 'Document Access Logs', count: data.documentAccessLogs.length },
     { name: 'Expense Records', count: data.expenses.length },
-    { name: 'Journal Entries', count: data.journalEntries?.length || 0 },
     { name: 'Custody Schedule Overview', count: data.schedule ? 1 : 0 },
   ];
   
@@ -358,51 +348,7 @@ function addExpensesSection(doc: jsPDF, data: CourtExportData, startY: number): 
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
 }
 
-function addJournalEntriesSection(doc: jsPDF, data: CourtExportData, startY: number): number {
-  const entries = data.journalEntries || [];
-  
-  if (entries.length === 0) {
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'italic');
-    doc.text('No journal entries in the selected date range.', 20, startY);
-    return startY + 15;
-  }
-  
-  const tableData = entries.map((entry) => [
-    format(new Date(entry.created_at), 'MMM d, yyyy'),
-    entry.title || 'Untitled',
-    MOOD_LABELS[entry.mood || ''] || entry.mood || '-',
-    entry.child_name || '-',
-    entry.content.length > 40 ? entry.content.substring(0, 40) + '...' : entry.content,
-  ]);
-  
-  autoTable(doc, {
-    startY,
-    head: [['Date', 'Title', 'Mood', 'Child', 'Content Preview']],
-    body: tableData,
-    headStyles: {
-      fillColor: BRAND_COLOR,
-      textColor: 255,
-      fontStyle: 'bold',
-    },
-    columnStyles: {
-      0: { cellWidth: 28 },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 28 },
-      3: { cellWidth: 25 },
-      4: { cellWidth: 64 },
-    },
-    styles: {
-      fontSize: 8,
-      cellPadding: 2,
-    },
-    alternateRowStyles: {
-      fillColor: ALT_ROW_COLOR,
-    },
-  });
-  
-  return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-}
+// Journal entries are intentionally excluded from court exports to preserve privacy
 
 function addScheduleOverviewSection(doc: jsPDF, data: CourtExportData, startY: number): number {
   if (!data.schedule) {
@@ -540,14 +486,9 @@ export function generateCourtReadyPDF(data: CourtExportData): void {
   y = addSectionHeader(doc, '5. Expense Records', y);
   y = addExpensesSection(doc, data, y);
   
-  // Section 6: Journal Entries
+  // Section 6: Schedule Overview (Journal entries excluded for privacy)
   y = checkPageBreak(doc, y);
-  y = addSectionHeader(doc, '6. Journal Entries', y);
-  y = addJournalEntriesSection(doc, data, y);
-  
-  // Section 7: Schedule Overview
-  y = checkPageBreak(doc, y);
-  y = addSectionHeader(doc, '7. Custody Schedule Overview', y);
+  y = addSectionHeader(doc, '6. Custody Schedule Overview', y);
   addScheduleOverviewSection(doc, data, y);
   
   // Add footers to all pages
