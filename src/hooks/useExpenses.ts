@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { handleError, ERROR_MESSAGES } from "@/lib/errorMessages";
 
 export interface Expense {
   id: string;
@@ -106,8 +107,8 @@ export function useExpenses() {
       if (error) throw error;
       setExpenses(data || []);
     } catch (error) {
-      console.error('Error fetching expenses:', error);
-      toast.error("Failed to load expenses");
+      const message = handleError(error, { feature: 'Expenses', action: 'fetch' });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -158,8 +159,8 @@ export function useExpenses() {
       await fetchExpenses();
       return { error: null };
     } catch (error: any) {
-      console.error('Error adding expense:', error);
-      return { error: error.message };
+      const message = handleError(error, { feature: 'Expenses', action: 'add' });
+      return { error: message };
     }
   };
 
@@ -238,8 +239,8 @@ export function useExpenses() {
       .upload(fileName, file);
 
     if (error) {
-      console.error('Error uploading receipt:', error);
-      toast.error("Failed to upload receipt");
+      const message = handleError(error, { feature: 'Expenses', action: 'uploadReceipt' });
+      toast.error(message);
       return null;
     }
 

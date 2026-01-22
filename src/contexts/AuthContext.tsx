@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoginNotification } from "@/hooks/useLoginNotification";
+import { setSentryUserContext, clearSentryUserContext } from "@/lib/sentry";
 
 interface AuthContextType {
   user: User | null;
@@ -35,6 +36,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             loginCheckedRef.current = userId;
             setTimeout(() => {
               checkAndNotifyLogin(userId, currentSession.user.email || "");
+              // Set Sentry user context (fetch role/tier asynchronously)
+              supabase
+                .from("profiles")
+                .select("account_role, subscription_tier")
+                .eq("user_id", userId)
+                .maybeSingle()
+                .then(({ data: profile }) => {
+                  setSentryUserContext({
+                    userId,
+                    role: (profile?.account_role as "parent" | "guardian" | "third_party" | "child") || "parent",
+                    tier: (profile?.subscription_tier as "free" | "power") || "free",
+                  });
+                });
             }, 0);
           }
         }
@@ -42,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Reset on sign out
         if (event === "SIGNED_OUT") {
           loginCheckedRef.current = null;
+          clearSentryUserContext();
         }
       }
     );

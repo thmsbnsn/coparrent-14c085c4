@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useNotificationService } from '@/hooks/useNotificationService';
+import { handleError, ERROR_MESSAGES } from '@/lib/errorMessages';
 
 export interface Document {
   id: string;
@@ -84,8 +85,8 @@ export const useDocuments = () => {
       if (error) throw error;
       setDocuments(data || []);
     } catch (error) {
-      console.error('Error fetching documents:', error);
-      toast.error('Failed to load documents');
+      const message = handleError(error, { feature: 'Documents', action: 'fetch' });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -164,8 +165,8 @@ export const useDocuments = () => {
       await fetchDocuments();
       return doc;
     } catch (error) {
-      console.error('Error uploading document:', error);
-      toast.error('Failed to upload document');
+      const message = handleError(error, { feature: 'Documents', action: 'upload' });
+      toast.error(message);
       return null;
     } finally {
       setUploading(false);
@@ -195,8 +196,8 @@ export const useDocuments = () => {
 
       toast.success('Document downloaded');
     } catch (error) {
-      console.error('Error downloading document:', error);
-      toast.error('Failed to download document');
+      const message = handleError(error, { feature: 'Documents', action: 'download' });
+      toast.error(message);
     }
   };
 
@@ -213,8 +214,8 @@ export const useDocuments = () => {
 
       window.open(data.signedUrl, '_blank');
     } catch (error) {
-      console.error('Error viewing document:', error);
-      toast.error('Failed to view document');
+      const message = handleError(error, { feature: 'Documents', action: 'view' });
+      toast.error(message);
     }
   };
 
@@ -241,8 +242,8 @@ export const useDocuments = () => {
       toast.success('Document deleted');
       await fetchDocuments();
     } catch (error) {
-      console.error('Error deleting document:', error);
-      toast.error('Failed to delete document');
+      const message = handleError(error, { feature: 'Documents', action: 'delete' });
+      toast.error(message);
     }
   };
 

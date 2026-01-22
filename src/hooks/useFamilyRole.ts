@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { handleError } from "@/lib/errorMessages";
 
 export type FamilyRole = "parent" | "guardian" | "third_party" | null;
 
@@ -64,7 +65,7 @@ export const useFamilyRole = (): FamilyMemberInfo => {
           }
         }
       } catch (error) {
-        console.error("Error fetching family role:", error);
+        handleError(error, { feature: 'FamilyRole', action: 'fetch' });
       } finally {
         setLoading(false);
       }
