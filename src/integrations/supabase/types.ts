@@ -2045,6 +2045,7 @@ export type Database = {
       }
       get_child_details: { Args: { p_child_id: string }; Returns: Json }
       get_child_permissions: { Args: { _user_id: string }; Returns: Json }
+      get_current_profile_id: { Args: never; Returns: string }
       get_invitation_by_token: {
         Args: { _token: string }
         Returns: {
@@ -2062,6 +2063,9 @@ export type Database = {
           status: string
         }[]
       }
+      get_plan_limits: { Args: { p_profile_id: string }; Returns: Json }
+      get_plan_tier: { Args: { p_profile_id: string }; Returns: string }
+      get_plan_usage: { Args: { p_profile_id: string }; Returns: Json }
       get_user_co_parent_id: { Args: { user_uuid: string }; Returns: string }
       get_user_family_primary_parent: {
         Args: { _user_id: string }
@@ -2084,6 +2088,7 @@ export type Database = {
         Args: { _primary_parent_id: string; _user_id: string }
         Returns: boolean
       }
+      is_parent_or_guardian: { Args: { p_user_id?: string }; Returns: boolean }
       log_audit_event: {
         Args: {
           _action: string
@@ -2097,6 +2102,17 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_add_child: { Args: { p_dob?: string; p_name: string }; Returns: Json }
+      rpc_create_third_party_invite: {
+        Args: {
+          p_child_ids?: string[]
+          p_expires_at?: string
+          p_invitee_email: string
+          p_relationship?: string
+        }
+        Returns: Json
+      }
+      rpc_revoke_third_party: { Args: { p_member_id: string }; Returns: Json }
       search_messages: {
         Args: { p_limit?: number; p_query: string; p_thread_id?: string }
         Returns: {

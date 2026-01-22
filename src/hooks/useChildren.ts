@@ -155,10 +155,10 @@ export const useChildren = () => {
       return null;
     }
 
-    // Use secure RPC function for atomic child creation with linking
-    const { data, error } = await supabase.rpc("create_child_with_link", {
-      _name: trimmedName,
-      _date_of_birth: dateOfBirth || null,
+    // Use RPC function with limit enforcement
+    const { data, error } = await supabase.rpc("rpc_add_child", {
+      p_name: trimmedName,
+      p_dob: dateOfBirth || null,
     });
 
     if (error) {
@@ -171,25 +171,59 @@ export const useChildren = () => {
       return null;
     }
 
-    // Safely cast the result
-    const result = data as unknown as { success: boolean; error?: string; child?: Child };
+    // Parse structured response
+    const result = data as { ok: boolean; code?: string; message?: string; data?: any };
 
-    if (!result.success) {
-      toast({
-        title: "Error",
-        description: result.error || "Failed to add child",
-        variant: "destructive",
-      });
+    if (!result.ok) {
+      // Handle specific error codes
+      if (result.code === "LIMIT_REACHED") {
+        toast({
+          title: "Plan Limit Reached",
+          description: result.message || "Upgrade to Power to add more children.",
+          variant: "destructive",
+        });
+      } else if (result.code === "NOT_PARENT") {
+        toast({
+          title: "Permission Denied",
+          description: "Only parents can add children.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to add child",
+          variant: "destructive",
+        });
+      }
       return null;
     }
 
-    if (result.child) {
-      setChildren((prev) => [...prev, result.child as Child]);
+    if (result.data) {
+      const newChild: Child = {
+        id: result.data.id,
+        name: result.data.name,
+        date_of_birth: result.data.date_of_birth,
+        created_at: result.data.created_at,
+        updated_at: result.data.created_at,
+        avatar_url: null,
+        blood_type: null,
+        allergies: null,
+        medications: null,
+        medical_notes: null,
+        emergency_contact: null,
+        emergency_phone: null,
+        doctor_name: null,
+        doctor_phone: null,
+        school_name: null,
+        school_phone: null,
+        grade: null,
+      };
+      setChildren((prev) => [...prev, newChild]);
       toast({
         title: "Success",
         description: `${trimmedName} has been added`,
       });
-      return result.child as Child;
+      return newChild;
     }
 
     return null;
