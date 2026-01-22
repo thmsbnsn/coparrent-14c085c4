@@ -49,6 +49,7 @@ import KidsDashboard from "./pages/KidsDashboard";
 import KidCenterPage from "./pages/KidCenterPage";
 import KidsHubPage from "./pages/KidsHubPage";
 import NurseNancyPage from "./pages/NurseNancyPage";
+import ColoringPagesPage from "./pages/ColoringPagesPage";
 import LawOfficeLogin from "./pages/LawOfficeLogin";
 import LawOfficeSignup from "./pages/LawOfficeSignup";
 import OfflinePage from "./pages/OfflinePage";
@@ -119,6 +120,7 @@ const App = () => (
               <Route path="/dashboard/kid-center" element={<ProtectedRoute><RouteErrorBoundary routeName="Kid Center"><KidCenterPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/kids-hub" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Kids Hub"><KidsHubPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/kids-hub/nurse-nancy" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Nurse Nancy"><NurseNancyPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/coloring-pages" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Coloring Pages"><ColoringPagesPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/kids-hub/*" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Kids Hub"><KidsHubPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/audit" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Audit Log"><AuditLogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog"><BlogPage /></RouteErrorBoundary></ProtectedRoute>} />

@@ -78,8 +78,7 @@ const KidsHubContent = () => {
           title="Coloring Page Creator"
           description="Generate custom coloring pages based on your child's interests and favorite themes."
           icon={Palette}
-          href="/dashboard/kids-hub/coloring"
-          comingSoon
+          href="/dashboard/kids-hub/coloring-pages"
         />
       </div>
 

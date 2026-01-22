@@ -565,6 +565,44 @@ export type Database = {
         }
         Relationships: []
       }
+      coloring_pages: {
+        Row: {
+          created_at: string
+          difficulty: string
+          document_id: string | null
+          id: string
+          image_url: string | null
+          prompt: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty: string
+          document_id?: string | null
+          id?: string
+          image_url?: string | null
+          prompt: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          difficulty?: string
+          document_id?: string | null
+          id?: string
+          image_url?: string | null
+          prompt?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coloring_pages_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custody_schedules: {
         Row: {
           child_ids: string[] | null
