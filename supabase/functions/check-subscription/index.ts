@@ -8,16 +8,14 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Product ID to tier mapping (both live and test mode)
+// Product ID to tier mapping - KEEP IN SYNC with src/lib/stripe.ts
 const PRODUCT_TIERS: Record<string, string> = {
-  // Live mode
-  "prod_TdrUhvfZzXYDTT": "premium",
-  "prod_TdrUORgbP3ko1q": "mvp",
-  "prod_TdrUXgQVj7yCqw": "law_office",
-  // Test mode
-  "prod_Tf1Qq9jGVEyUOM": "premium",
-  "prod_Tf1QUUhL8Tx1Ks": "mvp",
-  "prod_Tf1QG2gr5j0a3z": "law_office",
+  // Test mode (acct_1Sg5Y5HH6NsbcWgZ)
+  "prod_TnoLYRDnjKqtA8": "premium",
+  "prod_TnoLKasOQOvLwL": "mvp",
+  // Live mode - Add your live product IDs here when switching to production
+  // "prod_live_premium_xxx": "premium",
+  // "prod_live_mvp_xxx": "mvp",
 };
 
 // Map Stripe subscription status to our internal status
