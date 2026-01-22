@@ -8,7 +8,11 @@ import {
   MessageCircle, 
   Stethoscope,
   AlertTriangle,
-  Clock
+  Clock,
+  Search,
+  Pencil,
+  Share2,
+  MoreVertical
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -29,9 +33,25 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { PremiumFeatureGate } from "@/components/premium/PremiumFeatureGate";
 import { RoleGate } from "@/components/gates/RoleGate";
-import { useNurseNancy, type NurseNancyMessage } from "@/hooks/useNurseNancy";
+import { ShareToFamilyDialog } from "@/components/nurse-nancy/ShareToFamilyDialog";
+import { RenameThreadDialog } from "@/components/nurse-nancy/RenameThreadDialog";
+import { MessageSearchDialog } from "@/components/nurse-nancy/MessageSearchDialog";
+import { useNurseNancy, type NurseNancyMessage, type NurseNancyThread } from "@/hooks/useNurseNancy";
 import { format } from "date-fns";
 
 // Simple markdown-like rendering for messages
@@ -76,9 +96,10 @@ const renderInlineFormatting = (text: string) => {
 
 interface ChatMessageProps {
   message: NurseNancyMessage;
+  onShare?: (content: string) => void;
 }
 
-const ChatMessage = ({ message }: ChatMessageProps) => {
+const ChatMessage = ({ message, onShare }: ChatMessageProps) => {
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
 
@@ -109,24 +130,45 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex ${isUser ? "justify-end" : "justify-start"} my-3`}
+      className={`flex ${isUser ? "justify-end" : "justify-start"} my-3 group`}
     >
-      <div
-        className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
-          isUser
-            ? "bg-primary text-primary-foreground rounded-br-md"
-            : "bg-muted rounded-bl-md"
-        }`}
-      >
-        <div className="text-sm whitespace-pre-wrap">
-          {isUser ? message.content : renderMessageContent(message.content)}
-        </div>
+      <div className="flex items-end gap-1">
+        {/* Share button for assistant messages */}
+        {!isUser && onShare && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  onClick={() => onShare(message.content)}
+                >
+                  <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Share with family</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        
         <div
-          className={`text-xs mt-1 ${
-            isUser ? "text-primary-foreground/70" : "text-muted-foreground"
+          className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
+            isUser
+              ? "bg-primary text-primary-foreground rounded-br-md"
+              : "bg-muted rounded-bl-md"
           }`}
         >
-          {format(new Date(message.created_at), "h:mm a")}
+          <div className="text-sm whitespace-pre-wrap">
+            {isUser ? message.content : renderMessageContent(message.content)}
+          </div>
+          <div
+            className={`text-xs mt-1 ${
+              isUser ? "text-primary-foreground/70" : "text-muted-foreground"
+            }`}
+          >
+            {format(new Date(message.created_at), "h:mm a")}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -139,6 +181,10 @@ const ThreadSidebar = ({
   onSelectThread, 
   onNewChat, 
   onDeleteThread,
+  onRenameThread,
+  onSearch,
+  searchQuery,
+  onSearchQueryChange,
   loading 
 }: {
   threads: Array<{ id: string; title: string; updated_at: string }>;
@@ -146,6 +192,10 @@ const ThreadSidebar = ({
   onSelectThread: (thread: any) => void;
   onNewChat: () => void;
   onDeleteThread: (id: string) => void;
+  onRenameThread: (thread: any) => void;
+  onSearch: () => void;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
   loading: boolean;
 }) => {
   if (loading) {
@@ -160,17 +210,40 @@ const ThreadSidebar = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b">
+      <div className="p-3 border-b space-y-2">
         <Button onClick={onNewChat} className="w-full gap-2">
           <Plus className="h-4 w-4" />
           New Chat
         </Button>
+        
+        {/* Search input for filtering threads */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => onSearchQueryChange(e.target.value)}
+            placeholder="Filter chats..."
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
+        
+        {/* Full message search button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onSearch}
+          className="w-full gap-2 text-xs"
+        >
+          <Search className="h-3.5 w-3.5" />
+          Search All Messages
+        </Button>
       </div>
+      
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {threads.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              No conversations yet
+              {searchQuery ? "No matching conversations" : "No conversations yet"}
             </p>
           ) : (
             threads.map((thread) => (
@@ -191,35 +264,55 @@ const ThreadSidebar = ({
                     {format(new Date(thread.updated_at), "MMM d, h:mm a")}
                   </p>
                 </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
+                
+                {/* Thread actions menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently delete this conversation and all its messages.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={() => onDeleteThread(thread.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem onClick={() => onRenameThread(thread)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete this conversation and all its messages.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => onDeleteThread(thread.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ))
           )}
@@ -232,20 +325,27 @@ const ThreadSidebar = ({
 const NurseNancyContent = () => {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState("");
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [shareMessageContent, setShareMessageContent] = useState("");
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
+  const [threadToRename, setThreadToRename] = useState<NurseNancyThread | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const {
-    threads,
+    filteredThreads,
     currentThread,
     messages,
     loading,
     sending,
+    searchQuery,
+    setSearchQuery,
     selectThread,
     startNewChat,
     sendMessage,
     deleteThread,
+    renameThread,
   } = useNurseNancy();
 
   // Auto-scroll to bottom when messages change
@@ -276,6 +376,25 @@ const NurseNancyContent = () => {
 
   const handleNewChat = async () => {
     await startNewChat();
+  };
+
+  const handleShare = (content: string) => {
+    setShareMessageContent(content);
+    setShareDialogOpen(true);
+  };
+
+  const handleRenameClick = (thread: any) => {
+    setThreadToRename(thread);
+    setRenameDialogOpen(true);
+  };
+
+  const handleRename = async (newTitle: string) => {
+    if (!threadToRename) return false;
+    return await renameThread(threadToRename.id, newTitle);
+  };
+
+  const handleSearchResult = (thread: NurseNancyThread) => {
+    selectThread(thread);
   };
 
   return (
@@ -311,11 +430,15 @@ const NurseNancyContent = () => {
         {/* Sidebar - Desktop */}
         <div className="hidden md:block w-64 border rounded-lg bg-card shrink-0">
           <ThreadSidebar
-            threads={threads}
+            threads={filteredThreads}
             currentThreadId={currentThread?.id || null}
             onSelectThread={selectThread}
             onNewChat={handleNewChat}
             onDeleteThread={deleteThread}
+            onRenameThread={handleRenameClick}
+            onSearch={() => setSearchDialogOpen(true)}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
             loading={loading}
           />
         </div>
@@ -338,11 +461,11 @@ const NurseNancyContent = () => {
               </Button>
               
               {/* Mobile thread list */}
-              {threads.length > 0 && (
+              {filteredThreads.length > 0 && (
                 <div className="md:hidden mt-6 w-full max-w-sm">
                   <p className="text-sm font-medium mb-2">Previous Conversations</p>
                   <div className="space-y-2">
-                    {threads.slice(0, 3).map((thread) => (
+                    {filteredThreads.slice(0, 3).map((thread) => (
                       <Button
                         key={thread.id}
                         variant="outline"
@@ -359,11 +482,41 @@ const NurseNancyContent = () => {
             </div>
           ) : (
             <>
+              {/* Current thread header (mobile-friendly) */}
+              <div className="md:hidden p-3 border-b flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <MessageCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium truncate">{currentThread.title}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleRenameClick(currentThread)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setSearchDialogOpen(true)}
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 <AnimatePresence>
                   {messages.map((message) => (
-                    <ChatMessage key={message.id} message={message} />
+                    <ChatMessage 
+                      key={message.id} 
+                      message={message} 
+                      onShare={message.role === "assistant" ? handleShare : undefined}
+                    />
                   ))}
                 </AnimatePresence>
                 {sending && (
@@ -415,6 +568,26 @@ const NurseNancyContent = () => {
           )}
         </div>
       </div>
+
+      {/* Dialogs */}
+      <ShareToFamilyDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        messageContent={shareMessageContent}
+      />
+      
+      <RenameThreadDialog
+        open={renameDialogOpen}
+        onOpenChange={setRenameDialogOpen}
+        currentTitle={threadToRename?.title || ""}
+        onRename={handleRename}
+      />
+      
+      <MessageSearchDialog
+        open={searchDialogOpen}
+        onOpenChange={setSearchDialogOpen}
+        onSelectResult={handleSearchResult}
+      />
     </div>
   );
 };
