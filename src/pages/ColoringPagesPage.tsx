@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Palette, Download, FileText, Printer, Save, AlertCircle, Info } from "lucide-react";
+import { ArrowLeft, Sparkles, Palette, Download, FileText, Printer, Save, AlertCircle, Info, History } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PremiumFeatureGate } from "@/components/premium/PremiumFeatureGate";
 import { RoleGate } from "@/components/gates/RoleGate";
 import { useColoringPages, type Difficulty } from "@/hooks/useColoringPages";
+import { ColoringPageGallery } from "@/components/coloring-pages/ColoringPageGallery";
 import { exportColoringPagePDF, printColoringPage } from "@/lib/coloringPageExport";
 import { toast } from "sonner";
 
@@ -36,12 +38,15 @@ const ColoringPagesContent = () => {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [activeTab, setActiveTab] = useState<"create" | "history">("create");
   const {
     generating,
     saving,
     currentImage,
     currentPageId,
     errorState,
+    history,
+    loadingHistory,
     generateColoringPage,
     saveToVault,
     downloadPNG,
@@ -127,7 +132,26 @@ const ColoringPagesContent = () => {
         </Alert>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "create" | "history")}>
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="create" className="flex items-center gap-2">
+            <Palette className="h-4 w-4" />
+            Create
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            History
+            {history.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {history.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="create" className="mt-6">
+          <div className="grid gap-6 lg:grid-cols-2">
         {/* Creation Panel */}
         <Card>
           <CardHeader>
@@ -363,6 +387,29 @@ const ColoringPagesContent = () => {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5 text-primary" />
+                Your Coloring Pages
+              </CardTitle>
+              <CardDescription>
+                Browse and re-download your previously generated coloring pages
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ColoringPageGallery
+                pages={history}
+                loading={loadingHistory}
+                onDownloadPNG={downloadPNG}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

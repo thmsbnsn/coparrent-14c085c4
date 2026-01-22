@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -36,6 +36,52 @@ export const useColoringPages = () => {
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [currentPageId, setCurrentPageId] = useState<string | null>(null);
   const [errorState, setErrorState] = useState<{ code: string; message: string } | null>(null);
+  
+  // History state
+  const [history, setHistory] = useState<ColoringPage[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  // Fetch history on mount
+  useEffect(() => {
+    if (!user) {
+      setHistory([]);
+      setLoadingHistory(false);
+      return;
+    }
+
+    const fetchHistory = async () => {
+      setLoadingHistory(true);
+      try {
+        const { data, error } = await supabase
+          .from('coloring_pages')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+        
+        // Cast difficulty to proper type
+        const typedData = (data || []).map(page => ({
+          ...page,
+          difficulty: page.difficulty as Difficulty,
+        }));
+        
+        setHistory(typedData);
+      } catch (error) {
+        console.error('Error fetching coloring page history:', error);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    fetchHistory();
+  }, [user]);
+
+  // Add new page to history after generation
+  const addToHistory = useCallback((page: ColoringPage) => {
+    setHistory(prev => [page, ...prev]);
+  }, []);
 
   const generateColoringPage = useCallback(async (
     prompt: string,
@@ -96,6 +142,20 @@ export const useColoringPages = () => {
       if (result.imageUrl) {
         setCurrentImage(result.imageUrl);
         setCurrentPageId(result.coloringPageId || null);
+        
+        // Add to history
+        if (result.coloringPageId) {
+          addToHistory({
+            id: result.coloringPageId,
+            user_id: user.id,
+            document_id: null,
+            prompt,
+            difficulty,
+            image_url: result.imageUrl,
+            created_at: new Date().toISOString(),
+          });
+        }
+        
         toast.success('Coloring page created!');
         return true;
       }
@@ -110,7 +170,7 @@ export const useColoringPages = () => {
       setGenerating(false);
       releaseMutationLock(mutationKey);
     }
-  }, [user]);
+  }, [user, addToHistory]);
 
   const saveToVault = useCallback(async (
     imageUrl: string,
@@ -189,6 +249,11 @@ export const useColoringPages = () => {
           .from('coloring_pages')
           .update({ document_id: doc.id })
           .eq('id', coloringPageId);
+        
+        // Update history
+        setHistory(prev => prev.map(p => 
+          p.id === coloringPageId ? { ...p, document_id: doc.id } : p
+        ));
       }
 
       // Log access
@@ -238,6 +303,8 @@ export const useColoringPages = () => {
     currentImage,
     currentPageId,
     errorState,
+    history,
+    loadingHistory,
     generateColoringPage,
     saveToVault,
     downloadPNG,
