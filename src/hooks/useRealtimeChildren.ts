@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Child } from "@/hooks/useChildren";
 import { useNotifications } from "@/hooks/useNotifications";
+import { parseRpcResult, getErrorMessage, type RpcResult } from "@/hooks/usePlanLimits";
 
 // Helper to delete all files in a storage folder
 const deleteStorageFolder = async (bucket: string, folderPath: string): Promise<void> => {
@@ -163,7 +164,7 @@ export const useRealtimeChildren = () => {
     };
   }, [userProfileId, fetchChildren, sendNotification]);
 
-  const addChild = async (name: string, dateOfBirth?: string) => {
+  const addChild = async (name: string, dateOfBirth?: string): Promise<Child | null> => {
     if (!userProfileId) {
       toast({
         title: "Error",
@@ -173,10 +174,10 @@ export const useRealtimeChildren = () => {
       return null;
     }
 
-    // Use the secure database function to create child with proper links
-    const { data, error } = await supabase.rpc("create_child_with_link", {
-      _name: name,
-      _date_of_birth: dateOfBirth || null,
+    // Use the secure RPC that enforces plan limits
+    const { data, error } = await supabase.rpc("rpc_add_child", {
+      p_name: name.trim(),
+      p_date_of_birth: dateOfBirth || null,
     });
 
     if (error) {
@@ -189,12 +190,13 @@ export const useRealtimeChildren = () => {
       return null;
     }
 
-    const result = data as unknown as { success: boolean; error?: string; child?: Child };
+    const result = parseRpcResult<{ id: string }>(data);
 
-    if (!result.success) {
+    if (!result.ok) {
+      const errorMsg = getErrorMessage(result);
       toast({
-        title: "Error",
-        description: result.error || "Failed to add child",
+        title: result.code === "LIMIT_REACHED" ? "Plan Limit Reached" : "Error",
+        description: errorMsg,
         variant: "destructive",
       });
       return null;
@@ -208,7 +210,9 @@ export const useRealtimeChildren = () => {
     // Refetch to get the updated list
     await fetchChildren();
 
-    return result.child || null;
+    // Find and return the newly created child
+    const newChild = children.find(c => c.id === result.data?.id);
+    return newChild || null;
   };
 
   const updateChild = async (

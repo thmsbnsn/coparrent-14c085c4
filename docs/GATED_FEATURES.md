@@ -176,6 +176,36 @@ Plan limits are defined in `src/lib/planLimits.ts`:
 - `hasFeatureAccess(tier, feature)` checks if feature is available
 - `normalizeTier(tier)` maps legacy tiers (premium, mvp) to "power"
 
+### Server-Enforced Limits via RPC
+
+All write operations for plan-limited resources go through secure RPC functions:
+
+| RPC Function | Purpose | Enforces |
+|--------------|---------|----------|
+| `get_plan_usage(p_profile_id)` | Get current usage counts | Read-only |
+| `rpc_add_child(p_name, p_date_of_birth)` | Add child with limit check | Max kids |
+| `rpc_create_third_party_invite(...)` | Create invite with limit check | Max third-party |
+| `rpc_revoke_third_party(p_invitation_id)` | Revoke third-party access | Parent check |
+
+**RLS Policies:**
+- `children` and `parent_children` tables block direct INSERT (RPC only)
+- `invitations` table blocks direct INSERT for third-party type (RPC only)
+
+**Error Codes Returned:**
+| Code | Meaning | HTTP Status |
+|------|---------|-------------|
+| `NOT_AUTHENTICATED` | No valid session | 401 |
+| `NOT_PARENT` | User is third-party, not parent | 403 |
+| `LIMIT_REACHED` | Plan limit exceeded | 403 |
+| `VALIDATION_ERROR` | Invalid input | 400 |
+
+**Frontend Hook:**
+```tsx
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+
+const { kids_used, max_kids, canAddChild, isAtChildLimit } = usePlanLimits();
+```
+
 ---
 
 ## Gate Component Usage

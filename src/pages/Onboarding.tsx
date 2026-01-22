@@ -153,13 +153,16 @@ const Onboarding = () => {
     }
 
     setSaving(true);
+    let successCount = 0;
+    let limitReached = false;
+    
     try {
-      // Save each child using the secure RPC function
+      // Save each child using the secure RPC function that enforces plan limits
       for (const child of children) {
         if (child.name.trim()) {
-          const { data, error } = await supabase.rpc("create_child_with_link", {
-            _name: child.name.trim(),
-            _date_of_birth: child.dob || null,
+          const { data, error } = await supabase.rpc("rpc_add_child", {
+            p_name: child.name.trim(),
+            p_date_of_birth: child.dob || null,
           });
 
           if (error) {
@@ -167,17 +170,31 @@ const Onboarding = () => {
             continue;
           }
 
-          const result = data as { success: boolean; error?: string };
-          if (!result.success) {
-            console.error("Failed to create child:", result.error);
+          const result = data as { ok: boolean; code?: string; message?: string };
+          if (!result.ok) {
+            if (result.code === "LIMIT_REACHED") {
+              limitReached = true;
+              break; // Stop trying to add more if limit reached
+            }
+            console.error("Failed to create child:", result.message);
+          } else {
+            successCount++;
           }
         }
       }
 
-      toast({
-        title: "Success",
-        description: "Children saved successfully",
-      });
+      if (limitReached) {
+        toast({
+          title: "Plan Limit Reached",
+          description: `Added ${successCount} child${successCount !== 1 ? "ren" : ""}. Upgrade to Power for more.`,
+          variant: "destructive",
+        });
+      } else if (successCount > 0) {
+        toast({
+          title: "Success",
+          description: `${successCount} child${successCount !== 1 ? "ren" : ""} saved successfully`,
+        });
+      }
     } catch (error) {
       console.error("Error saving children:", error);
       toast({
