@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +41,14 @@ export function useNurseNancy() {
   const [messages, setMessages] = useState<NurseNancyMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filtered threads based on search
+  const filteredThreads = useMemo(() => {
+    if (!searchQuery.trim()) return threads;
+    const lowerQuery = searchQuery.toLowerCase();
+    return threads.filter(t => t.title.toLowerCase().includes(lowerQuery));
+  }, [threads, searchQuery]);
 
   // Fetch user's profile ID
   const getProfileId = useCallback(async () => {
@@ -142,6 +150,50 @@ export function useNurseNancy() {
       releaseMutationLock(lockKey);
     }
   }, [user, getProfileId, fetchThreads, toast]);
+
+  // Rename a thread
+  const renameThread = useCallback(async (threadId: string, newTitle: string) => {
+    if (!user) return false;
+
+    const lockKey = `nurse-nancy-rename-${threadId}`;
+    if (!acquireMutationLock(lockKey)) {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("nurse_nancy_threads")
+        .update({ title: newTitle.trim() })
+        .eq("id", threadId);
+
+      if (error) throw error;
+
+      // Update local state
+      setThreads(prev => 
+        prev.map(t => t.id === threadId ? { ...t, title: newTitle.trim() } : t)
+      );
+      
+      if (currentThread?.id === threadId) {
+        setCurrentThread(prev => prev ? { ...prev, title: newTitle.trim() } : null);
+      }
+
+      toast({
+        title: "Renamed",
+        description: "Conversation title updated.",
+      });
+      return true;
+    } catch (error) {
+      console.error("Error renaming thread:", error);
+      toast({
+        title: "Error",
+        description: sanitizeErrorForUser(error),
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      releaseMutationLock(lockKey);
+    }
+  }, [user, currentThread, toast]);
 
   // Select a thread and load its messages
   const selectThread = useCallback(async (thread: NurseNancyThread) => {
@@ -272,6 +324,47 @@ export function useNurseNancy() {
     }
   }, [user, currentThread, fetchThreads, toast]);
 
+  // Search messages across all threads
+  const searchMessages = useCallback(async (query: string): Promise<Array<{
+    message: NurseNancyMessage;
+    thread: NurseNancyThread;
+  }>> => {
+    if (!user || !query.trim()) return [];
+
+    try {
+      const lowerQuery = query.toLowerCase();
+      
+      // Fetch all messages for user's threads
+      const { data: allMessages, error } = await supabase
+        .from("nurse_nancy_messages")
+        .select("*, nurse_nancy_threads!inner(*)")
+        .eq("nurse_nancy_threads.user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Filter messages containing query
+      const results = (allMessages || [])
+        .filter((m: any) => m.content.toLowerCase().includes(lowerQuery))
+        .slice(0, 20)
+        .map((m: any) => ({
+          message: {
+            id: m.id,
+            thread_id: m.thread_id,
+            role: m.role,
+            content: m.content,
+            created_at: m.created_at,
+          } as NurseNancyMessage,
+          thread: m.nurse_nancy_threads as NurseNancyThread,
+        }));
+
+      return results;
+    } catch (error) {
+      console.error("Error searching messages:", error);
+      return [];
+    }
+  }, [user]);
+
   // Initialize: fetch threads on mount
   useEffect(() => {
     const init = async () => {
@@ -290,15 +383,21 @@ export function useNurseNancy() {
 
   return {
     threads,
+    filteredThreads,
     currentThread,
     messages,
     loading,
     sending,
+    searchQuery,
+    setSearchQuery,
     createThread,
     selectThread,
     startNewChat,
     sendMessage,
     deleteThread,
+    renameThread,
+    searchMessages,
     fetchThreads,
+    getProfileId,
   };
 }
