@@ -17,6 +17,7 @@ const PARENT_ONLY_ROUTES = [
   "/dashboard/settings",
   "/dashboard/audit",
   "/dashboard/law-library",
+  "/dashboard/kids-hub",
   "/admin",
 ];
 
