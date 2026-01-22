@@ -75,7 +75,8 @@ export const TwoFactorSetup = ({ className, onStatusChange }: TwoFactorSetupProp
     try {
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: "Authenticator App",
+        issuer: "CoParrent",
+        friendlyName: "CoParrent Authenticator",
       });
 
       if (error) throw error;
