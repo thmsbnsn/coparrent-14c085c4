@@ -343,6 +343,51 @@ export type Database = {
           },
         ]
       }
+      child_mood_logs: {
+        Row: {
+          child_profile_id: string
+          created_at: string
+          emoji: string
+          id: string
+          linked_child_id: string | null
+          mood: string
+          note: string | null
+        }
+        Insert: {
+          child_profile_id: string
+          created_at?: string
+          emoji: string
+          id?: string
+          linked_child_id?: string | null
+          mood: string
+          note?: string | null
+        }
+        Update: {
+          child_profile_id?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          linked_child_id?: string | null
+          mood?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_mood_logs_child_profile_id_fkey"
+            columns: ["child_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "child_mood_logs_linked_child_id_fkey"
+            columns: ["linked_child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       child_permissions: {
         Row: {
           allow_calendar_reminders: boolean
