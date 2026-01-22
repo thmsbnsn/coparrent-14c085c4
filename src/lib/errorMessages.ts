@@ -13,6 +13,7 @@ export const ERROR_MESSAGES = {
   GENERIC: "Something went wrong. Please try again.",
   NETWORK: "Unable to connect. Please check your internet connection.",
   TIMEOUT: "The request took too long. Please try again.",
+  DUPLICATE_REQUEST: "Please wait, your request is being processed.",
   
   // Auth/Permission
   NOT_AUTHENTICATED: "Please log in to continue.",
@@ -20,6 +21,8 @@ export const ERROR_MESSAGES = {
   NOT_PARENT: "This action requires a parent account.",
   ACCESS_DENIED: "You don't have permission to access this.",
   CHILD_ACCOUNT_RESTRICTED: "This feature is not available for child accounts.",
+  THIRD_PARTY_RESTRICTED: "This feature is only available to parents.",
+  PERMISSION_REVOKED: "Your access to this feature has been revoked.",
   
   // Plan limits
   LIMIT_REACHED: "You've reached your plan limit. Upgrade to add more.",
@@ -40,11 +43,14 @@ export const ERROR_MESSAGES = {
   SAVE_FAILED: "Unable to save. Please try again.",
   DELETE_FAILED: "Unable to delete. Please try again.",
   LOAD_FAILED: "Unable to load data. Please refresh the page.",
+  CONFLICT: "This item was modified by someone else. Please refresh and try again.",
+  NOT_FOUND: "The requested item could not be found.",
   
   // Feature-specific
   EXPORT_FAILED: "Export failed. Please try again.",
   UPLOAD_FAILED: "Upload failed. Please try again.",
   INVITE_FAILED: "Unable to send invitation. Please try again.",
+  MESSAGE_FAILED: "Unable to send message. Please try again.",
 } as const;
 
 // Error code mapping from RPC functions

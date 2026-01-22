@@ -1,10 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Child } from "@/hooks/useChildren";
 import { useNotifications } from "@/hooks/useNotifications";
 import { parseRpcResult, getErrorMessage, type RpcResult } from "@/hooks/usePlanLimits";
+import { 
+  getMutationKey, 
+  acquireMutationLock, 
+  releaseMutationLock,
+  isMutationInProgress 
+} from "@/lib/mutations";
+import { ERROR_MESSAGES } from "@/lib/errorMessages";
 
 // Helper to delete all files in a storage folder
 const deleteStorageFolder = async (bucket: string, folderPath: string): Promise<void> => {
@@ -168,85 +175,119 @@ export const useRealtimeChildren = () => {
     if (!userProfileId) {
       toast({
         title: "Error",
-        description: "You must be logged in to add a child",
+        description: ERROR_MESSAGES.NOT_AUTHENTICATED,
         variant: "destructive",
       });
       return null;
     }
 
-    // Use the secure RPC that enforces plan limits
-    const { data, error } = await supabase.rpc("rpc_add_child", {
-      p_name: name.trim(),
-      p_date_of_birth: dateOfBirth || null,
-    });
-
-    if (error) {
-      console.error("Error creating child:", error);
+    // Guard against double-submits
+    const mutationKey = getMutationKey("addChild", name.trim());
+    if (!acquireMutationLock(mutationKey)) {
       toast({
-        title: "Error",
-        description: "Failed to add child",
-        variant: "destructive",
+        title: "Please wait",
+        description: ERROR_MESSAGES.DUPLICATE_REQUEST,
       });
       return null;
     }
 
-    const result = parseRpcResult<{ id: string }>(data);
+    try {
+      // Use the secure RPC that enforces plan limits
+      const { data, error } = await supabase.rpc("rpc_add_child", {
+        p_name: name.trim(),
+        p_date_of_birth: dateOfBirth || null,
+      });
 
-    if (!result.ok) {
-      const errorMsg = getErrorMessage(result);
+      if (error) {
+        console.error("Error creating child:", error);
+        toast({
+          title: "Error",
+          description: ERROR_MESSAGES.SAVE_FAILED,
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      const result = parseRpcResult<{ id: string }>(data);
+
+      if (!result.ok) {
+        const errorMsg = getErrorMessage(result);
+        toast({
+          title: result.code === "LIMIT_REACHED" ? "Plan Limit Reached" : "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        return null;
+      }
+
       toast({
-        title: result.code === "LIMIT_REACHED" ? "Plan Limit Reached" : "Error",
-        description: errorMsg,
-        variant: "destructive",
+        title: "Success",
+        description: `${name} has been added`,
       });
-      return null;
+
+      // Refetch to get the updated list
+      await fetchChildren();
+
+      // Find and return the newly created child
+      const newChild = children.find(c => c.id === result.data?.id);
+      return newChild || null;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
-
-    toast({
-      title: "Success",
-      description: `${name} has been added`,
-    });
-
-    // Refetch to get the updated list
-    await fetchChildren();
-
-    // Find and return the newly created child
-    const newChild = children.find(c => c.id === result.data?.id);
-    return newChild || null;
   };
 
   const updateChild = async (
     childId: string,
     updates: Partial<Omit<Child, "id" | "created_at" | "updated_at">>
   ) => {
-    const { error } = await supabase
-      .from("children")
-      .update(updates)
-      .eq("id", childId);
-
-    if (error) {
-      console.error("Error updating child:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update child",
-        variant: "destructive",
-      });
+    // Guard against double-submits
+    const mutationKey = getMutationKey("updateChild", childId);
+    if (!acquireMutationLock(mutationKey)) {
       return false;
     }
 
-    toast({
-      title: "Success",
-      description: "Child information updated",
-    });
-    return true;
+    try {
+      const { error } = await supabase
+        .from("children")
+        .update(updates)
+        .eq("id", childId);
+
+      if (error) {
+        console.error("Error updating child:", error);
+        toast({
+          title: "Error",
+          description: ERROR_MESSAGES.SAVE_FAILED,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      toast({
+        title: "Success",
+        description: "Child information updated",
+      });
+      return true;
+    } finally {
+      releaseMutationLock(mutationKey);
+    }
   };
 
   const deleteChild = async (childId: string): Promise<boolean> => {
     if (!userProfileId) {
       toast({
         title: "Error",
-        description: "You must be logged in to delete a child",
+        description: ERROR_MESSAGES.NOT_AUTHENTICATED,
         variant: "destructive",
+      });
+      return false;
+    }
+
+    // Guard against double-submits (deletion is destructive and slow)
+    const mutationKey = getMutationKey("deleteChild", childId);
+    if (!acquireMutationLock(mutationKey)) {
+      toast({
+        title: "Please wait",
+        description: "Deletion in progress...",
       });
       return false;
     }
@@ -263,7 +304,7 @@ export const useRealtimeChildren = () => {
       if (!link) {
         toast({
           title: "Error",
-          description: "You don't have permission to delete this child",
+          description: ERROR_MESSAGES.ACCESS_DENIED,
           variant: "destructive",
         });
         return false;
@@ -329,10 +370,12 @@ export const useRealtimeChildren = () => {
       console.error("Error deleting child:", error);
       toast({
         title: "Error",
-        description: "Failed to delete child. Please try again.",
+        description: ERROR_MESSAGES.DELETE_FAILED,
         variant: "destructive",
       });
       return false;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
