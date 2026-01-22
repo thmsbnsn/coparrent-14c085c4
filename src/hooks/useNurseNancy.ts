@@ -219,12 +219,12 @@ export function useNurseNancy() {
   }, [createThread]);
 
   // Send a message
-  const sendMessage = useCallback(async (content: string) => {
-    if (!currentThread || !user || sending) return;
+  const sendMessage = useCallback(async (content: string): Promise<{ success: boolean; error?: { code: string; message: string } }> => {
+    if (!currentThread || !user || sending) return { success: false };
 
     const lockKey = `nurse-nancy-send-${currentThread.id}-${content.slice(0, 20)}`;
     if (!acquireMutationLock(lockKey)) {
-      return;
+      return { success: false };
     }
 
     setSending(true);
@@ -253,8 +253,54 @@ export function useNurseNancy() {
         },
       });
 
+      // Handle structured errors from edge function
       if (error) {
         throw error;
+      }
+
+      // Check for structured error response (ok: false)
+      if (data && data.ok === false) {
+        const errorCode = data.code || "UNKNOWN_ERROR";
+        const errorMessage = data.message || "Something went wrong";
+
+        // Remove optimistic message
+        setMessages(prev => prev.filter(m => m.id !== tempUserMessage.id));
+
+        // Handle specific error codes
+        if (errorCode === "RATE_LIMITED") {
+          toast({
+            title: "Daily limit reached",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          return { success: false, error: { code: errorCode, message: errorMessage } };
+        }
+
+        if (errorCode === "PREMIUM_REQUIRED") {
+          toast({
+            title: "Upgrade required",
+            description: "Nurse Nancy requires a Power plan.",
+            variant: "destructive",
+          });
+          return { success: false, error: { code: errorCode, message: errorMessage } };
+        }
+
+        if (errorCode === "UNAUTHORIZED" || errorCode === "ROLE_REQUIRED") {
+          toast({
+            title: "Access denied",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          return { success: false, error: { code: errorCode, message: errorMessage } };
+        }
+
+        // Generic error
+        toast({
+          title: "Message not sent",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return { success: false, error: { code: errorCode, message: errorMessage } };
       }
 
       // Add assistant response
@@ -269,15 +315,38 @@ export function useNurseNancy() {
 
       // Update threads list to reflect activity
       await fetchThreads();
-    } catch (error) {
+      return { success: true };
+    } catch (error: unknown) {
       console.error("Error sending message:", error);
       // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== tempUserMessage.id));
+
+      // Extract status code from FunctionsHttpError if available
+      let errorMessage = "Something went wrong. Please try again.";
+      let errorCode = "UNKNOWN_ERROR";
+      
+      if (error && typeof error === "object" && "context" in error) {
+        const funcError = error as { context?: { status?: number }; message?: string };
+        const status = funcError.context?.status;
+        
+        if (status === 401) {
+          errorMessage = "Please log in again to continue.";
+          errorCode = "UNAUTHORIZED";
+        } else if (status === 403) {
+          errorMessage = "Access denied. This feature requires a Power plan.";
+          errorCode = "FORBIDDEN";
+        } else if (status === 429) {
+          errorMessage = "Daily limit reached. Try again tomorrow.";
+          errorCode = "RATE_LIMITED";
+        }
+      }
+
       toast({
         title: "Message not sent",
-        description: sanitizeErrorForUser(error),
+        description: errorMessage,
         variant: "destructive",
       });
+      return { success: false, error: { code: errorCode, message: errorMessage } };
     } finally {
       setSending(false);
       releaseMutationLock(lockKey);

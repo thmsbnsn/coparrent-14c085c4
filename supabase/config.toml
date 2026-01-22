@@ -50,3 +50,15 @@ verify_jwt = true
 
 [functions.health]
 verify_jwt = false
+
+[functions.nurse-nancy-chat]
+verify_jwt = true
+
+[functions.kid-activity-generator]
+verify_jwt = true
+
+[functions.export-user-data]
+verify_jwt = true
+
+[functions.manage-recovery-codes]
+verify_jwt = true
