@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calendar, MessageSquare, Smile, Sun, Moon, Cloud, Heart } from "lucide-react";
+import { Calendar, MessageSquare, Smile, Sun, Heart, MapPin, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,31 +9,28 @@ import { Logo } from "@/components/ui/Logo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChildAccount } from "@/hooks/useChildAccount";
+import { useKidsSchedule } from "@/hooks/useKidsSchedule";
+import { useMoodCheckin } from "@/hooks/useMoodCheckin";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 
 const MOODS = [
-  { emoji: "😊", label: "Happy", color: "bg-green-100 text-green-700 border-green-200" },
-  { emoji: "😌", label: "Calm", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  { emoji: "😔", label: "Sad", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
-  { emoji: "😤", label: "Frustrated", color: "bg-orange-100 text-orange-700 border-orange-200" },
-  { emoji: "😴", label: "Tired", color: "bg-purple-100 text-purple-700 border-purple-200" },
-  { emoji: "🤗", label: "Loved", color: "bg-pink-100 text-pink-700 border-pink-200" },
+  { emoji: "😊", label: "Happy", color: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800" },
+  { emoji: "😌", label: "Calm", color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800" },
+  { emoji: "😔", label: "Sad", color: "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800" },
+  { emoji: "😤", label: "Frustrated", color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800" },
+  { emoji: "😴", label: "Tired", color: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800" },
+  { emoji: "🤗", label: "Loved", color: "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800" },
 ];
 
-const TodayScheduleCard = () => {
-  const [events, setEvents] = useState<Array<{ title: string; time: string; type: string }>>([]);
-  const { permissions } = useChildAccount();
+interface TodayScheduleCardProps {
+  linkedChildId: string | null;
+  showFullDetails: boolean;
+}
 
-  // In a real implementation, fetch today's events from the schedule
-  useEffect(() => {
-    // Mock data for demonstration
-    setEvents([
-      { title: "School pickup", time: "3:00 PM", type: "exchange" },
-      { title: "Soccer practice", time: "5:00 PM", type: "activity" },
-    ]);
-  }, []);
+const TodayScheduleCard = ({ linkedChildId, showFullDetails }: TodayScheduleCardProps) => {
+  const { events, loading } = useKidsSchedule(linkedChildId);
 
   return (
     <Card className="overflow-hidden border-2 border-primary/20">
@@ -44,12 +41,16 @@ const TodayScheduleCard = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
-        {events.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4">No events today</p>
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : events.length === 0 ? (
+          <p className="text-muted-foreground text-center py-4">No events today 🎉</p>
         ) : (
           events.map((event, index) => (
             <motion.div
-              key={index}
+              key={event.id}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -62,11 +63,22 @@ const TodayScheduleCard = () => {
                   <Heart className="w-5 h-5 text-primary" />
                 )}
               </div>
-              <div className="flex-1">
-                <p className="font-medium">
-                  {permissions.show_full_event_details ? event.title : "Event"}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">
+                  {showFullDetails ? event.title : "Event"}
                 </p>
-                <p className="text-sm text-muted-foreground">{event.time}</p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>{event.time}</span>
+                  {showFullDetails && event.location && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1 truncate">
+                        <MapPin className="w-3 h-3" />
+                        {event.location}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))
@@ -76,29 +88,56 @@ const TodayScheduleCard = () => {
   );
 };
 
-const MoodCheckIn = () => {
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
-  const { permissions } = useChildAccount();
+interface MoodCheckInProps {
+  linkedChildId: string | null;
+  allowMoodCheckins: boolean;
+}
 
-  if (!permissions.allow_mood_checkins) {
+const MoodCheckIn = ({ linkedChildId, allowMoodCheckins }: MoodCheckInProps) => {
+  const { todaysMood, saving, saveMood } = useMoodCheckin(linkedChildId);
+  const { toast } = useToast();
+
+  if (!allowMoodCheckins) {
     return null;
   }
 
-  const handleMoodSelect = async (mood: string) => {
-    setSelectedMood(mood);
-    setIsSaving(true);
-
-    // In a real implementation, save the mood check-in
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    toast({
-      title: "Mood saved! 🎉",
-      description: `You're feeling ${mood.toLowerCase()} today.`,
-    });
-    setIsSaving(false);
+  const handleMoodSelect = async (mood: typeof MOODS[0]) => {
+    const success = await saveMood(mood.label, mood.emoji);
+    
+    if (success) {
+      toast({
+        title: "Mood saved! 🎉",
+        description: `You're feeling ${mood.label.toLowerCase()} today.`,
+      });
+    } else {
+      toast({
+        title: "Oops!",
+        description: "Couldn't save your mood. Try again!",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (todaysMood) {
+    const moodData = MOODS.find(m => m.label === todaysMood.mood);
+    return (
+      <Card className="overflow-hidden border-2 border-accent/20">
+        <CardHeader className="bg-accent/5 pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Smile className="w-5 h-5 text-accent-foreground" />
+            Today's Mood
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="flex flex-col items-center py-4">
+            <span className="text-6xl mb-2">{todaysMood.emoji}</span>
+            <p className="font-medium text-lg">{todaysMood.mood}</p>
+            <p className="text-sm text-muted-foreground mt-1">You checked in today!</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="overflow-hidden border-2 border-accent/20">
@@ -116,30 +155,33 @@ const MoodCheckIn = () => {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
-              onClick={() => handleMoodSelect(mood.label)}
-              disabled={isSaving}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                selectedMood === mood.label
-                  ? `${mood.color} scale-105 shadow-md`
-                  : "bg-muted/30 hover:bg-muted/50 border-transparent hover:border-border"
-              }`}
+              onClick={() => handleMoodSelect(mood)}
+              disabled={saving}
+              className={`p-4 rounded-xl border-2 transition-all bg-muted/30 hover:bg-muted/50 border-transparent hover:border-border disabled:opacity-50`}
             >
               <span className="text-3xl block mb-1">{mood.emoji}</span>
               <span className="text-xs font-medium">{mood.label}</span>
             </motion.button>
           ))}
         </div>
+        {saving && (
+          <div className="flex items-center justify-center mt-4">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 };
 
-const MessagesCard = () => {
-  const navigate = useNavigate();
-  const { permissions } = useChildAccount();
-  const [unreadCount, setUnreadCount] = useState(0);
+interface MessagesCardProps {
+  allowMessaging: boolean;
+}
 
-  if (!permissions.allow_parent_messaging && !permissions.allow_family_chat) {
+const MessagesCard = ({ allowMessaging }: MessagesCardProps) => {
+  const navigate = useNavigate();
+
+  if (!allowMessaging) {
     return null;
   }
 
@@ -152,11 +194,6 @@ const MessagesCard = () => {
         <CardTitle className="flex items-center gap-2 text-lg">
           <MessageSquare className="w-5 h-5 text-secondary-foreground" />
           Messages
-          {unreadCount > 0 && (
-            <Badge variant="destructive" className="ml-auto">
-              {unreadCount}
-            </Badge>
-          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
@@ -258,7 +295,10 @@ export default function KidsDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <TodayScheduleCard />
+          <TodayScheduleCard 
+            linkedChildId={linkedChildId} 
+            showFullDetails={permissions.show_full_event_details}
+          />
         </motion.div>
 
         {/* Mood Check-in */}
@@ -267,7 +307,10 @@ export default function KidsDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <MoodCheckIn />
+          <MoodCheckIn 
+            linkedChildId={linkedChildId}
+            allowMoodCheckins={permissions.allow_mood_checkins}
+          />
         </motion.div>
 
         {/* Messages */}
@@ -276,7 +319,9 @@ export default function KidsDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <MessagesCard />
+          <MessagesCard 
+            allowMessaging={permissions.allow_parent_messaging || permissions.allow_family_chat}
+          />
         </motion.div>
       </main>
 
