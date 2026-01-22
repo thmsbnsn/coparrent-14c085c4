@@ -49,12 +49,13 @@ const RELATIONSHIP_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
+// Plan limits now enforced server-side via RPC
+// Free: 4 third-party, Power: 6 third-party
 const PLAN_LIMITS: Record<string, number> = {
-  free: 0,
-  pro: 2,
-  mvp: 6,
-  premium: 6,
-  enterprise: 999,
+  free: 4,
+  power: 6,
+  premium: 6, // legacy mapping
+  mvp: 6, // legacy mapping
 };
 
 export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPartyManagerProps) => {
@@ -183,21 +184,30 @@ export const ThirdPartyManager = ({ subscriptionTier, isTrialActive }: ThirdPart
     setLoading(true);
 
     try {
-      // Create invitation record with relationship and child_ids
-      const { data: invitation, error: inviteError } = await supabase
-        .from("invitations")
-        .insert({
-          inviter_id: profileId,
-          invitee_email: email.trim().toLowerCase(),
-          invitation_type: "third_party",
-          role: "third_party",
-          relationship: relationship,
-          child_ids: selectedChildren,
-        })
-        .select()
-        .single();
+      // Use RPC for server-side limit enforcement
+      const { data: rpcResult, error: rpcError } = await supabase.rpc("rpc_create_third_party_invite", {
+        p_invitee_email: email.trim().toLowerCase(),
+        p_relationship: relationship,
+        p_child_ids: selectedChildren,
+      });
 
-      if (inviteError) throw inviteError;
+      if (rpcError) throw rpcError;
+
+      const result = rpcResult as { ok: boolean; code?: string; message?: string; data?: any };
+
+      if (!result.ok) {
+        if (result.code === "LIMIT_REACHED") {
+          toast({
+            title: "Plan Limit Reached",
+            description: result.message || "Upgrade to Power to invite more members.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(result.message || "Failed to create invitation");
+      }
+
+      const invitation = result.data;
 
       // Get inviter name
       const { data: inviterProfile } = await supabase
