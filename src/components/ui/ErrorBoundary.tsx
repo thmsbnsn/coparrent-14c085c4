@@ -1,10 +1,12 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { captureError, setSentryRoute } from '@/lib/sentry';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  feature?: string;
 }
 
 interface State {
@@ -23,7 +25,19 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Report to Sentry with feature context
+    captureError(error, {
+      feature: this.props.feature || 'unknown',
+      action: 'component_crash',
+      extra: {
+        componentStack: errorInfo.componentStack,
+      },
+    });
+    
+    // Also log to console in development
+    if (import.meta.env.DEV) {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
   }
 
   private handleRetry = () => {
@@ -43,11 +57,6 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="text-muted-foreground mb-6 max-w-md">
             We encountered an error while loading this content. Please try again.
           </p>
-          {this.state.error && (
-            <p className="text-sm text-muted-foreground mb-4 font-mono bg-muted p-2 rounded max-w-lg overflow-auto">
-              {this.state.error.message}
-            </p>
-          )}
           <Button onClick={this.handleRetry} variant="outline">
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again

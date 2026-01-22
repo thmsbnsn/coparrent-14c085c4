@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { handleError, ERROR_MESSAGES } from "@/lib/errorMessages";
 
 export interface ChildHealth {
   blood_type: string | null;
