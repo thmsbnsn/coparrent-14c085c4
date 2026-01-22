@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ERROR_MESSAGES } from "@/lib/errorMessages";
 
 export interface MessageSearchResult {
   id: string;
@@ -66,7 +67,7 @@ export const useMessageSearch = (options: UseMessageSearchOptions = {}) => {
         setResults(data as MessageSearchResult[] || []);
       } catch (err) {
         console.error("Unexpected search error:", err);
-        setError("An unexpected error occurred");
+        setError(ERROR_MESSAGES.GENERIC);
       } finally {
         setLoading(false);
       }

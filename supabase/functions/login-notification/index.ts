@@ -198,10 +198,11 @@ const handler = async (req: Request): Promise<Response> => {
         headers: { "Content-Type": "application/json", ...corsHeaders } 
       }
     );
-  } catch (error: any) {
-    console.error("Error in login-notification function:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error in login-notification function:", errorMessage);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Unable to process login notification. Please try again." }),
       { 
         status: 500, 
         headers: { "Content-Type": "application/json", ...corsHeaders } 

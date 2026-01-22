@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { STRIPE_TIERS, StripeTier } from "@/lib/stripe";
 import { useToast } from "@/hooks/use-toast";
+import { ERROR_MESSAGES } from "@/lib/errorMessages";
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -173,10 +174,9 @@ export const useSubscription = () => {
       }
     } catch (error: unknown) {
       console.error("[useSubscription] Checkout failed:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unable to start checkout. Please try again.";
       toast({
         title: "Checkout failed",
-        description: errorMessage,
+        description: ERROR_MESSAGES.CHECKOUT_ERROR,
         variant: "destructive",
       });
     } finally {
@@ -242,10 +242,9 @@ export const useSubscription = () => {
       }
     } catch (error: unknown) {
       console.error("[useSubscription] Portal failed:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unable to open billing portal. Please try again.";
       toast({
         title: "Portal access failed",
-        description: errorMessage,
+        description: "Unable to access billing portal. Please try again.",
         variant: "destructive",
       });
     } finally {

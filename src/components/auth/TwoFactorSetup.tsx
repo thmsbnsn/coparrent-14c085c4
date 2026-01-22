@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Shield, ShieldCheck, ShieldX, Loader2, Copy, Check, AlertTriangle } from "lucide-react";
+import { ERROR_MESSAGES, sanitizeErrorForUser } from "@/lib/errorMessages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,10 +86,10 @@ export const TwoFactorSetup = ({ className, onStatusChange }: TwoFactorSetupProp
       setSecret(data.totp.secret);
       setFactorId(data.id);
       setShowEnrollDialog(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed to start 2FA setup",
-        description: error.message,
+        description: sanitizeErrorForUser(error),
         variant: "destructive",
       });
     } finally {
@@ -131,12 +132,13 @@ export const TwoFactorSetup = ({ className, onStatusChange }: TwoFactorSetupProp
         title: "2FA enabled!",
         description: "Your account is now protected with two-factor authentication.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : "";
       toast({
         title: "Verification failed",
-        description: error.message.includes("Invalid") 
+        description: errMsg.includes("Invalid") 
           ? "The code you entered is incorrect. Please try again."
-          : error.message,
+          : sanitizeErrorForUser(error),
         variant: "destructive",
       });
     } finally {
@@ -161,10 +163,10 @@ export const TwoFactorSetup = ({ className, onStatusChange }: TwoFactorSetupProp
         title: "2FA disabled",
         description: "Two-factor authentication has been removed from your account.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed to disable 2FA",
-        description: error.message,
+        description: sanitizeErrorForUser(error),
         variant: "destructive",
       });
     } finally {

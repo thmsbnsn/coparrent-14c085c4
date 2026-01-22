@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { ERROR_MESSAGES } from "@/lib/errorMessages";
 
 const BUCKET_NAME = "child-photos";
 const URL_EXPIRY_SECONDS = 3600; // 1 hour
@@ -399,7 +400,7 @@ export const useChildPhotos = (childId: string | null) => {
         console.error("Error deleting photo:", error);
         toast({
           title: "Delete failed",
-          description: "An unexpected error occurred",
+          description: ERROR_MESSAGES.DELETE_FAILED,
           variant: "destructive",
         });
         return false;

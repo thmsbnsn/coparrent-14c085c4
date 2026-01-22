@@ -91,11 +91,11 @@ export const useAdminLawLibrary = () => {
 
       await fetchResources();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading resource:', error);
       toast({
         title: 'Upload Failed',
-        description: error.message || 'Could not upload the resource.',
+        description: 'Could not upload the resource. Please try again.',
         variant: 'destructive',
       });
       return false;
@@ -132,11 +132,11 @@ export const useAdminLawLibrary = () => {
 
       await fetchResources();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating resource:', error);
       toast({
         title: 'Update Failed',
-        description: error.message || 'Could not update the resource.',
+        description: 'Could not update the resource. Please try again.',
         variant: 'destructive',
       });
       return false;
@@ -170,11 +170,11 @@ export const useAdminLawLibrary = () => {
 
       await fetchResources();
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting resource:', error);
       toast({
         title: 'Delete Failed',
-        description: error.message || 'Could not delete the resource.',
+        description: 'Could not delete the resource. Please try again.',
         variant: 'destructive',
       });
       return false;

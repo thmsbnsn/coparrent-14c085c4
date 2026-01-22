@@ -413,9 +413,9 @@ Respond ONLY with the JSON object, no other text.`;
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("[AI-SCHEDULE-SUGGEST] Error:", errorMessage);
 
-    // Return structured error
+    // Return user-safe error
     return new Response(
-      JSON.stringify({ error: errorMessage, code: "INTERNAL_ERROR" }),
+      JSON.stringify({ error: "Unable to generate schedule suggestions. Please try again.", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

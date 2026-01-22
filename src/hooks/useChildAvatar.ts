@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ERROR_MESSAGES } from "@/lib/errorMessages";
 
 const BUCKET_NAME = "child-avatars";
 const URL_EXPIRY_SECONDS = 3600; // 1 hour
@@ -119,7 +120,7 @@ export const useChildAvatar = () => {
       console.error("Error uploading avatar:", error);
       toast({
         title: "Upload failed",
-        description: "An unexpected error occurred",
+        description: ERROR_MESSAGES.UPLOAD_FAILED,
         variant: "destructive",
       });
       return null;

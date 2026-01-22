@@ -155,10 +155,10 @@ const SettingsPage = () => {
         title: "Profile updated",
         description: "Your profile has been saved successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed to save",
-        description: error.message,
+        description: "Unable to save your profile. Please try again.",
         variant: "destructive",
       });
     }

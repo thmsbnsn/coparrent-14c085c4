@@ -99,11 +99,11 @@ export const CoParentInvite = ({
 
       setEmail("");
       onInviteSent();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error sending invitation:", error);
       toast({
         title: "Failed to send invitation",
-        description: error.message || "Please try again later.",
+        description: "Unable to send invitation. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -149,11 +149,11 @@ export const CoParentInvite = ({
       }
 
       onInviteSent();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error resending invitation:", error);
       toast({
         title: "Failed to resend invitation",
-        description: error.message || "Please try again later.",
+        description: "Unable to resend invitation. Please try again later.",
         variant: "destructive",
       });
     } finally {
