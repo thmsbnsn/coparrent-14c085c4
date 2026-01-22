@@ -14,8 +14,10 @@ export interface ExportMessage {
   content: string;
   created_at: string;
   sender_id: string;
-  recipient_id: string;
-  read_at: string | null;
+  sender_name: string | null;
+  sender_role: string;
+  thread_name: string | null;
+  thread_type: string;
 }
 
 export interface ExportExpense {
@@ -61,6 +63,16 @@ export interface ExportDocumentAccessLog {
   created_at: string;
 }
 
+export interface ExportJournalEntry {
+  id: string;
+  title: string | null;
+  content: string;
+  mood: string | null;
+  tags: string[];
+  child_name: string | null;
+  created_at: string;
+}
+
 export interface ExportSchedule {
   id: string;
   pattern: string;
@@ -78,6 +90,7 @@ export interface CourtExportData {
   scheduleRequests: ExportScheduleRequest[];
   exchangeCheckins: ExportExchangeCheckin[];
   documentAccessLogs: ExportDocumentAccessLog[];
+  journalEntries: ExportJournalEntry[];
   schedule: ExportSchedule | null;
   dateRange: { start: Date; end: Date };
   children: { id: string; name: string }[];
@@ -125,19 +138,26 @@ export const useCourtExport = () => {
 
       // Fetch all data in parallel
       const [
-        messagesRes,
+        threadMessagesRes,
         expensesRes,
         scheduleRequestsRes,
         exchangeCheckinsRes,
         scheduleRes,
         childrenRes,
         documentAccessLogsRes,
+        journalEntriesRes,
       ] = await Promise.all([
-        // Messages
+        // Thread Messages (new messaging system)
         supabase
-          .from("messages")
-          .select("id, content, created_at, sender_id, recipient_id, read_at")
-          .or(`sender_id.eq.${profile.id},recipient_id.eq.${profile.id}`)
+          .from("thread_messages")
+          .select(`
+            id,
+            content,
+            created_at,
+            sender_id,
+            sender_role,
+            thread:message_threads(name, thread_type, primary_parent_id)
+          `)
           .gte("created_at", startStr)
           .lte("created_at", endStr)
           .order("created_at", { ascending: true }),
@@ -146,7 +166,6 @@ export const useCourtExport = () => {
         supabase
           .from("expenses")
           .select("id, amount, description, category, expense_date, split_percentage, notes, created_by, child:children(name)")
-          .eq("created_by", profile.id)
           .gte("expense_date", dateRange.start.toISOString().split('T')[0])
           .lte("expense_date", dateRange.end.toISOString().split('T')[0])
           .order("expense_date", { ascending: true }),
@@ -164,7 +183,7 @@ export const useCourtExport = () => {
         supabase
           .from("exchange_checkins")
           .select("id, exchange_date, checked_in_at, note, user_id")
-          .eq("user_id", profile.id)
+          .eq("user_id", user.id)
           .gte("exchange_date", dateRange.start.toISOString().split('T')[0])
           .lte("exchange_date", dateRange.end.toISOString().split('T')[0])
           .order("exchange_date", { ascending: true }),
@@ -182,7 +201,7 @@ export const useCourtExport = () => {
           .select("child:children(id, name)")
           .eq("parent_id", profile.id),
 
-        // Document Access Logs - fetch documents first, then their access logs
+        // Document Access Logs
         supabase
           .from("document_access_logs")
           .select(`
@@ -196,9 +215,44 @@ export const useCourtExport = () => {
           .gte("created_at", startStr)
           .lte("created_at", endStr)
           .order("created_at", { ascending: true }),
+
+        // Journal Entries
+        supabase
+          .from("journal_entries")
+          .select("id, title, content, mood, tags, child_id, created_at, child:children(name)")
+          .eq("user_id", user.id)
+          .gte("created_at", startStr)
+          .lte("created_at", endStr)
+          .order("created_at", { ascending: true }),
       ]);
 
-      const messages = messagesRes.data || [];
+      // Process thread messages - filter to user's family threads
+      const rawThreadMessages = threadMessagesRes.data || [];
+      const messages: ExportMessage[] = rawThreadMessages
+        .filter(msg => {
+          const thread = msg.thread as { primary_parent_id: string; thread_type: string } | null;
+          if (!thread) return false;
+          // Include if user is primary parent or co-parent is primary parent
+          return thread.primary_parent_id === profile.id || 
+                 thread.primary_parent_id === profile.co_parent_id;
+        })
+        .map(msg => {
+          const thread = msg.thread as { name: string | null; thread_type: string } | null;
+          const isSender = msg.sender_id === profile.id;
+          return {
+            id: msg.id,
+            content: msg.content,
+            created_at: msg.created_at,
+            sender_id: msg.sender_id,
+            sender_name: isSender 
+              ? (profile.full_name || 'You') 
+              : (coParent?.full_name || 'Co-Parent'),
+            sender_role: msg.sender_role,
+            thread_name: thread?.name || null,
+            thread_type: thread?.thread_type || 'unknown',
+          };
+        });
+
       const expenses = expensesRes.data || [];
       const scheduleRequests = scheduleRequestsRes.data || [];
       const exchangeCheckins = exchangeCheckinsRes.data || [];
@@ -207,7 +261,7 @@ export const useCourtExport = () => {
         .filter(pc => pc.child)
         .map(pc => pc.child as { id: string; name: string });
 
-      // Process document access logs - filter to only show logs for user's documents
+      // Process document access logs
       const rawAccessLogs = documentAccessLogsRes.data || [];
       const documentAccessLogs: ExportDocumentAccessLog[] = rawAccessLogs
         .filter(log => {
@@ -233,6 +287,18 @@ export const useCourtExport = () => {
           };
         });
 
+      // Process journal entries
+      const rawJournalEntries = journalEntriesRes.data || [];
+      const journalEntries: ExportJournalEntry[] = rawJournalEntries.map(entry => ({
+        id: entry.id,
+        title: entry.title,
+        content: entry.content,
+        mood: entry.mood,
+        tags: entry.tags || [],
+        child_name: (entry.child as { name: string } | null)?.name || null,
+        created_at: entry.created_at,
+      }));
+
       return {
         userProfile: { id: profile.id, full_name: profile.full_name, email: profile.email },
         coParent,
@@ -244,6 +310,7 @@ export const useCourtExport = () => {
         scheduleRequests,
         exchangeCheckins,
         documentAccessLogs,
+        journalEntries,
         schedule,
         dateRange,
         children,
