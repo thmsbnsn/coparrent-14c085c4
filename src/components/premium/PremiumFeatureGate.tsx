@@ -57,14 +57,14 @@ export const PremiumFeatureGate = ({
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
         <Lock className="h-4 w-4" />
-        <span>{isExpired ? "Trial expired" : "Premium feature"}</span>
+        <span>{isExpired ? "Trial expired" : "Power feature"}</span>
         <Button 
           variant="link" 
           size="sm" 
           className="h-auto p-0 text-primary"
           onClick={() => navigate("/pricing")}
         >
-          Upgrade
+          Get Power
         </Button>
       </div>
     );
@@ -83,19 +83,19 @@ export const PremiumFeatureGate = ({
         
         <div className="space-y-2">
           <h3 className="font-semibold text-lg">
-            {isExpired ? "Trial Expired" : "Premium Feature"}
+            {isExpired ? "Trial Expired" : "Power Feature"}
           </h3>
           <p className="text-muted-foreground text-sm max-w-sm">
             {isExpired 
-              ? `Your trial has ended. Upgrade to continue using ${featureName.toLowerCase()}.`
-              : `${featureName} is available with a premium subscription.`
+              ? `Your trial has ended. Upgrade to Power to continue using ${featureName.toLowerCase()}.`
+              : `${featureName} is available with the Power plan ($5/month).`
             }
           </p>
         </div>
 
         <Button onClick={() => navigate("/pricing")} className="gap-2">
           <Sparkles className="h-4 w-4" />
-          {isExpired ? "Upgrade Now" : "View Plans"}
+          {isExpired ? "Upgrade to Power" : "Get Power"}
         </Button>
       </CardContent>
     </Card>

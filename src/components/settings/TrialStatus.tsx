@@ -162,7 +162,7 @@ export const TrialStatus = ({ trialStartedAt, trialEndsAt, subscriptionStatus }:
     );
   }
 
-  // No trial started - prompt to link co-parent
+  // No trial started - prompt to upgrade
   if (!trialStartedAt || !trialEndsAt) {
     return (
       <Card>
@@ -172,17 +172,22 @@ export const TrialStatus = ({ trialStartedAt, trialEndsAt, subscriptionStatus }:
             Subscription Status
           </CardTitle>
           <CardDescription>
-            Link with your co-parent to start your 7-day free trial
+            You're on the Free plan
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="p-4 rounded-lg bg-muted text-center">
-            <p className="text-sm text-muted-foreground">
-              Invite your co-parent to unlock all features and start your free trial.
-            </p>
+          <div className="p-4 rounded-lg bg-muted">
+            <p className="text-sm font-medium mb-2">Free plan includes:</p>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>✓ Custody calendar</li>
+              <li>✓ Messaging hub</li>
+              <li>✓ Child info hub (up to 4 kids)</li>
+              <li>✓ Document vault</li>
+              <li>✓ Law library & blog</li>
+            </ul>
           </div>
           <Button onClick={() => navigate("/pricing")} className="w-full">
-            View Plans
+            Upgrade to Power - $5/month
           </Button>
         </CardContent>
       </Card>
@@ -233,23 +238,23 @@ export const TrialStatus = ({ trialStartedAt, trialEndsAt, subscriptionStatus }:
             <div className="p-4 rounded-lg bg-warning/10 border border-warning/20">
               <p className="text-sm font-medium text-warning mb-2">Limited Access</p>
               <p className="text-xs text-muted-foreground">
-                You can still view your calendar and messages, but premium features like 
-                document generation and schedule change requests are disabled.
+                You can still use core features, but Power features like 
+                Expenses, Court Exports, and Sports Hub are disabled.
               </p>
             </div>
             <Button onClick={() => navigate("/pricing")} className="w-full">
-              Upgrade Now
+              Upgrade to Power
             </Button>
           </>
         ) : (
           <div className="p-4 rounded-lg bg-muted">
-            <p className="text-sm font-medium mb-2">Trial includes:</p>
+            <p className="text-sm font-medium mb-2">Trial includes Power features:</p>
             <ul className="text-xs text-muted-foreground space-y-1">
-              <li>✓ Unlimited messages</li>
-              <li>✓ Full calendar access</li>
-              <li>✓ Schedule change requests</li>
-              <li>✓ Document generation</li>
-              <li>✓ Child information hub</li>
+              <li>✓ Expense tracking & splitting</li>
+              <li>✓ Court-ready exports</li>
+              <li>✓ Youth Sports Hub</li>
+              <li>✓ Up to 6 children</li>
+              <li>✓ AI message assistance</li>
             </ul>
           </div>
         )}

@@ -3,31 +3,47 @@
 This document lists all premium, role-gated, and admin-restricted features in CoParrent,
 along with where each gate is enforced (UI component + server-side).
 
-**Last Updated:** 2026-01-20
+**Last Updated:** 2026-01-22
+
+---
+
+## Plan Structure
+
+CoParrent uses a two-tier subscription model:
+
+| Plan | Price | Max Kids | Max Third-Party | Key Features |
+|------|-------|----------|-----------------|--------------|
+| **Free** | $0 | 4 | 4 | Calendar, Messages, Children, Documents, Kid Center, Law Library |
+| **Power** | $5/month | 6 | 6 | Everything in Free + Expenses, Court Exports, Sports Hub, AI Assist |
+
+**Plan Configuration:** `src/lib/planLimits.ts`
+
+---
 
 ## Gate Types
 
 | Gate Type | Description | UI Component | Server Check |
 |-----------|-------------|--------------|--------------|
-| **PremiumGate** | Requires active subscription or trial | `PremiumFeatureGate` | Edge function `aiGuard` |
+| **PowerGate** | Requires Power subscription or trial | `PremiumFeatureGate` | Edge function `aiGuard` |
 | **RoleGate** | Requires parent/guardian role (not third-party) | `RoleGate`, `ProtectedRoute` | RLS policies, edge function `aiGuard` |
 | **AdminGate** | Requires admin role in user_roles table | `AdminGate` | `is_admin()` DB function, RLS |
 | **ChildGate** | Enforces child account restrictions | `ChildAccountGate` | `get_child_permissions()` RPC |
 
 ---
 
-## Premium-Gated Features
+## Power-Gated Features
 
-Features requiring subscription, trial, or free_access grant.
+Features requiring Power subscription, trial, or free_access grant.
 
 | Feature | UI Gate Location | Server Gate | Notes |
 |---------|------------------|-------------|-------|
+| Expenses Tracking | `ExpensesPage.tsx` - PremiumFeatureGate | RLS on `expenses` | Power-only |
+| Court Exports | `CourtExportDialog.tsx` - PremiumFeatureGate | RLS on export data | Power-only |
+| Sports & Events Hub | `SportsPage.tsx` - PremiumFeatureGate | RLS on `child_activities` | Power-only |
 | AI Message Rephrase | `MessageToneAssistant.tsx` - mode dropdown | `ai-message-assist/index.ts` - aiGuard | quick-check allowed for all |
-| AI Message Draft | `MessageToneAssistant.tsx` | `ai-message-assist/index.ts` - aiGuard | |
+| AI Message Draft | `MessageToneAssistant.tsx` | `ai-message-assist/index.ts` - aiGuard | Power-only |
 | AI Message Analyze | `MessageToneAssistant.tsx` | `ai-message-assist/index.ts` - aiGuard | Allowed for all auth users |
-| AI Schedule Suggest | `CalendarWizard.tsx` | `ai-schedule-suggest/index.ts` - aiGuard | Parent/Admin + plan |
-| Rewrite Style Modes | `MessageToneAssistant.tsx` - dropdown hidden for non-premium | Mode passed to server but neutral default works for all | |
-| Kid Center AI Tools | `KidCenterPage.tsx` - `PremiumFeatureGate` | Coming soon | Coloring, crafts, activities, recipes |
+| AI Schedule Suggest | `CalendarWizard.tsx` | `ai-schedule-suggest/index.ts` - aiGuard | Parent/Admin + Power |
 
 ---
 
@@ -151,8 +167,14 @@ All tables have Row Level Security enabled. Key patterns:
 ### Rate Limiting
 AI functions use `aiRateLimit` module:
 - Tracks daily usage in `ai_usage_daily` table
-- Limits: Free=10/day, Trial=50/day, Premium=200/day
+- Limits: Free=10/day, Trial=50/day, Power=200/day
 - Returns HTTP 429 with `{ error, code: "RATE_LIMIT" }`
+
+### Plan Limits Enforcement
+Plan limits are defined in `src/lib/planLimits.ts`:
+- `getPlanLimits(tier)` returns limits for max kids, third-party accounts
+- `hasFeatureAccess(tier, feature)` checks if feature is available
+- `normalizeTier(tier)` maps legacy tiers (premium, mvp) to "power"
 
 ---
 
