@@ -2,40 +2,41 @@
 // These price IDs and product IDs must match your Stripe dashboard
 // NOTE: When switching between test/live mode, update these IDs accordingly
 
+// Plan structure: Free (default) + Power ($5/month)
+// Power includes: Expenses Tracking, Court Exports, Sports & Events Hub
+
 // Live mode IDs (CoParrent account - acct_1Sg5Y5HH6NsbcWgZ)
 const LIVE_MODE_TIERS = {
-  premium: {
-    name: "Premium",
+  power: {
+    name: "Power",
     price: "$5",
     period: "per month",
-    priceId: "price_1SqCiwHH6NsbcWgZB7TfWnhQ",
-    productId: "prod_TnoLYRDnjKqtA8",
-  },
-  mvp: {
-    name: "MVP",
-    price: "$10",
-    period: "per month",
-    priceId: "price_1SqCiyHH6NsbcWgZ8qD5XfWu",
-    productId: "prod_TnoLKasOQOvLwL",
+    priceId: "price_1SsHAdHH6NsbcWgZb3ghZzFc",
+    productId: "prod_Tpx49PIJ26wzPc",
   },
 };
 
 // Test mode IDs (sandbox) - same account, different environment
+// Note: Need to create test mode Power product when switching to test
 const TEST_MODE_TIERS = {
-  premium: {
-    name: "Premium",
+  power: {
+    name: "Power",
     price: "$5",
     period: "per month",
+    // Using old premium price as placeholder - update when test product created
     priceId: "price_1ShhNiHH6NsbcWgZd5TaJRr3",
     productId: "prod_Tf1Qq9jGVEyUOM",
   },
-  mvp: {
-    name: "MVP",
-    price: "$10",
-    period: "per month",
-    priceId: "price_1ShhNkHH6NsbcWgZWIFS07Q5",
-    productId: "prod_Tf1QUUhL8Tx1Ks",
-  },
+};
+
+// Legacy product ID mappings for migration - old subscribers map to "power"
+export const LEGACY_PRODUCT_MAPPING: Record<string, string> = {
+  // Live mode legacy products
+  "prod_TnoLYRDnjKqtA8": "power", // Old Premium
+  "prod_TnoLKasOQOvLwL": "power", // Old MVP
+  // Test mode legacy products
+  "prod_Tf1Qq9jGVEyUOM": "power", // Old Premium (test)
+  "prod_Tf1QUUhL8Tx1Ks": "power", // Old MVP (test)
 };
 
 // PRODUCTION MODE ENABLED
@@ -51,11 +52,20 @@ export type StripeTier = keyof typeof STRIPE_TIERS;
 
 export const getTierFromProductId = (productId: string | null): StripeTier | "free" => {
   if (!productId) return "free";
+  
+  // Check current tier products first
   for (const [tier, config] of Object.entries(STRIPE_TIERS)) {
     if (config.productId === productId) {
       return tier as StripeTier;
     }
   }
+  
+  // Check legacy product mappings
+  const legacyTier = LEGACY_PRODUCT_MAPPING[productId];
+  if (legacyTier) {
+    return legacyTier as StripeTier;
+  }
+  
   return "free";
 };
 

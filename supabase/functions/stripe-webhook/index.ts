@@ -19,23 +19,28 @@ const logStep = (step: string, details?: any) => {
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
-// Product IDs for both live and test mode - KEEP IN SYNC with src/lib/stripe.ts
+// All products map to Power tier (the only paid tier)
+// Includes legacy products for migration safety
 const PRODUCT_TIERS: Record<string, string> = {
-  // Live mode (acct_1Sg5Y5HH6NsbcWgZ)
-  "prod_TnoLYRDnjKqtA8": "Premium",
-  "prod_TnoLKasOQOvLwL": "MVP",
-  // Sandbox/Test mode
-  "prod_Tf1Qq9jGVEyUOM": "Premium",
-  "prod_Tf1QUUhL8Tx1Ks": "MVP",
+  // New Power product (Live mode)
+  "prod_Tpx49PIJ26wzPc": "Power",
+  // Legacy Live mode products (display as Power for migration)
+  "prod_TnoLYRDnjKqtA8": "Power", // Old Premium
+  "prod_TnoLKasOQOvLwL": "Power", // Old MVP
+  // Legacy Test mode products
+  "prod_Tf1Qq9jGVEyUOM": "Power", // Old Premium (test)
+  "prod_Tf1QUUhL8Tx1Ks": "Power", // Old MVP (test)
 };
 
+// Database tier values (normalized to "power")
 const TIER_DB_VALUES: Record<string, string> = {
-  // Live mode (acct_1Sg5Y5HH6NsbcWgZ)
-  "prod_TnoLYRDnjKqtA8": "premium",
-  "prod_TnoLKasOQOvLwL": "mvp",
-  // Sandbox/Test mode
-  "prod_Tf1Qq9jGVEyUOM": "premium",
-  "prod_Tf1QUUhL8Tx1Ks": "mvp",
+  // New Power product
+  "prod_Tpx49PIJ26wzPc": "power",
+  // Legacy products (all map to power)
+  "prod_TnoLYRDnjKqtA8": "power",
+  "prod_TnoLKasOQOvLwL": "power",
+  "prod_Tf1Qq9jGVEyUOM": "power",
+  "prod_Tf1QUUhL8Tx1Ks": "power",
 };
 
 type EmailType = "welcome" | "update" | "support" | "cancel";
@@ -115,24 +120,26 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       session.subscription as string
     );
     const productId = subscription.items.data[0]?.price?.product as string;
-    const tier = TIER_DB_VALUES[productId] || null;
-    const tierName = PRODUCT_TIERS[productId] || "Premium";
+    const tier = TIER_DB_VALUES[productId] || "power";
+    const tierName = PRODUCT_TIERS[productId] || "Power";
     
     await updateProfileSubscription(customerEmail, "active", tier);
 
     await sendEmail(
       customerEmail,
-      "Welcome to CoParrent " + tierName + "! 🎉",
+      "Welcome to CoParrent Power! 🎉",
       `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #6366f1;">Welcome to CoParrent ${tierName}!</h1>
+          <h1 style="color: #6366f1;">Welcome to CoParrent Power!</h1>
           <p>Thank you for subscribing to CoParrent. Your ${tierName} subscription is now active.</p>
-          <p>You now have access to all premium features including:</p>
+          <p>You now have access to all Power features including:</p>
           <ul>
-            <li>Unlimited messaging with tone analysis</li>
-            <li>Shared calendar and scheduling</li>
-            <li>Document storage and sharing</li>
-            <li>Expense tracking and reports</li>
+            <li>Expense tracking & reports</li>
+            <li>Court-ready document exports</li>
+            <li>Sports & events hub</li>
+            <li>AI message assistance</li>
+            <li>Up to 6 child profiles</li>
+            <li>Up to 6 family member accounts</li>
           </ul>
           <p>If you have any questions, feel free to reach out to our support team at <a href="mailto:support@coparrent.com">support@coparrent.com</a>.</p>
           <p>Best regards,<br>The CoParrent Team</p>
@@ -165,8 +172,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   }
 
   const productId = subscription.items.data[0]?.price?.product as string;
-  const tier = TIER_DB_VALUES[productId] || null;
-  const tierName = PRODUCT_TIERS[productId] || "Premium";
+  const tier = TIER_DB_VALUES[productId] || "power";
+  const tierName = PRODUCT_TIERS[productId] || "Power";
   
   let status = subscription.status;
   let shouldSendEmail = false;
@@ -176,12 +183,12 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   if (status === "active" || status === "trialing") {
     status = "active";
     shouldSendEmail = true;
-    emailSubject = `Your CoParrent plan has been updated to ${tierName}`;
+    emailSubject = `Your CoParrent subscription is now active`;
     emailHtml = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #6366f1;">Plan Updated!</h1>
-        <p>Your CoParrent subscription has been updated to the <strong>${tierName}</strong> plan.</p>
-        <p>Your new features are now active. Thank you for being a valued member!</p>
+        <h1 style="color: #6366f1;">Subscription Active!</h1>
+        <p>Your CoParrent ${tierName} subscription is now active.</p>
+        <p>Enjoy all your Power features! Thank you for being a valued member.</p>
         <p>Best regards,<br>The CoParrent Team</p>
       </div>
     `;
@@ -229,7 +236,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     return;
   }
 
-  await updateProfileSubscription(email, "canceled", null);
+  // On cancellation, revert to free tier
+  await updateProfileSubscription(email, "canceled", "free");
 
   await sendEmail(
     email,
@@ -238,7 +246,15 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #6366f1;">Subscription Canceled</h1>
         <p>Your CoParrent subscription has been canceled.</p>
-        <p>We're sorry to see you go! Your premium features will remain active until the end of your current billing period.</p>
+        <p>We're sorry to see you go! Your Power features will remain active until the end of your current billing period.</p>
+        <p>After that, you'll continue to have access to all Free features including:</p>
+        <ul>
+          <li>Up to 4 child profiles</li>
+          <li>Custody calendar</li>
+          <li>Messaging</li>
+          <li>Document vault</li>
+          <li>Photo gallery</li>
+        </ul>
         <p>If you change your mind, you can resubscribe at any time from your account settings.</p>
         <p>We'd love to hear your feedback on how we can improve. Feel free to reach out to us at <a href="mailto:hello@coparrent.com">hello@coparrent.com</a>.</p>
         <p>Best regards,<br>The CoParrent Team</p>
@@ -257,7 +273,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     return;
   }
 
-  await updateProfileSubscription(customerEmail, "past_due", null);
+  await updateProfileSubscription(customerEmail, "past_due", "power");
 
   await sendEmail(
     customerEmail,
@@ -266,7 +282,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #ef4444;">Payment Failed</h1>
         <p>We were unable to process your payment of $${((invoice.amount_due || 0) / 100).toFixed(2)} for your CoParrent subscription.</p>
-        <p>Please update your payment method as soon as possible to avoid losing access to premium features.</p>
+        <p>Please update your payment method as soon as possible to avoid losing access to Power features.</p>
         <p>Common reasons for payment failure:</p>
         <ul>
           <li>Expired credit card</li>
