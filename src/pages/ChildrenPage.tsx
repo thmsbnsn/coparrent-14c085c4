@@ -17,6 +17,8 @@ import { ChildAvatar } from "@/components/children/ChildAvatar";
 import { ChildPhotoGallery } from "@/components/children/ChildPhotoGallery";
 import { DeleteChildDialog } from "@/components/children/DeleteChildDialog";
 import type { Child } from "@/hooks/useChildren";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -135,6 +137,7 @@ const InfoCard = ({
 
 const ChildrenPage = () => {
   const { children, loading, addChild, updateChild, deleteChild } = useRealtimeChildren();
+  const { kids_used, max_kids, canAddChild, isAtChildLimit, tier, refresh: refreshLimits } = usePlanLimits();
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -244,6 +247,7 @@ const ChildrenPage = () => {
         resetAddForm();
         setIsAddDialogOpen(false);
         setSelectedChild(child);
+        refreshLimits(); // Refresh plan limits after adding
       }
     } catch (error) {
       console.error("Error adding child:", error);
@@ -351,9 +355,9 @@ const ChildrenPage = () => {
             setIsAddDialogOpen(open);
           }}>
             <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto shrink-0">
+              <Button className="w-full sm:w-auto shrink-0" disabled={isAtChildLimit}>
                 <Plus className="w-4 h-4 mr-2" />
-                Add Child
+                {isAtChildLimit ? `Limit Reached (${max_kids})` : "Add Child"}
               </Button>
             </DialogTrigger>
             <DialogContent className="mx-4 sm:mx-auto max-w-md">
@@ -444,10 +448,21 @@ const ChildrenPage = () => {
               className="lg:col-span-4 xl:col-span-3"
             >
               <Card className="overflow-hidden">
-                <CardHeader className="py-3 px-4 bg-muted/30 border-b">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Your Children ({children.length})
-                  </CardTitle>
+                <CardHeader className="py-3 px-4 bg-muted/30 border-b space-y-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Your Children
+                    </CardTitle>
+                    <Badge variant={isAtChildLimit ? "destructive" : "secondary"} className="text-xs">
+                      {kids_used}/{max_kids}
+                    </Badge>
+                  </div>
+                  <Progress value={(kids_used / max_kids) * 100} className="h-1.5" />
+                  {isAtChildLimit && (
+                    <p className="text-xs text-muted-foreground">
+                      {tier === "free" ? "Upgrade to Power for up to 6 children" : "Maximum reached"}
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="p-2">
                   <div className="flex flex-col gap-1.5">

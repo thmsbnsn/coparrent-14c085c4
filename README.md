@@ -69,6 +69,32 @@ CoParrent now uses a simplified two-tier plan structure:
 - All tier checks use `normalizeTier()` function to handle legacy values
 - Power-only features: Expenses (`/dashboard/expenses`), Sports Hub (`/dashboard/sports`), Court Exports
 
+### Server-Enforced Plan Limits (January 2026)
+
+Plan limits are now enforced at the database level via RPC functions:
+
+| RPC Function | Purpose | Error Codes |
+|--------------|---------|-------------|
+| `get_plan_usage(p_profile_id)` | Returns current usage and limits | N/A |
+| `rpc_add_child(p_name, p_date_of_birth)` | Adds child with limit check | `LIMIT_REACHED`, `NOT_PARENT` |
+| `rpc_create_third_party_invite(...)` | Creates third-party invite with limit check | `LIMIT_REACHED`, `NOT_PARENT` |
+| `rpc_revoke_third_party(p_invitation_id)` | Revokes third-party access | `NOT_PARENT` |
+
+**Error Response Format:**
+```json
+{
+  "ok": false,
+  "code": "LIMIT_REACHED",
+  "message": "You've reached the maximum children for your plan",
+  "meta": { "tier": "free", "current": "4", "max": "4" }
+}
+```
+
+**Frontend Integration:**
+- `usePlanLimits()` hook provides usage data and convenience booleans
+- `parseRpcResult()` and `getErrorMessage()` helpers for structured error handling
+- Children page shows usage progress bar and disables Add button at limit
+
 This section documents recent architectural changes for developers migrating or maintaining the codebase.
 
 ### Database Tables Added (January 2026)
