@@ -21,7 +21,7 @@
  * @see useUnreadMessages for unread count tracking
  * @see useTypingIndicator for typing status
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilyRole } from "./useFamilyRole";
@@ -29,6 +29,12 @@ import { useToast } from "./use-toast";
 import { Database } from "@/integrations/supabase/types";
 import { resolveDisplayName } from "@/lib/safeText";
 import { logger } from "@/lib/logger";
+import { 
+  getMutationKey, 
+  acquireMutationLock, 
+  releaseMutationLock 
+} from "@/lib/mutations";
+import { ERROR_MESSAGES } from "@/lib/errorMessages";
 
 type ThreadType = Database["public"]["Enums"]["thread_type"];
 
@@ -338,7 +344,7 @@ export const useMessagingHub = () => {
     }
   }, [profileId]);
 
-  // Send message
+  // Send message with double-submit protection
   const sendMessage = async (content: string) => {
     if (!activeThread || !profileId || !role) {
       toast({
@@ -346,6 +352,14 @@ export const useMessagingHub = () => {
         description: "Please select a conversation first",
         variant: "destructive",
       });
+      return false;
+    }
+
+    // Guard against double-submits using content hash
+    const contentHash = content.slice(0, 50);
+    const mutationKey = getMutationKey("sendMessage", activeThread.id, contentHash);
+    if (!acquireMutationLock(mutationKey)) {
+      // Silent block for rapid message sends
       return false;
     }
 
@@ -363,10 +377,12 @@ export const useMessagingHub = () => {
       console.error("Error sending message:", error);
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: ERROR_MESSAGES.MESSAGE_FAILED,
         variant: "destructive",
       });
       return false;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 

@@ -1,9 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useNotificationService } from '@/hooks/useNotificationService';
 import { handleError, ERROR_MESSAGES } from '@/lib/errorMessages';
+import { 
+  getMutationKey, 
+  acquireMutationLock, 
+  releaseMutationLock 
+} from '@/lib/mutations';
 
 export interface Document {
   id: string;
@@ -119,6 +124,14 @@ export const useDocuments = () => {
     childId?: string
   ) => {
     if (!user || !userProfile) return null;
+
+    // Guard against double-submits
+    const mutationKey = getMutationKey("uploadDocument", title, file.name);
+    if (!acquireMutationLock(mutationKey)) {
+      toast.error(ERROR_MESSAGES.DUPLICATE_REQUEST);
+      return null;
+    }
+
     setUploading(true);
 
     try {
@@ -170,6 +183,7 @@ export const useDocuments = () => {
       return null;
     } finally {
       setUploading(false);
+      releaseMutationLock(mutationKey);
     }
   };
 
@@ -220,6 +234,12 @@ export const useDocuments = () => {
   };
 
   const deleteDocument = async (document: Document) => {
+    // Guard against double-submits
+    const mutationKey = getMutationKey("deleteDocument", document.id);
+    if (!acquireMutationLock(mutationKey)) {
+      return;
+    }
+
     try {
       // Log deletion before removing
       await logAccess(document.id, 'delete');
@@ -244,6 +264,8 @@ export const useDocuments = () => {
     } catch (error) {
       const message = handleError(error, { feature: 'Documents', action: 'delete' });
       toast.error(message);
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 

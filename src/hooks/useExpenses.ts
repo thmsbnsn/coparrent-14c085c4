@@ -1,8 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { handleError, ERROR_MESSAGES } from "@/lib/errorMessages";
+import { 
+  getMutationKey, 
+  acquireMutationLock, 
+  releaseMutationLock 
+} from "@/lib/mutations";
 
 export interface Expense {
   id: string;
@@ -146,6 +151,12 @@ export function useExpenses() {
   }) => {
     if (!profile) return { error: 'No profile found' };
 
+    // Guard against double-submits
+    const mutationKey = getMutationKey("addExpense", expense.description, String(expense.amount));
+    if (!acquireMutationLock(mutationKey)) {
+      return { error: ERROR_MESSAGES.DUPLICATE_REQUEST };
+    }
+
     try {
       const { error } = await supabase
         .from('expenses')
@@ -161,10 +172,18 @@ export function useExpenses() {
     } catch (error: any) {
       const message = handleError(error, { feature: 'Expenses', action: 'add' });
       return { error: message };
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
   const deleteExpense = async (expenseId: string) => {
+    // Guard against double-submits
+    const mutationKey = getMutationKey("deleteExpense", expenseId);
+    if (!acquireMutationLock(mutationKey)) {
+      return { error: ERROR_MESSAGES.DUPLICATE_REQUEST };
+    }
+
     try {
       const { error } = await supabase
         .from('expenses')
@@ -175,7 +194,10 @@ export function useExpenses() {
       await fetchExpenses();
       return { error: null };
     } catch (error: any) {
-      return { error: error.message };
+      const message = handleError(error, { feature: 'Expenses', action: 'delete' });
+      return { error: message };
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 

@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFamilyRole } from "./useFamilyRole";
 import { useToast } from "./use-toast";
-import { handleError } from "@/lib/errorMessages";
+import { handleError, ERROR_MESSAGES } from "@/lib/errorMessages";
+import { 
+  getMutationKey, 
+  acquireMutationLock, 
+  releaseMutationLock 
+} from "@/lib/mutations";
 
 export interface GiftList {
   id: string;
@@ -125,6 +130,12 @@ export const useGiftLists = (childId?: string) => {
   }) => {
     if (!primaryParentId) return null;
 
+    // Guard against double-submits
+    const mutationKey = getMutationKey("createGiftList", data.child_id, data.occasion_type);
+    if (!acquireMutationLock(mutationKey)) {
+      return null;
+    }
+
     try {
       const { data: newList, error } = await supabase
         .from("gift_lists")
@@ -152,6 +163,8 @@ export const useGiftLists = (childId?: string) => {
         variant: "destructive",
       });
       return null;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
@@ -159,6 +172,12 @@ export const useGiftLists = (childId?: string) => {
     listId: string,
     updates: Partial<GiftList>
   ) => {
+    // Guard against double-submits
+    const mutationKey = getMutationKey("updateGiftList", listId);
+    if (!acquireMutationLock(mutationKey)) {
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from("gift_lists")
@@ -182,10 +201,18 @@ export const useGiftLists = (childId?: string) => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
   const deleteGiftList = async (listId: string) => {
+    // Guard against double-submits
+    const mutationKey = getMutationKey("deleteGiftList", listId);
+    if (!acquireMutationLock(mutationKey)) {
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from("gift_lists")
@@ -209,6 +236,8 @@ export const useGiftLists = (childId?: string) => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
@@ -275,6 +304,12 @@ export const useGiftItems = (listId: string) => {
   }) => {
     if (!profileId) return null;
 
+    // Guard against double-submits
+    const mutationKey = getMutationKey("addGiftItem", listId, data.title);
+    if (!acquireMutationLock(mutationKey)) {
+      return null;
+    }
+
     try {
       const { data: newItem, error } = await supabase
         .from("gift_items")
@@ -303,10 +338,18 @@ export const useGiftItems = (listId: string) => {
         variant: "destructive",
       });
       return null;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
   const updateItem = async (itemId: string, updates: Partial<GiftItem>) => {
+    // Guard against double-submits
+    const mutationKey = getMutationKey("updateGiftItem", itemId);
+    if (!acquireMutationLock(mutationKey)) {
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from("gift_items")
@@ -325,11 +368,23 @@ export const useGiftItems = (listId: string) => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
   const claimItem = async (itemId: string) => {
     if (!profileId) return false;
+
+    // Guard against double-submits (race condition on claims)
+    const mutationKey = getMutationKey("claimGiftItem", itemId);
+    if (!acquireMutationLock(mutationKey)) {
+      toast({
+        title: "Please wait",
+        description: "Processing your claim...",
+      });
+      return false;
+    }
 
     try {
       const { error } = await supabase
@@ -358,10 +413,18 @@ export const useGiftItems = (listId: string) => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
   const unclaimItem = async (itemId: string) => {
+    // Guard against double-submits
+    const mutationKey = getMutationKey("unclaimGiftItem", itemId);
+    if (!acquireMutationLock(mutationKey)) {
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from("gift_items")
@@ -389,10 +452,18 @@ export const useGiftItems = (listId: string) => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
   const markPurchased = async (itemId: string, purchased: boolean) => {
+    // Guard against double-submits
+    const mutationKey = getMutationKey("markPurchased", itemId);
+    if (!acquireMutationLock(mutationKey)) {
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from("gift_items")
@@ -421,10 +492,18 @@ export const useGiftItems = (listId: string) => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
   const deleteItem = async (itemId: string) => {
+    // Guard against double-submits
+    const mutationKey = getMutationKey("deleteGiftItem", itemId);
+    if (!acquireMutationLock(mutationKey)) {
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from("gift_items")
@@ -448,6 +527,8 @@ export const useGiftItems = (listId: string) => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      releaseMutationLock(mutationKey);
     }
   };
 
