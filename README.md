@@ -53,6 +53,22 @@ The application is designed with a **calm, professional, court-friendly aestheti
 
 ## 🚀 Migration Notes
 
+### Plan Structure Update (January 2026)
+
+CoParrent now uses a simplified two-tier plan structure:
+
+| Plan | Price | Max Kids | Max Third-Party | Features |
+|------|-------|----------|-----------------|----------|
+| **Free** | $0 | 4 | 4 | Calendar, Messages, Child Info Hub, Documents, Kid Center, Law Library, Blog |
+| **Power** | $5/month | 6 | 6 | Everything in Free + Expenses Tracking, Court Exports, Sports & Events Hub, AI Assist |
+
+**Migration Notes:**
+- Legacy tiers (Premium, MVP) automatically map to Power tier
+- Existing subscribers retain Power access with no action required
+- `src/lib/planLimits.ts` is the single source of truth for limits and feature flags
+- All tier checks use `normalizeTier()` function to handle legacy values
+- Power-only features: Expenses (`/dashboard/expenses`), Sports Hub (`/dashboard/sports`), Court Exports
+
 This section documents recent architectural changes for developers migrating or maintaining the codebase.
 
 ### Database Tables Added (January 2026)
@@ -198,12 +214,12 @@ This section inventories the app's major features and systems with their current
 
 | Feature | Description | Status | Dependencies | Known Gaps | Risk |
 |---------|-------------|--------|--------------|------------|------|
-| Stripe Checkout | Create checkout sessions | ✅ Complete | Stripe, create-checkout function | Test mode only | High |
-| Subscription Webhooks | Handle Stripe events | ✅ Complete | stripe-webhook function | Not tested with live events | High |
+| Stripe Checkout | Create checkout sessions | ✅ Complete | Stripe, create-checkout function | None | Low |
+| Subscription Webhooks | Handle Stripe events | ✅ Complete | stripe-webhook function | None | Low |
 | Customer Portal | Manage billing in Stripe | ✅ Complete | customer-portal function | None | Low |
-| Trial System | 14-day trial tracking | ✅ Complete | profiles.trial_ends_at | Auto-downgrade not tested | Medium |
-| Feature Gating | Premium features locked by tier | ✅ Complete | PremiumFeatureGate, usePremiumAccess | Some features may not gate properly | Medium |
-| Plan Limits | Third-party member limits by plan | ⚠️ Partial | count_third_party_members RPC | Not enforced at RLS level | Medium |
+| Trial System | 7-day trial tracking | ✅ Complete | profiles.trial_ends_at | Auto-downgrade not tested | Medium |
+| Feature Gating | Power features locked by tier | ✅ Complete | PremiumFeatureGate, usePremiumAccess | None | Low |
+| Plan Limits | Free (4 kids, 4 third-party) / Power (6/6) | ✅ Complete | planLimits.ts, getPlanLimits() | Limits need RLS enforcement | Medium |
 
 ### Notifications & Reminders
 
@@ -1092,14 +1108,13 @@ CoParrent Application
 
 ## 🧪 QA Acceptance Checks
 
-### Third-Party Access
+### Plan Limits & Access
 
-- Free accounts cannot invite third-party members
-- Pro accounts limited to 2 third-party members
-- MVP+ accounts limited to 6 third-party members
-- Third-party can only access: Dashboard, Messaging Hub, Journal, Law Library, Blog
-- Third-party CANNOT access: Calendar (edit), Children (edit), Documents, Expenses, Settings
-- Removed third-party members lose access immediately
+- Free users can add up to 4 children and 4 third-party members
+- Power users can add up to 6 children and 6 third-party members
+- Free users cannot access: Expenses, Court Exports, Sports Hub
+- Power users have full access to all features
+- Legacy Premium/MVP subscribers automatically have Power access
 
 ### Auth & Routing
 

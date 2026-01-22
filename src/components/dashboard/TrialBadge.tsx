@@ -26,7 +26,7 @@ export const TrialBadge = ({ collapsed = false }: TrialBadgeProps) => {
         variant="destructive" 
         className="text-[10px] px-1.5 py-0.5 h-auto shrink-0"
       >
-        {collapsed ? "!" : "Expired"}
+        {collapsed ? "!" : "Upgrade"}
       </Badge>
     );
   }

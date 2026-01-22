@@ -105,12 +105,12 @@ export const SubscriptionBanner = () => {
               <div>
                 <h3 className="font-display font-semibold">Trial Expired</h3>
                 <p className="text-sm text-muted-foreground">
-                  Upgrade to continue using all premium features
+                  Upgrade to Power to keep using Expenses, Court Exports & Sports Hub
                 </p>
               </div>
             </div>
             <Button size="sm" asChild className="shrink-0">
-              <Link to="/pricing">Upgrade Now</Link>
+              <Link to="/pricing">Get Power</Link>
             </Button>
           </div>
         </motion.div>
@@ -169,14 +169,14 @@ export const SubscriptionBanner = () => {
               <Crown className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
-              <h3 className="font-display font-semibold">Unlock Premium Features</h3>
+              <h3 className="font-display font-semibold">Upgrade to Power</h3>
               <p className="text-sm text-muted-foreground">
-                Link with your co-parent for a 7-day free trial
+                Get Expenses, Court Exports, and Sports Hub for $5/month
               </p>
             </div>
           </div>
           <Button variant="outline" size="sm" asChild className="shrink-0">
-            <Link to="/pricing">See Plans</Link>
+            <Link to="/pricing">View Plans</Link>
           </Button>
         </div>
       </motion.div>

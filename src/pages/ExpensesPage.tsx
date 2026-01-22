@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { FeatureErrorBoundary } from "@/components/ui/FeatureErrorBoundary";
+import { PremiumFeatureGate } from "@/components/premium/PremiumFeatureGate";
 import { ExpenseCharts } from "@/components/expenses/ExpenseCharts";
 import { useExpenses, EXPENSE_CATEGORIES, Expense, ReimbursementRequest } from "@/hooks/useExpenses";
 import { useChildren } from "@/hooks/useChildren";
@@ -408,6 +409,7 @@ function ExpensesPageContent() {
 
   return (
     <DashboardLayout>
+      <PremiumFeatureGate featureName="Expense Tracking">
       <div className="space-y-6">
         {/* Header */}
         <motion.div
@@ -1017,6 +1019,7 @@ function ExpensesPageContent() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      </PremiumFeatureGate>
     </DashboardLayout>
   );
 }
