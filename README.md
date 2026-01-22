@@ -43,9 +43,9 @@ The application is designed with a **calm, professional, court-friendly aestheti
 **Current Phase:** Active Development (Beta-Ready)  
 **Environment:** Lovable Cloud + Supabase  
 **Stripe Mode:** Test  
-**Last Verified Build:** 2026-01-20  
+**Last Verified Build:** 2026-01-22  
 **Verified By:** Lovable  
-**Last README Update:** 2026-01-20
+**Last README Update:** 2026-01-22
 
 > **Note:** The `Last Verified Build` and `Verified By` fields must be updated whenever a behavioral or architectural change is made.
 
@@ -147,9 +147,9 @@ This section inventories the app's major features and systems with their current
 | Apple OAuth | Social login via Apple | ⚠️ Partial | Apple OAuth credentials | Not tested in production | Medium |
 | Password Reset | Forgot password flow via email | ✅ Complete | Resend (email) | None | Low |
 | Session Management | Active session tracking and logout | ✅ Complete | None | Session invalidation on permission change | Low |
-| Two-Factor Auth | TOTP-based 2FA setup | ⚠️ Partial | None | Not persisted to database (UI only) | High |
+| Two-Factor Auth | TOTP-based 2FA setup | ✅ Complete | Supabase MFA, user_2fa_settings | None | Low |
 | Device Trust | Trusted device management | ⚠️ Partial | user_devices table | Login notification triggers need validation | Medium |
-| Recovery Codes | Backup codes for 2FA | ⚠️ Partial | None | Not persisted, UI placeholder only | High |
+| Recovery Codes | Backup codes for 2FA | ✅ Complete | manage-recovery-codes function, user_recovery_codes | None | Low |
 
 ### Parent / Co-Parent Permissions
 
@@ -1338,6 +1338,12 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [x] **Message Reactions**: Emoji reactions on messages with toggle and realtime sync
 - [x] **Unread Message Indicators**: Per-thread and total unread counts with notification settings
 - [x] **Mobile Messaging UX**: Pull-to-refresh, swipe navigation, touch-friendly reactions
+- [x] **Two-Factor Authentication**: TOTP-based 2FA with CoParrent branding in authenticator apps
+- [x] **Recovery Codes**: Backup recovery codes for 2FA with secure hashing and persistence
+- [x] **Cookie Consent Banner**: GDPR-compliant cookie consent with essential/functional/analytics preferences
+- [x] **GDPR Data Export**: User data export feature in settings with JSON download
+- [x] **Data Retention Policy**: Documented data retention schedules in Privacy Policy
+- [x] **CCPA Compliance**: California Privacy Rights disclosures in Privacy Policy
 
 ### Technical Debt
 

@@ -206,6 +206,48 @@ New users see a guided tour of key dashboard features with dismissal persistence
 
 ---
 
+## Legal & Privacy Compliance
+
+### GDPR Compliance
+
+| Feature | Component | Status |
+|---------|-----------|--------|
+| Cookie Consent Banner | `CookieConsentBanner.tsx` | ✅ Active |
+| Data Export (Right to Access) | `DataExportSection.tsx`, `export-user-data` function | ✅ Active |
+| Data Retention Policy | `PrivacyPage.tsx` | ✅ Documented |
+| Consent Preferences | localStorage + banner | ✅ Essential/Functional/Analytics |
+
+### CCPA Compliance
+
+| Requirement | Implementation | Status |
+|-------------|----------------|--------|
+| Right to Know | Data export feature | ✅ Active |
+| Right to Delete | Manual process documented | ⚠️ Manual |
+| Do Not Sell | No data selling (documented in Privacy Policy) | ✅ Documented |
+| California-specific disclosures | Privacy Policy section | ✅ Active |
+
+---
+
+## Two-Factor Authentication
+
+### 2FA Features
+
+| Feature | Component | Server Gate | Status |
+|---------|-----------|-------------|--------|
+| TOTP Enrollment | `TwoFactorSetup.tsx` | Supabase MFA API | ✅ Active |
+| 2FA Verification | `TwoFactorVerify.tsx` | Supabase MFA API | ✅ Active |
+| Recovery Codes | `RecoveryCodes.tsx` | `manage-recovery-codes` function | ✅ Active |
+| Trusted Devices | `TrustedDevicesManager.tsx` | `user_devices` table RLS | ✅ Active |
+
+### Recovery Code Security
+
+- Codes stored as SHA-256 hashes in `user_recovery_codes` table
+- One-time use with `used_at` timestamp tracking
+- Automatic expiration (1 year default)
+- Remaining count tracked in `user_2fa_settings.recovery_codes_remaining`
+
+---
+
 ## Security Notes
 
 1. **Never trust client-side role checks alone** - Always enforce on server
