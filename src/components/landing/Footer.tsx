@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Logo } from "@/components/ui/Logo";
+import { APP_VERSION, getEnvironment } from "@/lib/version";
 
 const footerLinks = {
   Product: [
@@ -20,6 +21,9 @@ const footerLinks = {
 };
 
 export const Footer = () => {
+  const env = getEnvironment();
+  const showVersion = env !== "production"; // Only show in non-prod
+
   return (
     <footer className="bg-[hsl(222,47%,11%)] text-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
@@ -57,16 +61,20 @@ export const Footer = () => {
 
         {/* Bottom Bar */}
         <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-white/50">
-            © {new Date().getFullYear()} CoParrent. All rights reserved.
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-white/50">
+              © {new Date().getFullYear()} CoParrent. All rights reserved.
+            </p>
+            {showVersion && (
+              <span className="text-xs text-white/30 font-mono">
+                v{APP_VERSION}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-white/50 hover:text-white transition-colors text-sm">
-              Status
-            </a>
-            <a href="#" className="text-white/50 hover:text-white transition-colors text-sm">
+            <Link to="/help" className="text-white/50 hover:text-white transition-colors text-sm">
               Help Center
-            </a>
+            </Link>
           </div>
         </div>
       </div>

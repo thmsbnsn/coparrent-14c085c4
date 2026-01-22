@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale } from "lucide-react";
+import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale, ClipboardCheck, Database } from "lucide-react";
 import { resolveDisplayValue } from "@/lib/displayResolver";
 import {
   AlertDialog,
@@ -24,6 +24,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AdminLawLibraryManager } from "@/components/admin/AdminLawLibraryManager";
+import { ProductionChecklist } from "@/components/admin/ProductionChecklist";
+import { SeedDataPanel } from "@/components/admin/SeedDataPanel";
 
 interface UserProfile {
   id: string;
@@ -246,14 +248,22 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              User Management
+              Users
             </TabsTrigger>
             <TabsTrigger value="law-library" className="flex items-center gap-2">
               <Scale className="h-4 w-4" />
               Law Library
+            </TabsTrigger>
+            <TabsTrigger value="checklist" className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Production
+            </TabsTrigger>
+            <TabsTrigger value="seed" className="flex items-center gap-2">
+              <Database className="h-4 w-4" />
+              Seed Data
             </TabsTrigger>
           </TabsList>
 
@@ -386,6 +396,14 @@ const AdminDashboard = () => {
 
           <TabsContent value="law-library">
             <AdminLawLibraryManager />
+          </TabsContent>
+
+          <TabsContent value="checklist">
+            <ProductionChecklist />
+          </TabsContent>
+
+          <TabsContent value="seed">
+            <SeedDataPanel />
           </TabsContent>
         </Tabs>
       </div>
