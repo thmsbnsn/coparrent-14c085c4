@@ -63,15 +63,7 @@ export interface ExportDocumentAccessLog {
   created_at: string;
 }
 
-export interface ExportJournalEntry {
-  id: string;
-  title: string | null;
-  content: string;
-  mood: string | null;
-  tags: string[];
-  child_name: string | null;
-  created_at: string;
-}
+// Journal entries are intentionally excluded from court exports to preserve privacy
 
 export interface ExportSchedule {
   id: string;
@@ -90,7 +82,6 @@ export interface CourtExportData {
   scheduleRequests: ExportScheduleRequest[];
   exchangeCheckins: ExportExchangeCheckin[];
   documentAccessLogs: ExportDocumentAccessLog[];
-  journalEntries: ExportJournalEntry[];
   schedule: ExportSchedule | null;
   dateRange: { start: Date; end: Date };
   children: { id: string; name: string }[];
@@ -136,7 +127,7 @@ export const useCourtExport = () => {
       const startStr = dateRange.start.toISOString();
       const endStr = dateRange.end.toISOString();
 
-      // Fetch all data in parallel
+      // Fetch all data in parallel (journal entries excluded for privacy)
       const [
         threadMessagesRes,
         expensesRes,
@@ -145,7 +136,6 @@ export const useCourtExport = () => {
         scheduleRes,
         childrenRes,
         documentAccessLogsRes,
-        journalEntriesRes,
       ] = await Promise.all([
         // Thread Messages (new messaging system)
         supabase
@@ -215,15 +205,7 @@ export const useCourtExport = () => {
           .gte("created_at", startStr)
           .lte("created_at", endStr)
           .order("created_at", { ascending: true }),
-
-        // Journal Entries
-        supabase
-          .from("journal_entries")
-          .select("id, title, content, mood, tags, child_id, created_at, child:children(name)")
-          .eq("user_id", user.id)
-          .gte("created_at", startStr)
-          .lte("created_at", endStr)
-          .order("created_at", { ascending: true }),
+        // Journal entries intentionally excluded from court exports to preserve privacy
       ]);
 
       // Process thread messages - filter to user's family threads
@@ -287,18 +269,6 @@ export const useCourtExport = () => {
           };
         });
 
-      // Process journal entries
-      const rawJournalEntries = journalEntriesRes.data || [];
-      const journalEntries: ExportJournalEntry[] = rawJournalEntries.map(entry => ({
-        id: entry.id,
-        title: entry.title,
-        content: entry.content,
-        mood: entry.mood,
-        tags: entry.tags || [],
-        child_name: (entry.child as { name: string } | null)?.name || null,
-        created_at: entry.created_at,
-      }));
-
       return {
         userProfile: { id: profile.id, full_name: profile.full_name, email: profile.email },
         coParent,
@@ -310,7 +280,6 @@ export const useCourtExport = () => {
         scheduleRequests,
         exchangeCheckins,
         documentAccessLogs,
-        journalEntries,
         schedule,
         dateRange,
         children,
