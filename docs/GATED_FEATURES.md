@@ -163,6 +163,35 @@ All tables have Row Level Security enabled. Key patterns:
 - User-owned data: `auth.uid() = user_id`
 - Family-shared data: Uses `is_family_member()` function
 - Admin data: Uses `is_admin()` function
+- **Parent-only mutations**: Uses `is_parent_or_guardian()` function
+
+### Parent-Only RLS Enforcement (Phase 6)
+
+All mutation policies for parent-only resources now explicitly verify the user is not a third-party member or child account using the `is_parent_or_guardian()` function. This prevents bypass attacks even if UI gating fails.
+
+**Tables with Parent-Only Mutation Policies:**
+
+| Table | Operations Protected | Check Method |
+|-------|---------------------|--------------|
+| `expenses` | INSERT, UPDATE, DELETE | `is_parent_or_guardian(auth.uid())` |
+| `documents` | INSERT, UPDATE, DELETE | `is_parent_or_guardian(auth.uid())` |
+| `custody_schedules` | INSERT, UPDATE, DELETE | `is_parent_or_guardian(auth.uid())` |
+| `schedule_requests` | INSERT | `is_parent_or_guardian(auth.uid())` |
+| `child_activities` | INSERT, UPDATE, DELETE | `is_parent_or_guardian(auth.uid())` |
+| `activity_events` | INSERT, UPDATE, DELETE | `is_parent_or_guardian(auth.uid())` |
+| `child_photos` | INSERT, UPDATE, DELETE | `is_parent_or_guardian(auth.uid())` |
+| `gift_lists` | INSERT, UPDATE, DELETE | `is_parent_or_guardian(auth.uid())` |
+| `gift_items` | INSERT, UPDATE, DELETE | `is_parent_or_guardian(auth.uid())` |
+| `children` | INSERT | Blocked (RPC only via `rpc_add_child`) |
+| `parent_children` | INSERT | Blocked (RPC only) |
+
+**is_parent_or_guardian() Function:**
+```sql
+-- Returns true only if user:
+-- 1. Has a profile (is authenticated)
+-- 2. Is NOT a child account (account_role != 'child')
+-- 3. Is NOT a third-party member (no active record in family_members with role='third_party')
+```
 
 ### Rate Limiting
 AI functions use `aiRateLimit` module:
