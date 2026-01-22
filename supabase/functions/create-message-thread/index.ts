@@ -247,7 +247,7 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, error: "Unable to create message thread. Please try again." }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,

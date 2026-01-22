@@ -337,6 +337,6 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("Webhook error", { error: errorMessage });
-    return new Response(`Webhook Error: ${errorMessage}`, { status: 400 });
+    return new Response("Webhook processing failed", { status: 400 });
   }
 });

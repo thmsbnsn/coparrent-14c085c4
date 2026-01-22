@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ERROR_MESSAGES } from "@/lib/errorMessages";
 
 export interface AuditLog {
   id: string;
@@ -99,7 +100,7 @@ export const useAuditLogs = (options: UseAuditLogsOptions = {}) => {
       setLogs(transformedLogs);
     } catch (err) {
       console.error("Unexpected error fetching audit logs:", err);
-      setError("An unexpected error occurred");
+      setError(ERROR_MESSAGES.GENERIC);
     } finally {
       setLoading(false);
     }

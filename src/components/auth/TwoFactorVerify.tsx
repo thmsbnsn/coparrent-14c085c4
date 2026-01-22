@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeErrorForUser } from "@/lib/errorMessages";
 
 interface TwoFactorVerifyProps {
   factorId: string;
@@ -52,12 +53,13 @@ export const TwoFactorVerify = ({ factorId, onSuccess, onCancel }: TwoFactorVeri
       });
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : "";
       toast({
         title: "Verification failed",
-        description: error.message.includes("Invalid")
+        description: errMsg.includes("Invalid")
           ? "The code you entered is incorrect. Please try again."
-          : error.message,
+          : sanitizeErrorForUser(error),
         variant: "destructive",
       });
       setCode("");

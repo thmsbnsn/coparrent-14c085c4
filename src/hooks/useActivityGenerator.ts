@@ -97,11 +97,11 @@ export const useActivityGenerator = (): UseActivityGeneratorReturn => {
       setLastResult(result);
       return result;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to generate activity";
-      setError(errorMessage);
+      const userMessage = "Unable to generate activity. Please try again.";
+      setError(userMessage);
       toast({
         title: "Generation Failed",
-        description: errorMessage,
+        description: userMessage,
         variant: "destructive",
       });
       return null;
