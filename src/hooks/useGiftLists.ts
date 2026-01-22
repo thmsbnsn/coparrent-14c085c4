@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFamilyRole } from "./useFamilyRole";
 import { useToast } from "./use-toast";
+import { handleError } from "@/lib/errorMessages";
 
 export interface GiftList {
   id: string;
@@ -109,7 +110,7 @@ export const useGiftLists = (childId?: string) => {
 
       setGiftLists(listsWithCounts);
     } catch (error) {
-      console.error("Error fetching gift lists:", error);
+      handleError(error, { feature: 'Gifts', action: 'fetchLists' });
     } finally {
       setLoading(false);
     }
@@ -144,10 +145,10 @@ export const useGiftLists = (childId?: string) => {
       await fetchGiftLists();
       return newList;
     } catch (error: any) {
-      console.error("Error creating gift list:", error);
+      const message = handleError(error, { feature: 'Gifts', action: 'createList' });
       toast({
         title: "Error",
-        description: "Failed to create gift list",
+        description: message,
         variant: "destructive",
       });
       return null;
@@ -174,10 +175,10 @@ export const useGiftLists = (childId?: string) => {
       await fetchGiftLists();
       return true;
     } catch (error) {
-      console.error("Error updating gift list:", error);
+      const message = handleError(error, { feature: 'Gifts', action: 'updateList' });
       toast({
         title: "Error",
-        description: "Failed to update gift list",
+        description: message,
         variant: "destructive",
       });
       return false;
@@ -201,10 +202,10 @@ export const useGiftLists = (childId?: string) => {
       await fetchGiftLists();
       return true;
     } catch (error) {
-      console.error("Error deleting gift list:", error);
+      const message = handleError(error, { feature: 'Gifts', action: 'deleteList' });
       toast({
         title: "Error",
-        description: "Failed to delete gift list",
+        description: message,
         variant: "destructive",
       });
       return false;
@@ -258,7 +259,7 @@ export const useGiftItems = (listId: string) => {
 
       setItems(formattedItems);
     } catch (error) {
-      console.error("Error fetching gift items:", error);
+      handleError(error, { feature: 'Gifts', action: 'fetchItems' });
     } finally {
       setLoading(false);
     }
@@ -295,10 +296,10 @@ export const useGiftItems = (listId: string) => {
       await fetchItems();
       return newItem;
     } catch (error) {
-      console.error("Error adding gift item:", error);
+      const message = handleError(error, { feature: 'Gifts', action: 'addItem' });
       toast({
         title: "Error",
-        description: "Failed to add gift",
+        description: message,
         variant: "destructive",
       });
       return null;
@@ -317,10 +318,10 @@ export const useGiftItems = (listId: string) => {
       await fetchItems();
       return true;
     } catch (error) {
-      console.error("Error updating gift item:", error);
+      const message = handleError(error, { feature: 'Gifts', action: 'updateItem' });
       toast({
         title: "Error",
-        description: "Failed to update gift",
+        description: message,
         variant: "destructive",
       });
       return false;
@@ -350,10 +351,10 @@ export const useGiftItems = (listId: string) => {
       await fetchItems();
       return true;
     } catch (error) {
-      console.error("Error claiming gift:", error);
+      const message = handleError(error, { feature: 'Gifts', action: 'claimItem' });
       toast({
         title: "Error",
-        description: "Failed to claim gift",
+        description: message,
         variant: "destructive",
       });
       return false;
@@ -381,10 +382,10 @@ export const useGiftItems = (listId: string) => {
       await fetchItems();
       return true;
     } catch (error) {
-      console.error("Error unclaiming gift:", error);
+      const message = handleError(error, { feature: 'Gifts', action: 'unclaimItem' });
       toast({
         title: "Error",
-        description: "Failed to remove claim",
+        description: message,
         variant: "destructive",
       });
       return false;
@@ -413,10 +414,10 @@ export const useGiftItems = (listId: string) => {
       await fetchItems();
       return true;
     } catch (error) {
-      console.error("Error updating purchase status:", error);
+      const message = handleError(error, { feature: 'Gifts', action: 'markPurchased' });
       toast({
         title: "Error",
-        description: "Failed to update status",
+        description: message,
         variant: "destructive",
       });
       return false;
@@ -440,10 +441,10 @@ export const useGiftItems = (listId: string) => {
       await fetchItems();
       return true;
     } catch (error) {
-      console.error("Error deleting gift item:", error);
+      const message = handleError(error, { feature: 'Gifts', action: 'deleteItem' });
       toast({
         title: "Error",
-        description: "Failed to remove gift",
+        description: message,
         variant: "destructive",
       });
       return false;

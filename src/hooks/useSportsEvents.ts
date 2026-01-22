@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Json } from "@/integrations/supabase/types";
+import { handleError } from "@/lib/errorMessages";
 
 export interface CalendarSportsEvent {
   id: string;
@@ -124,7 +125,7 @@ export const useSportsEvents = () => {
 
       setEvents(calendarEvents);
     } catch (error) {
-      console.error("Error fetching sports events:", error);
+      handleError(error, { feature: 'SportsEvents', action: 'fetch' });
     } finally {
       setLoading(false);
     }

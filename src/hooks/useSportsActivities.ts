@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Json } from "@/integrations/supabase/types";
+import { handleError } from "@/lib/errorMessages";
 
 export interface EquipmentItem {
   id: string;
@@ -203,7 +204,7 @@ export const useSportsActivities = () => {
 
       setActivities(activitiesWithNames);
     } catch (error) {
-      console.error("Error fetching activities:", error);
+      handleError(error, { feature: 'Sports', action: 'fetchActivities' });
     } finally {
       setLoading(false);
     }
@@ -297,7 +298,7 @@ export const useSportsActivities = () => {
 
       setEvents(eventsWithDetails);
     } catch (error) {
-      console.error("Error fetching events:", error);
+      handleError(error, { feature: 'Sports', action: 'fetchEvents' });
     }
   }, [profileId]);
 
@@ -335,8 +336,8 @@ export const useSportsActivities = () => {
       await fetchActivities();
       return true;
     } catch (error) {
-      console.error("Error creating activity:", error);
-      toast({ title: "Error", description: "Failed to create activity", variant: "destructive" });
+      const message = handleError(error, { feature: 'Sports', action: 'createActivity' });
+      toast({ title: "Error", description: message, variant: "destructive" });
       return false;
     }
   }, [profileId, toast, fetchActivities]);
@@ -373,8 +374,8 @@ export const useSportsActivities = () => {
       await fetchActivities();
       return true;
     } catch (error) {
-      console.error("Error updating activity:", error);
-      toast({ title: "Error", description: "Failed to update activity", variant: "destructive" });
+      const message = handleError(error, { feature: 'Sports', action: 'updateActivity' });
+      toast({ title: "Error", description: message, variant: "destructive" });
       return false;
     }
   }, [toast, fetchActivities]);
@@ -394,8 +395,8 @@ export const useSportsActivities = () => {
       await fetchEvents();
       return true;
     } catch (error) {
-      console.error("Error deleting activity:", error);
-      toast({ title: "Error", description: "Failed to delete activity", variant: "destructive" });
+      const message = handleError(error, { feature: 'Sports', action: 'deleteActivity' });
+      toast({ title: "Error", description: message, variant: "destructive" });
       return false;
     }
   }, [toast, fetchActivities, fetchEvents]);
@@ -428,8 +429,8 @@ export const useSportsActivities = () => {
       await fetchEvents();
       return true;
     } catch (error) {
-      console.error("Error creating event:", error);
-      toast({ title: "Error", description: "Failed to create event", variant: "destructive" });
+      const message = handleError(error, { feature: 'Sports', action: 'createEvent' });
+      toast({ title: "Error", description: message, variant: "destructive" });
       return false;
     }
   }, [profileId, toast, fetchEvents]);
@@ -468,8 +469,8 @@ export const useSportsActivities = () => {
       await fetchEvents();
       return true;
     } catch (error) {
-      console.error("Error updating event:", error);
-      toast({ title: "Error", description: "Failed to update event", variant: "destructive" });
+      const message = handleError(error, { feature: 'Sports', action: 'updateEvent' });
+      toast({ title: "Error", description: message, variant: "destructive" });
       return false;
     }
   }, [toast, fetchEvents]);
@@ -488,8 +489,8 @@ export const useSportsActivities = () => {
       await fetchEvents();
       return true;
     } catch (error) {
-      console.error("Error cancelling event:", error);
-      toast({ title: "Error", description: "Failed to cancel event", variant: "destructive" });
+      const message = handleError(error, { feature: 'Sports', action: 'cancelEvent' });
+      toast({ title: "Error", description: message, variant: "destructive" });
       return false;
     }
   }, [toast, fetchEvents]);
