@@ -1164,14 +1164,14 @@ This section provides an honest assessment of what must be completed before depl
 | Item | Status | Notes |
 |------|--------|-------|
 | Terms of Service page | ✅ Done | `/terms` - Beta-appropriate ToS with disclaimers |
-| Privacy Policy page | ✅ Done | `/privacy` - Covers data handling, COPPA, third parties |
+| Privacy Policy page | ✅ Done | `/privacy` - Covers data handling, COPPA, CCPA, third parties |
 | Beta banner | ✅ Done | Session-dismissable banner with feedback/bug report links |
-| Cookie consent banner | ❌ Missing | Not implemented |
+| Cookie consent banner | ✅ Done | GDPR-compliant with customizable preferences |
 | COPPA compliance for child accounts | ⚠️ Needs Validation | Defaults are safe, legal review pending |
-| GDPR data export capability | ❌ Missing | No user data export |
+| GDPR data export capability | ✅ Done | "Download My Data" in Settings via edge function |
 | GDPR data deletion capability | ⚠️ Needs Validation | Profile deletion exists, cascade unclear |
-| CCPA compliance | ❌ Missing | Not addressed |
-| Data retention policy | ❌ Missing | No defined retention limits |
+| CCPA compliance | ✅ Done | Privacy Policy updated with CCPA disclosures |
+| Data retention policy | ✅ Done | Defined retention limits in Privacy Policy |
 | Audit log completeness | ⚠️ Needs Validation | Partial coverage |
 
 ### Performance & Scalability
