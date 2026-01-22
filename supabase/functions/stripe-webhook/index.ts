@@ -21,21 +21,21 @@ const logStep = (step: string, details?: any) => {
 
 // Product IDs for both live and test mode - KEEP IN SYNC with src/lib/stripe.ts
 const PRODUCT_TIERS: Record<string, string> = {
-  // Test mode (acct_1Sg5Y5HH6NsbcWgZ)
+  // Live mode (acct_1Sg5Y5HH6NsbcWgZ)
   "prod_TnoLYRDnjKqtA8": "Premium",
   "prod_TnoLKasOQOvLwL": "MVP",
-  // Live mode - Add your live product IDs here when switching to production
-  // "prod_live_premium_xxx": "Premium",
-  // "prod_live_mvp_xxx": "MVP",
+  // Sandbox/Test mode
+  "prod_Tf1Qq9jGVEyUOM": "Premium",
+  "prod_Tf1QUUhL8Tx1Ks": "MVP",
 };
 
 const TIER_DB_VALUES: Record<string, string> = {
-  // Test mode (acct_1Sg5Y5HH6NsbcWgZ)
+  // Live mode (acct_1Sg5Y5HH6NsbcWgZ)
   "prod_TnoLYRDnjKqtA8": "premium",
   "prod_TnoLKasOQOvLwL": "mvp",
-  // Live mode - Add your live product IDs here when switching to production
-  // "prod_live_premium_xxx": "premium",
-  // "prod_live_mvp_xxx": "mvp",
+  // Sandbox/Test mode
+  "prod_Tf1Qq9jGVEyUOM": "premium",
+  "prod_Tf1QUUhL8Tx1Ks": "mvp",
 };
 
 type EmailType = "welcome" | "update" | "support" | "cancel";
