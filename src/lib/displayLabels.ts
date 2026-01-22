@@ -8,8 +8,10 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
   free: "Free Plan",
   trial: "Free Trial",
   trialing: "Free Trial",
-  active: "Premium",
-  premium: "Premium",
+  active: "Power",
+  premium: "Power", // Legacy mapping
+  mvp: "Power", // Legacy mapping
+  power: "Power",
   past_due: "Payment Issue",
   canceled: "Canceled",
   incomplete: "Setup Incomplete",
@@ -20,10 +22,12 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
 
 // Subscription Tier Labels
 export const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
-  free: "Free Forever",
+  free: "Free",
   trial: "Trial",
-  premium: "Premium",
-  mvp: "MVP",
+  power: "Power",
+  // Legacy mappings
+  premium: "Power",
+  mvp: "Power",
 } as const;
 
 // User Role Labels (for family members)

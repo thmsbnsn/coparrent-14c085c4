@@ -8,14 +8,17 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Product ID to tier mapping - KEEP IN SYNC with src/lib/stripe.ts
+// Product ID to tier mapping - maps to "power" (the only paid tier)
+// Includes legacy products for migration safety
 const PRODUCT_TIERS: Record<string, string> = {
-  // Live mode (acct_1Sg5Y5HH6NsbcWgZ)
-  "prod_TnoLYRDnjKqtA8": "premium",
-  "prod_TnoLKasOQOvLwL": "mvp",
-  // Sandbox/Test mode
-  "prod_Tf1Qq9jGVEyUOM": "premium",
-  "prod_Tf1QUUhL8Tx1Ks": "mvp",
+  // New Power product (Live mode)
+  "prod_Tpx49PIJ26wzPc": "power",
+  // Legacy Live mode products (map to power for migration)
+  "prod_TnoLYRDnjKqtA8": "power", // Old Premium
+  "prod_TnoLKasOQOvLwL": "power", // Old MVP
+  // Legacy Test mode products (map to power for migration)
+  "prod_Tf1Qq9jGVEyUOM": "power", // Old Premium (test)
+  "prod_Tf1QUUhL8Tx1Ks": "power", // Old MVP (test)
 };
 
 // Map Stripe subscription status to our internal status
@@ -110,18 +113,18 @@ serve(async (req) => {
     if (profileData?.free_premium_access === true) {
       logStep("User has free premium access", { reason: profileData.access_reason });
       
-      // Update profile to reflect premium status
+      // Update profile to reflect power status
       await supabaseClient
         .from("profiles")
         .update({ 
           subscription_status: "active", 
-          subscription_tier: "premium" 
+          subscription_tier: "power" 
         })
         .eq("user_id", user.id);
 
       return new Response(JSON.stringify({
         subscribed: true,
-        tier: "premium",
+        tier: "power",
         free_access: true,
         access_reason: profileData.access_reason || "Complimentary access",
         subscription_end: null
@@ -150,12 +153,12 @@ serve(async (req) => {
           
           await supabaseClient
             .from("profiles")
-            .update({ subscription_status: "trial", subscription_tier: "premium" })
+            .update({ subscription_status: "trial", subscription_tier: "power" })
             .eq("user_id", user.id);
 
           return new Response(JSON.stringify({
             subscribed: true,
-            tier: "premium",
+            tier: "power",
             trial: true,
             trial_ends_at: profileData.trial_ends_at,
             subscription_end: profileData.trial_ends_at
@@ -217,12 +220,12 @@ serve(async (req) => {
         if (trialEnd > new Date()) {
           await supabaseClient
             .from("profiles")
-            .update({ subscription_status: "trial", subscription_tier: "premium" })
+            .update({ subscription_status: "trial", subscription_tier: "power" })
             .eq("user_id", user.id);
 
           return new Response(JSON.stringify({
             subscribed: true,
-            tier: "premium",
+            tier: "power",
             trial: true,
             trial_ends_at: profileData.trial_ends_at,
             subscription_end: profileData.trial_ends_at
@@ -250,7 +253,8 @@ serve(async (req) => {
 
     // Process active/trialing/past_due subscription
     const productId = subscription.items.data[0]?.price?.product as string;
-    const tier = PRODUCT_TIERS[productId] || "premium";
+    // All paid products map to "power" tier
+    const tier = PRODUCT_TIERS[productId] || "power";
     const internalStatus = mapStripeStatus(subscription.status);
     
     let subscriptionEnd = null;

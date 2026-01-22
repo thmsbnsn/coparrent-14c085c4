@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, Loader2, FlaskConical, Sparkles } from "lucide-react";
+import { Check, Loader2, Sparkles, Zap } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { Navbar } from "@/components/landing/Navbar";
@@ -14,16 +14,20 @@ import { Badge } from "@/components/ui/badge";
 
 const tiers = [
   {
-    name: "Free Forever",
+    name: "Free",
     price: "$0",
     period: "forever",
-    description: "Get started with essential co-parenting tools",
+    description: "Essential co-parenting tools for families",
     features: [
-      { text: "Core parenting calendar", included: true },
-      { text: "Basic messaging with co-parent", included: true },
-      { text: "1 child profile", included: true },
-      { text: "30-day message history", included: true },
-      { text: "Email notifications", included: true },
+      { text: "Up to 4 child profiles", included: true },
+      { text: "Shared custody calendar", included: true },
+      { text: "Messaging with co-parent", included: true },
+      { text: "Child info hub", included: true },
+      { text: "Photo gallery albums", included: true },
+      { text: "Document vault", included: true },
+      { text: "Kids fun center", included: true },
+      { text: "Law library access", included: true },
+      { text: "Up to 4 family member accounts", included: true },
     ],
     cta: "Start Free",
     variant: "outline" as const,
@@ -31,42 +35,24 @@ const tiers = [
     stripeTier: null as StripeTier | null,
   },
   {
-    name: "Premium",
+    name: "Power",
     price: "$5",
     period: "per month",
     description: "Full features for active co-parents",
     features: [
       { text: "Everything in Free", included: true },
-      { text: "Unlimited child profiles", included: true },
-      { text: "Full message history", included: true },
-      { text: "AI message rewrite & tone analysis", included: true, beta: true },
-      { text: "Sports & activities hub", included: true, beta: true },
+      { text: "Up to 6 child profiles", included: true },
+      { text: "Up to 6 family member accounts", included: true },
+      { text: "Expense tracking & reports", included: true },
       { text: "Court-ready document exports", included: true },
-      { text: "Smart exchange reminders", included: true, beta: true },
+      { text: "Sports & events hub", included: true },
+      { text: "AI message assistance", included: true },
       { text: "Priority email support", included: true },
     ],
-    cta: "Start Premium Trial",
+    cta: "Upgrade to Power",
     variant: "default" as const,
     popular: true,
-    stripeTier: "premium" as StripeTier,
-  },
-  {
-    name: "MVP",
-    price: "$10",
-    period: "per month",
-    description: "For power users & founding members",
-    features: [
-      { text: "Everything in Premium", included: true },
-      { text: "Early access to new features", included: true },
-      { text: "AI schedule suggestions", included: true, beta: true },
-      { text: "Priority support", included: true },
-      { text: "Beta feature influence", included: true },
-      { text: "Founding member badge", included: true, badge: true },
-    ],
-    cta: "Join as MVP",
-    variant: "outline" as const,
-    popular: false,
-    stripeTier: "mvp" as StripeTier,
+    stripeTier: "power" as StripeTier,
   },
 ];
 
@@ -93,7 +79,7 @@ const Pricing = () => {
       } else {
         toast({
           title: "You're on the free plan",
-          description: "Upgrade to access premium features.",
+          description: "Upgrade to Power for premium features.",
         });
       }
       return;
@@ -111,9 +97,12 @@ const Pricing = () => {
     await createCheckout(tier.stripeTier);
   };
 
+  // Normalize tier for comparison (legacy tiers map to power)
+  const normalizedTier = (currentTier as string) === "premium" || (currentTier as string) === "mvp" ? "power" : currentTier;
+
   const isCurrentPlan = (tier: typeof tiers[number]) => {
-    if (!tier.stripeTier && currentTier === "free" && !subscribed) return true;
-    if (tier.stripeTier === currentTier && subscribed) return true;
+    if (!tier.stripeTier && normalizedTier === "free" && !subscribed) return true;
+    if (tier.stripeTier === normalizedTier && subscribed) return true;
     return false;
   };
 
@@ -143,12 +132,12 @@ const Pricing = () => {
               transition={{ delay: 0.1 }}
               className="text-lg text-muted-foreground"
             >
-              Start free, upgrade when you're ready. All paid plans include a 14-day free trial.
+              Start free with essential features. Upgrade to Power when you need more.
             </motion.p>
           </div>
 
-          {/* Pricing Grid - 3 columns */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
+          {/* Pricing Grid - 2 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-3xl mx-auto">
             {tiers.map((tier, index) => (
               <motion.div
                 key={tier.name}
@@ -163,14 +152,18 @@ const Pricing = () => {
                 )}
               >
                 {tier.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
-                    Most Popular
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    Recommended
                   </div>
                 )}
 
                 {/* Tier Header */}
                 <div className="mb-6">
-                  <h3 className="text-lg font-display font-semibold mb-2">{tier.name}</h3>
+                  <h3 className="text-lg font-display font-semibold mb-2 flex items-center gap-2">
+                    {tier.name}
+                    {tier.popular && <Sparkles className="w-4 h-4 text-primary" />}
+                  </h3>
                   <div className="flex items-baseline gap-1 mb-2">
                     <span className="text-4xl font-display font-bold">{tier.price}</span>
                     <span className="text-muted-foreground text-sm">/{tier.period}</span>
@@ -183,21 +176,7 @@ const Pricing = () => {
                   {tier.features.map((feature) => (
                     <li key={feature.text} className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
-                      <span className="text-sm flex items-center gap-2 flex-wrap">
-                        {feature.text}
-                        {feature.beta && (
-                          <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
-                            <FlaskConical className="w-3 h-3 mr-1" />
-                            Beta
-                          </Badge>
-                        )}
-                        {feature.badge && (
-                          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Exclusive
-                          </Badge>
-                        )}
-                      </span>
+                      <span className="text-sm">{feature.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -225,11 +204,11 @@ const Pricing = () => {
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mt-24 max-w-4xl mx-auto"
+            transition={{ delay: 0.3 }}
+            className="mt-24 max-w-3xl mx-auto"
           >
             <h2 className="text-2xl font-display font-bold text-center mb-8">
-              Compare all features
+              Compare plans
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -237,24 +216,25 @@ const Pricing = () => {
                   <tr className="border-b border-border">
                     <th className="text-left py-4 px-4 font-medium">Feature</th>
                     <th className="text-center py-4 px-4 font-medium">Free</th>
-                    <th className="text-center py-4 px-4 font-medium text-primary">Premium</th>
-                    <th className="text-center py-4 px-4 font-medium">MVP</th>
+                    <th className="text-center py-4 px-4 font-medium text-primary">Power</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
                   {[
-                    ["Parenting calendar", "Basic", "Advanced", "Advanced"],
-                    ["Child profiles", "1", "Unlimited", "Unlimited"],
-                    ["Message history", "30 days", "Full", "Full"],
-                    ["Messaging", "✓", "✓", "✓"],
-                    ["AI message assist", "—", "Beta", "Beta"],
-                    ["Sports & activities hub", "—", "Beta", "Beta"],
-                    ["Court-ready exports", "—", "✓", "✓"],
-                    ["Smart reminders", "—", "Beta", "Beta"],
-                    ["AI schedule suggestions", "—", "—", "Beta"],
-                    ["Early access features", "—", "—", "✓"],
-                    ["Priority support", "—", "Email", "Priority"],
-                    ["Founding member badge", "—", "—", "✓"],
+                    ["Child profiles", "4", "6"],
+                    ["Family member accounts", "4", "6"],
+                    ["Custody calendar", "✓", "✓"],
+                    ["Messaging", "✓", "✓"],
+                    ["Child info hub", "✓", "✓"],
+                    ["Photo gallery", "✓", "✓"],
+                    ["Document vault", "✓", "✓"],
+                    ["Kids fun center", "✓", "✓"],
+                    ["Law library", "✓", "✓"],
+                    ["Expense tracking", "—", "✓"],
+                    ["Court-ready exports", "—", "✓"],
+                    ["Sports & events hub", "—", "✓"],
+                    ["AI message assistance", "—", "✓"],
+                    ["Priority support", "—", "✓"],
                   ].map(([feature, ...values], i) => (
                     <tr key={feature} className={cn("border-b border-border/50", i % 2 === 0 && "bg-muted/30")}>
                       <td className="py-3 px-4">{feature}</td>
@@ -262,10 +242,6 @@ const Pricing = () => {
                         <td key={j} className="text-center py-3 px-4 text-muted-foreground">
                           {value === "✓" ? (
                             <Check className="w-5 h-5 text-success mx-auto" />
-                          ) : value === "Beta" ? (
-                            <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
-                              Beta
-                            </Badge>
                           ) : (
                             value
                           )}
@@ -282,13 +258,11 @@ const Pricing = () => {
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.4 }}
             className="mt-16 max-w-2xl mx-auto text-center"
           >
             <p className="text-sm text-muted-foreground">
-              No credit card required for free plan. Cancel paid plans anytime.
-              <br />
-              <span className="text-xs">Features marked as "Beta" are under active development.</span>
+              No credit card required for free plan. Cancel Power subscription anytime.
             </p>
           </motion.div>
         </div>

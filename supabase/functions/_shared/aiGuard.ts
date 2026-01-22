@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Types for AI Guard
 export type FamilyRole = "parent" | "guardian" | "third_party" | null;
-export type PlanTier = "free" | "trial" | "premium" | "mvp" | "admin_access";
+export type PlanTier = "free" | "trial" | "power" | "admin_access";
 export type AiAction = 
   | "quick-check" 
   | "analyze" 
@@ -32,12 +32,11 @@ interface PlanLimits {
   maxTokens: number;
 }
 
-// Plan-based limits
+// Plan-based limits (simplified: free vs power)
 const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   free: { maxCallsPerDay: 10, maxInputChars: 600, maxTokens: 500 },
-  trial: { maxCallsPerDay: 50, maxInputChars: 1500, maxTokens: 1000 },
-  premium: { maxCallsPerDay: 200, maxInputChars: 3000, maxTokens: 2000 },
-  mvp: { maxCallsPerDay: 200, maxInputChars: 3000, maxTokens: 2000 },
+  trial: { maxCallsPerDay: 200, maxInputChars: 3000, maxTokens: 2000 },
+  power: { maxCallsPerDay: 200, maxInputChars: 3000, maxTokens: 2000 },
   admin_access: { maxCallsPerDay: 200, maxInputChars: 3000, maxTokens: 2000 },
 };
 
@@ -120,6 +119,19 @@ async function getUserFamilyRole(
 }
 
 /**
+ * Normalize tier from database (handles legacy values)
+ */
+function normalizeTier(tier: string | null): PlanTier {
+  if (!tier) return "free";
+  // Map legacy tiers to power
+  if (tier === "premium" || tier === "mvp" || tier === "power") {
+    return "power";
+  }
+  if (tier === "trial") return "trial";
+  return "free";
+}
+
+/**
  * Determines user's subscription plan tier
  */
 async function getUserPlanTier(
@@ -145,8 +157,8 @@ async function getUserPlanTier(
 
     // Check active subscription
     if (profile.subscription_status === "active") {
-      const tier = profile.subscription_tier as PlanTier;
-      if (tier === "premium" || tier === "mvp") {
+      const tier = normalizeTier(profile.subscription_tier);
+      if (tier === "power") {
         return { planTier: tier, hasPremiumAccess: true };
       }
     }
@@ -265,7 +277,7 @@ export async function aiGuard(
     return {
       allowed: false,
       error: { 
-        error: "This action requires a premium subscription", 
+        error: "This action requires a Power subscription", 
         code: "PREMIUM_REQUIRED" 
       },
       statusCode: 403,

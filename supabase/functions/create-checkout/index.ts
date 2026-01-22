@@ -14,14 +14,14 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Valid price IDs for verification - KEEP IN SYNC with src/lib/stripe.ts
+// Valid price IDs for Power plan ($5/month)
 const VALID_PRICE_IDS = [
-  // Live mode (acct_1Sg5Y5HH6NsbcWgZ)
-  "price_1SqCiwHH6NsbcWgZB7TfWnhQ", // Premium $5/mo
-  "price_1SqCiyHH6NsbcWgZ8qD5XfWu", // MVP $10/mo
-  // Sandbox/Test mode
-  "price_1ShhNiHH6NsbcWgZd5TaJRr3", // Premium
-  "price_1ShhNkHH6NsbcWgZWIFS07Q5", // MVP
+  // New Power product (Live mode)
+  "price_1SsHAdHH6NsbcWgZb3ghZzFc", // Power $5/mo
+  // Legacy price IDs (still valid for existing links, map to Power)
+  "price_1SqCiwHH6NsbcWgZB7TfWnhQ", // Old Premium $5/mo
+  // Test mode
+  "price_1ShhNiHH6NsbcWgZd5TaJRr3", // Test Premium (used as Power in test)
 ];
 
 serve(async (req) => {
