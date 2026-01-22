@@ -1858,6 +1858,42 @@ export type Database = {
           },
         ]
       }
+      user_2fa_settings: {
+        Row: {
+          created_at: string
+          enabled_at: string | null
+          id: string
+          is_enabled: boolean
+          last_verified_at: string | null
+          recovery_codes_generated_at: string | null
+          recovery_codes_remaining: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_verified_at?: string | null
+          recovery_codes_generated_at?: string | null
+          recovery_codes_remaining?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_verified_at?: string | null
+          recovery_codes_generated_at?: string | null
+          recovery_codes_remaining?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_devices: {
         Row: {
           browser: string | null
@@ -1926,6 +1962,33 @@ export type Database = {
           preferred_map_provider?: string
           remember_choice?: boolean
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_recovery_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          used_at?: string | null
           user_id?: string
         }
         Relationships: []

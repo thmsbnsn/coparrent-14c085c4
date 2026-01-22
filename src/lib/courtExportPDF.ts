@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
-import { resolveDisplayValue, resolveChildName, resolvePersonName } from '@/lib/displayResolver';
+import { resolveDisplayValue, resolveChildName } from '@/lib/displayResolver';
 import type { CourtExportData } from '@/hooks/useCourtExport';
 
 const BRAND_COLOR: [number, number, number] = [33, 176, 254];
@@ -41,6 +41,23 @@ const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
   accepted: 'Accepted',
   declined: 'Declined',
+};
+
+const MOOD_LABELS: Record<string, string> = {
+  happy: '😊 Happy',
+  calm: '😌 Calm',
+  anxious: '😟 Anxious',
+  sad: '😢 Sad',
+  frustrated: '😤 Frustrated',
+  angry: '😠 Angry',
+  hopeful: '🌟 Hopeful',
+  grateful: '🙏 Grateful',
+};
+
+const THREAD_TYPE_LABELS: Record<string, string> = {
+  family_channel: 'Family Channel',
+  direct_message: 'Direct Message',
+  group_chat: 'Group Chat',
 };
 
 function addHeader(doc: jsPDF, title: string, subtitle?: string) {
@@ -144,6 +161,7 @@ function addTableOfContents(doc: jsPDF, data: CourtExportData, y: number): numbe
     { name: 'Exchange Check-ins', count: data.exchangeCheckins.length },
     { name: 'Document Access Logs', count: data.documentAccessLogs.length },
     { name: 'Expense Records', count: data.expenses.length },
+    { name: 'Journal Entries', count: data.journalEntries?.length || 0 },
     { name: 'Custody Schedule Overview', count: data.schedule ? 1 : 0 },
   ];
   
@@ -164,21 +182,16 @@ function addMessagesSection(doc: jsPDF, data: CourtExportData, startY: number): 
     return startY + 15;
   }
   
-  const tableData = data.messages.map((msg) => {
-    const isSentByUser = msg.sender_id === data.userProfile?.id;
-    return [
-      format(new Date(msg.created_at), 'MMM d, yyyy h:mm a'),
-      isSentByUser 
-        ? (data.userProfile?.full_name || 'Party A') 
-        : (data.coParent?.full_name || 'Party B'),
-      msg.content.length > 60 ? msg.content.substring(0, 60) + '...' : msg.content,
-      msg.read_at ? format(new Date(msg.read_at), 'MMM d, h:mm a') : 'Unread'
-    ];
-  });
+  const tableData = data.messages.map((msg) => [
+    format(new Date(msg.created_at), 'MMM d, yyyy h:mm a'),
+    msg.sender_name || 'Unknown',
+    THREAD_TYPE_LABELS[msg.thread_type] || msg.thread_type,
+    msg.content.length > 50 ? msg.content.substring(0, 50) + '...' : msg.content,
+  ]);
   
   autoTable(doc, {
     startY,
-    head: [['Date & Time', 'From', 'Message', 'Read At']],
+    head: [['Date & Time', 'From', 'Channel', 'Message']],
     body: tableData,
     headStyles: {
       fillColor: BRAND_COLOR,
@@ -186,10 +199,10 @@ function addMessagesSection(doc: jsPDF, data: CourtExportData, startY: number): 
       fontStyle: 'bold',
     },
     columnStyles: {
-      0: { cellWidth: 40 },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 80 },
-      3: { cellWidth: 30 },
+      0: { cellWidth: 38 },
+      1: { cellWidth: 32 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 80 },
     },
     styles: {
       fontSize: 8,
@@ -345,6 +358,52 @@ function addExpensesSection(doc: jsPDF, data: CourtExportData, startY: number): 
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
 }
 
+function addJournalEntriesSection(doc: jsPDF, data: CourtExportData, startY: number): number {
+  const entries = data.journalEntries || [];
+  
+  if (entries.length === 0) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.text('No journal entries in the selected date range.', 20, startY);
+    return startY + 15;
+  }
+  
+  const tableData = entries.map((entry) => [
+    format(new Date(entry.created_at), 'MMM d, yyyy'),
+    entry.title || 'Untitled',
+    MOOD_LABELS[entry.mood || ''] || entry.mood || '-',
+    entry.child_name || '-',
+    entry.content.length > 40 ? entry.content.substring(0, 40) + '...' : entry.content,
+  ]);
+  
+  autoTable(doc, {
+    startY,
+    head: [['Date', 'Title', 'Mood', 'Child', 'Content Preview']],
+    body: tableData,
+    headStyles: {
+      fillColor: BRAND_COLOR,
+      textColor: 255,
+      fontStyle: 'bold',
+    },
+    columnStyles: {
+      0: { cellWidth: 28 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 25 },
+      4: { cellWidth: 64 },
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+    },
+    alternateRowStyles: {
+      fillColor: ALT_ROW_COLOR,
+    },
+  });
+  
+  return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+}
+
 function addScheduleOverviewSection(doc: jsPDF, data: CourtExportData, startY: number): number {
   if (!data.schedule) {
     doc.setFontSize(10);
@@ -481,9 +540,14 @@ export function generateCourtReadyPDF(data: CourtExportData): void {
   y = addSectionHeader(doc, '5. Expense Records', y);
   y = addExpensesSection(doc, data, y);
   
-  // Section 6: Schedule Overview
+  // Section 6: Journal Entries
   y = checkPageBreak(doc, y);
-  y = addSectionHeader(doc, '6. Custody Schedule Overview', y);
+  y = addSectionHeader(doc, '6. Journal Entries', y);
+  y = addJournalEntriesSection(doc, data, y);
+  
+  // Section 7: Schedule Overview
+  y = checkPageBreak(doc, y);
+  y = addSectionHeader(doc, '7. Custody Schedule Overview', y);
   addScheduleOverviewSection(doc, data, y);
   
   // Add footers to all pages

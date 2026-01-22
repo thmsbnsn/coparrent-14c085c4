@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Key, Download, RefreshCw, Copy, Check, Loader2, Eye, EyeOff } from "lucide-react";
+import { Key, Download, RefreshCw, Copy, Check, Loader2, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,71 +20,71 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useRecoveryCodes } from "@/hooks/useRecoveryCodes";
+import { Badge } from "@/components/ui/badge";
 
 interface RecoveryCodesProps {
   isEnabled: boolean;
   className?: string;
 }
 
-// Generate recovery codes client-side (in production, these should be stored server-side)
-const generateRecoveryCodes = (): string[] => {
-  const codes: string[] = [];
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Excluding similar chars like 0,O,1,I
-  
-  for (let i = 0; i < 10; i++) {
-    let code = "";
-    for (let j = 0; j < 8; j++) {
-      if (j === 4) code += "-";
-      code += chars[Math.floor(Math.random() * chars.length)];
-    }
-    codes.push(code);
-  }
-  return codes;
-};
-
 export const RecoveryCodes = ({ isEnabled, className }: RecoveryCodesProps) => {
   const { toast } = useToast();
+  const { loading, status, fetchStatus, generateCodes } = useRecoveryCodes();
   const [showCodesDialog, setShowCodesDialog] = useState(false);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [codes, setCodes] = useState<string[]>([]);
   const [codesVisible, setCodesVisible] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [hasGeneratedCodes, setHasGeneratedCodes] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    // Check if user has generated codes before (stored in localStorage for demo)
-    const storedCodes = localStorage.getItem("recovery_codes_generated");
-    setHasGeneratedCodes(storedCodes === "true");
-  }, []);
+    if (isEnabled) {
+      fetchStatus();
+    }
+  }, [isEnabled, fetchStatus]);
 
-  const handleGenerateCodes = () => {
-    setLoading(true);
-    setTimeout(() => {
-      const newCodes = generateRecoveryCodes();
-      setCodes(newCodes);
-      setCodesVisible(true);
-      setShowCodesDialog(true);
-      setHasGeneratedCodes(true);
-      localStorage.setItem("recovery_codes_generated", "true");
-      setLoading(false);
-    }, 500);
+  const handleGenerateCodes = async () => {
+    setGenerating(true);
+    try {
+      const newCodes = await generateCodes();
+      if (newCodes) {
+        setCodes(newCodes);
+        setCodesVisible(true);
+        setShowCodesDialog(true);
+        toast({
+          title: "Recovery codes generated",
+          description: "Make sure to save these codes in a secure location.",
+        });
+      } else {
+        toast({
+          title: "Failed to generate codes",
+          description: "Please try again later.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setGenerating(false);
+    }
   };
 
-  const handleRegenerateCodes = () => {
-    setLoading(true);
-    setTimeout(() => {
-      const newCodes = generateRecoveryCodes();
-      setCodes(newCodes);
-      setCodesVisible(true);
-      setShowRegenerateDialog(false);
-      setShowCodesDialog(true);
-      setLoading(false);
-      toast({
-        title: "New recovery codes generated",
-        description: "Your old recovery codes are no longer valid.",
-      });
-    }, 500);
+  const handleRegenerateCodes = async () => {
+    setGenerating(true);
+    try {
+      const newCodes = await generateCodes();
+      if (newCodes) {
+        setCodes(newCodes);
+        setCodesVisible(true);
+        setShowRegenerateDialog(false);
+        setShowCodesDialog(true);
+        toast({
+          title: "New recovery codes generated",
+          description: "Your old recovery codes are no longer valid.",
+        });
+      }
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleCopyCodes = () => {
@@ -131,6 +131,10 @@ codes to sign in to your account.
     return null;
   }
 
+  const hasGeneratedCodes = status?.hasGeneratedCodes || false;
+  const remaining = status?.remaining || 0;
+  const lowCodes = remaining > 0 && remaining <= 3;
+
   return (
     <div className={className}>
       <div className="flex items-center justify-between">
@@ -139,10 +143,22 @@ codes to sign in to your account.
             <Key className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
-            <p className="font-medium">Recovery Codes</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium">Recovery Codes</p>
+              {hasGeneratedCodes && (
+                <Badge 
+                  variant={lowCodes ? "destructive" : "secondary"} 
+                  className="text-xs"
+                >
+                  {remaining} remaining
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               {hasGeneratedCodes 
-                ? "Use these if you lose your authenticator device" 
+                ? lowCodes
+                  ? "Running low! Consider generating new codes."
+                  : "Use these if you lose your authenticator device" 
                 : "Generate backup codes for account recovery"}
             </p>
           </div>
@@ -153,8 +169,13 @@ codes to sign in to your account.
             variant="outline" 
             size="sm" 
             onClick={() => setShowRegenerateDialog(true)}
+            disabled={loading || generating}
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
+            {(loading || generating) ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
             Regenerate
           </Button>
         ) : (
@@ -162,13 +183,24 @@ codes to sign in to your account.
             variant="outline" 
             size="sm" 
             onClick={handleGenerateCodes}
-            disabled={loading}
+            disabled={loading || generating}
           >
-            {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {(loading || generating) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Generate Codes
           </Button>
         )}
       </div>
+
+      {/* Low codes warning */}
+      {lowCodes && (
+        <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-destructive">
+            You only have {remaining} recovery code{remaining !== 1 ? 's' : ''} left. 
+            We recommend generating new codes to ensure you can recover your account.
+          </p>
+        </div>
+      )}
 
       {/* View/Download Codes Dialog */}
       <Dialog open={showCodesDialog} onOpenChange={setShowCodesDialog}>
@@ -269,9 +301,9 @@ codes to sign in to your account.
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleRegenerateCodes}
-              disabled={loading}
+              disabled={generating}
             >
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {generating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Regenerate
             </AlertDialogAction>
           </AlertDialogFooter>
