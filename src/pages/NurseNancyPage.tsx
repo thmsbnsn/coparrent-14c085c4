@@ -560,9 +560,15 @@ const NurseNancyContent = () => {
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  For emergencies, call 911. Nurse Nancy provides general information only.
-                </p>
+                {/* Privacy note + emergency reminder */}
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs text-muted-foreground text-center">
+                    🔒 Avoid sharing sensitive personal information. Nurse Nancy provides general support only.
+                  </p>
+                  <p className="text-xs text-muted-foreground text-center">
+                    For emergencies, call <strong>911</strong>.
+                  </p>
+                </div>
               </div>
             </>
           )}
