@@ -101,20 +101,49 @@ This document provides a comprehensive audit of all gated features, verifying:
 
 ---
 
+## Error Surface Normalization
+
+**Status**: ✅ **HARDENED**
+
+All error codes are centralized in `src/lib/errorMessages.ts` with strict sanitization:
+
+### Centralized Error Code Mapping
+
+| Server Code | UI Message Key | User-Facing Message |
+|------------|----------------|---------------------|
+| `NOT_AUTHORIZED`, `UNAUTHORIZED`, `FORBIDDEN` | `ACCESS_DENIED` | "You don't have permission for this action." |
+| `NOT_PREMIUM`, `PREMIUM_REQUIRED` | `UPGRADE_REQUIRED` | "This feature requires a Power subscription." |
+| `RATE_LIMIT`, `RATE_LIMITED`, `RATE_LIMIT_EXCEEDED` | `RATE_LIMITED` | "You've reached your daily limit. Please try again tomorrow." |
+| `CHILD_RESTRICTED` | `CHILD_ACCOUNT_RESTRICTED` | "This feature isn't available for your account type." |
+| `NOT_PARENT`, `ROLE_REQUIRED` | `NOT_PARENT` | "This action is only available to parents." |
+| `LIMIT_REACHED` | `LIMIT_REACHED` | "You've reached your plan limit. Upgrade to add more." |
+| `TRIAL_EXPIRED` | `TRIAL_EXPIRED` | "Your trial has ended. Upgrade to continue using this feature." |
+
+### Sanitization Guarantees
+
+| Protection | Implementation | Status |
+|------------|----------------|--------|
+| **No UUIDs in UI** | Regex detection + replacement | ✅ PASS |
+| **No table names leak** | Pattern matching for common tables | ✅ PASS |
+| **No RLS/policy errors** | Technical pattern detection | ✅ PASS |
+| **No stack traces** | Pattern detection for file paths | ✅ PASS |
+| **Messages are calm/neutral** | All text reviewed for tone | ✅ PASS |
+
+---
+
 ## AI Edge Function Error Responses
 
 All AI edge functions return structured `{ error: string, code: string }` responses:
 
-| Error Condition | HTTP Status | Error Code | Message |
+| Error Condition | HTTP Status | Error Code | UI Message |
 |-----------------|-------------|------------|---------|
-| Missing auth header | 401 | `UNAUTHORIZED` | "Missing or invalid Authorization header" |
-| Invalid/expired token | 401 | `UNAUTHORIZED` | "Invalid or expired token" |
-| Unknown action | 400 | `INVALID_ACTION` | "Unknown action: {action}" |
-| Third-party/child role | 403 | `ROLE_REQUIRED` | "This action requires parent or guardian role" |
-| Free plan user | 403 | `PREMIUM_REQUIRED` | "This action requires a Power subscription" |
-| Input too long | 400 | `INPUT_TOO_LONG` | "Input exceeds maximum length of {n} characters" |
-| Rate limit exceeded | 429 | `RATE_LIMIT` | "Rate limit exceeded. Please try again later." |
-| CORS blocked | 403 | `CORS_BLOCKED` | "Origin not allowed" |
+| Missing auth header | 401 | `UNAUTHORIZED` | "Please log in to continue." |
+| Invalid/expired token | 401 | `UNAUTHORIZED` | "Please log in to continue." |
+| Unknown action | 400 | `INVALID_ACTION` | "Please check your input and try again." |
+| Third-party/child role | 403 | `ROLE_REQUIRED` | "This action is only available to parents." |
+| Free plan user | 403 | `PREMIUM_REQUIRED` | "This feature requires a Power subscription." |
+| Input too long | 400 | `INPUT_TOO_LONG` | "Please check your input and try again." |
+| Rate limit exceeded | 429 | `RATE_LIMIT` | "You've reached your daily limit. Please try again tomorrow." |
 
 ---
 

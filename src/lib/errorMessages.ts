@@ -9,25 +9,28 @@ import { captureError } from "@/lib/sentry";
 
 // Standard user-facing messages
 export const ERROR_MESSAGES = {
-  // Generic fallbacks
+  // Generic fallbacks (calm, neutral, human)
   GENERIC: "Something went wrong. Please try again.",
   NETWORK: "Unable to connect. Please check your internet connection.",
-  TIMEOUT: "The request took too long. Please try again.",
+  TIMEOUT: "You've made too many requests. Please wait a moment and try again.",
   DUPLICATE_REQUEST: "Please wait, your request is being processed.",
   
-  // Auth/Permission
+  // Auth/Permission (NOT_AUTHORIZED)
   NOT_AUTHENTICATED: "Please log in to continue.",
   SESSION_EXPIRED: "Your session has expired. Please log in again.",
-  NOT_PARENT: "This action requires a parent account.",
-  ACCESS_DENIED: "You don't have permission to access this.",
-  CHILD_ACCOUNT_RESTRICTED: "This feature is not available for child accounts.",
+  NOT_PARENT: "This action is only available to parents.",
+  ACCESS_DENIED: "You don't have permission for this action.",
+  CHILD_ACCOUNT_RESTRICTED: "This feature isn't available for your account type.",
   THIRD_PARTY_RESTRICTED: "This feature is only available to parents.",
   PERMISSION_REVOKED: "Your access to this feature has been revoked.",
   
-  // Plan limits
+  // Plan limits (NOT_PREMIUM)
   LIMIT_REACHED: "You've reached your plan limit. Upgrade to add more.",
-  UPGRADE_REQUIRED: "Upgrade to Power to access this feature.",
-  TRIAL_EXPIRED: "Your trial has ended. Upgrade to continue.",
+  UPGRADE_REQUIRED: "This feature requires a Power subscription.",
+  TRIAL_EXPIRED: "Your trial has ended. Upgrade to continue using this feature.",
+  
+  // Rate limiting (RATE_LIMIT)
+  RATE_LIMITED: "You've reached your daily limit. Please try again tomorrow.",
   
   // Validation
   INVALID_INPUT: "Please check your input and try again.",
@@ -53,14 +56,52 @@ export const ERROR_MESSAGES = {
   MESSAGE_FAILED: "Unable to send message. Please try again.",
 } as const;
 
-// Error code mapping from RPC functions
-const RPC_ERROR_MAP: Record<string, keyof typeof ERROR_MESSAGES> = {
+// =====================================================
+// CENTRALIZED ERROR CODE MAPPING
+// =====================================================
+// These codes are returned by RPC functions and edge functions.
+// All server-side errors map to human-friendly UI messages.
+// NEVER expose internal codes directly to users.
+
+export const ERROR_CODE_MAP: Record<string, keyof typeof ERROR_MESSAGES> = {
+  // Authentication & Authorization
   NOT_AUTHENTICATED: "NOT_AUTHENTICATED",
+  UNAUTHORIZED: "NOT_AUTHENTICATED",
+  NOT_AUTHORIZED: "ACCESS_DENIED",
+  ACCESS_DENIED: "ACCESS_DENIED",
+  FORBIDDEN: "ACCESS_DENIED",
+  
+  // Role-based restrictions
   NOT_PARENT: "NOT_PARENT",
+  ROLE_REQUIRED: "NOT_PARENT",
+  CHILD_RESTRICTED: "CHILD_ACCOUNT_RESTRICTED",
+  THIRD_PARTY_RESTRICTED: "THIRD_PARTY_RESTRICTED",
+  
+  // Plan & Premium restrictions
+  NOT_PREMIUM: "UPGRADE_REQUIRED",
+  PREMIUM_REQUIRED: "UPGRADE_REQUIRED",
   LIMIT_REACHED: "LIMIT_REACHED",
+  TRIAL_EXPIRED: "TRIAL_EXPIRED",
+  
+  // Rate limiting
+  RATE_LIMIT: "RATE_LIMITED",
+  RATE_LIMIT_EXCEEDED: "RATE_LIMITED",
+  RATE_LIMITED: "RATE_LIMITED",
+  
+  // Validation
   VALIDATION_ERROR: "INVALID_INPUT",
+  INVALID_INPUT: "INVALID_INPUT",
+  INPUT_TOO_LONG: "INVALID_INPUT",
+  INVALID_ACTION: "INVALID_INPUT",
+  
+  // Generic fallbacks
   UNKNOWN_ERROR: "GENERIC",
-};
+  INTERNAL_ERROR: "GENERIC",
+  SERVER_ERROR: "GENERIC",
+} as const;
+
+// Backward compatibility alias
+const RPC_ERROR_MAP = ERROR_CODE_MAP;
 
 /**
  * Check if a string looks like a UUID
@@ -71,28 +112,64 @@ const isUUID = (str: string): boolean => {
 
 /**
  * Check if a string looks like a technical error
+ * These should NEVER leak to users
  */
 const isTechnicalError = (str: string): boolean => {
   const technicalPatterns = [
-    /^PGRST\d+/i, // PostgREST errors
-    /^JWT/i, // JWT errors
+    // PostgREST / Supabase errors
+    /^PGRST\d+/i,
+    /supabase/i,
+    /postgres/i,
+    /postgrest/i,
+    
+    // JWT / Auth errors
+    /^JWT/i,
+    /bearer/i,
+    /authorization/i,
+    
+    // Database constraint errors
     /violates foreign key/i,
     /violates unique constraint/i,
+    /violates check constraint/i,
+    /not null constraint/i,
+    
+    // SQL / Schema leaks (table names, columns)
     /relation ".+" does not exist/i,
     /column ".+" does not exist/i,
+    /table ".+" does not exist/i,
+    /function ".+" does not exist/i,
+    /schema ".+"/i,
+    
+    // Common table names that should never leak
+    /\b(profiles|children|parent_children|custody_schedules|family_members|audit_logs|expenses|documents|message_threads|thread_messages|notifications|invitations|subscriptions|user_roles)\b/i,
+    
+    // Permission / RLS errors
     /permission denied/i,
     /row-level security/i,
     /RLS/i,
+    /policy/i,
+    
+    // Technical error prefixes
     /^Error: /,
-    /supabase/i,
-    /postgres/i,
+    /^TypeError:/,
+    /^SyntaxError:/,
+    /^ReferenceError:/,
+    
+    // Stack traces
+    /at .+\.(ts|js|tsx|jsx):\d+/i,
+    /at async/i,
+    
+    // Internal IDs in error text
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i, // UUID
   ];
   return technicalPatterns.some((pattern) => pattern.test(str));
 };
 
 /**
  * Sanitize error message for user display
- * Removes UUIDs, technical jargon, and replaces with friendly text
+ * - Maps error codes to human-friendly messages
+ * - Removes UUIDs, table names, technical jargon
+ * - NEVER exposes internal details
  */
 export const sanitizeErrorForUser = (error: unknown): string => {
   // Handle null/undefined
@@ -103,28 +180,28 @@ export const sanitizeErrorForUser = (error: unknown): string => {
     return sanitizeErrorMessage(error.message);
   }
   
-  // Handle RPC response objects
+  // Handle RPC/Edge function response objects
   if (typeof error === "object" && error !== null) {
     const obj = error as Record<string, unknown>;
     
-    // Handle our standard RPC error format
+    // Handle our standard error format: { error, code } or { ok: false, code, message }
     if ("code" in obj && typeof obj.code === "string") {
-      const mappedKey = RPC_ERROR_MAP[obj.code];
+      const code = obj.code.toUpperCase();
+      const mappedKey = ERROR_CODE_MAP[code];
+      
       if (mappedKey) {
-        // Use custom message if provided, otherwise use default
-        if ("message" in obj && typeof obj.message === "string" && !isTechnicalError(obj.message)) {
-          return obj.message;
-        }
+        // NEVER use server message if it looks technical
+        // Always use our safe mapped message
         return ERROR_MESSAGES[mappedKey];
       }
     }
     
-    // Handle Supabase error objects
+    // Handle Supabase error objects: { message: "..." }
     if ("message" in obj && typeof obj.message === "string") {
       return sanitizeErrorMessage(obj.message);
     }
     
-    // Handle error objects with details
+    // Handle edge function errors: { error: "..." }
     if ("error" in obj && typeof obj.error === "string") {
       return sanitizeErrorMessage(obj.error);
     }
