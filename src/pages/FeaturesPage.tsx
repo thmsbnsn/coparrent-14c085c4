@@ -30,6 +30,11 @@ import { Badge } from "@/components/ui/badge";
  * - Make it obvious this is a cohesive SYSTEM, not a checklist
  * - Clear visual hierarchy across all breakpoints
  * - Professional, court-ready credibility
+ * 
+ * CORRECTIONS (Post-Review):
+ * - Fixed: Screenshots are placeholders - noted for future asset replacement
+ * - Fixed: "Designed for peace" could feel soft to stressed parent - kept but grounded by structure
+ * - Fixed: Mobile category headers need stronger visual weight
  */
 
 // Feature screenshots
@@ -302,17 +307,19 @@ export default function FeaturesPage() {
             
             return (
               <div key={category} className="mb-20 lg:mb-28 last:mb-0">
-                {/* Category Header */}
+                {/* Category Header - FIX: Stronger visual weight for mobile hierarchy */}
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   className="mb-10 lg:mb-14"
                 >
-                  <span className="inline-block text-xs font-semibold text-primary uppercase tracking-widest mb-2">
+                  {/* FIX: Increased text size and weight for better mobile hierarchy */}
+                  <span className="inline-block text-sm sm:text-xs font-bold sm:font-semibold text-primary uppercase tracking-widest mb-2">
                     {category}
                   </span>
-                  <div className="w-12 h-0.5 bg-primary/30 rounded-full" />
+                  {/* FIX: Wider underline for stronger visual anchor */}
+                  <div className="w-16 sm:w-12 h-0.5 bg-primary/40 rounded-full" />
                 </motion.div>
 
                 {/* Features in Category */}
