@@ -1,18 +1,42 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+/**
+ * MessagingHubPage - Court-Ready Communication System
+ * 
+ * @page-role Evidence + Action hybrid
+ * 
+ * DESIGN SYSTEM ENFORCEMENT (docs/DESIGN_CONSTITUTION.md):
+ * - This is NOT a chat app. This is a recorded communication system under stress.
+ * - Messages may be read by attorneys, mediators, and judges.
+ * - UI must de-escalate by structure, not by tone alone.
+ * 
+ * REQUIRED ENFORCEMENTS:
+ * 1. Ownership & Attribution Clarity - Every message shows who, when, what context
+ * 2. Message Hierarchy Under Stress - Content primary, emotion neutralized
+ * 3. Court View First-Class - Discoverable toggle, not buried in settings
+ * 4. Summary Before Scroll - Unread/action status visible immediately
+ * 5. Action Discipline - Deliberate composer, no rapid-fire encouragement
+ * 6. Mobile Integrity - Attribution visible, court view accessible
+ * 
+ * PROHIBITED PATTERNS:
+ * - Chat-style bubbles ❌
+ * - Emoji-first emphasis ❌
+ * - Color-coded emotional framing ❌
+ * - Hidden timestamps ❌
+ * - Collapsed attribution ❌
+ */
+
+import { useState, useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
 import { 
   MessageSquare, 
   Users, 
-  Send, 
   Plus,
   Hash,
   FileText,
-  Check,
-  CheckCheck,
   UsersRound,
   Search,
   Menu,
-  RefreshCw
+  RefreshCw,
+  Printer
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -22,7 +46,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useMessagingHub, MessageThread, FamilyMember } from "@/hooks/useMessagingHub";
@@ -31,40 +55,38 @@ import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { MessageSearch } from "@/components/messages/MessageSearch";
-import { MessageReactions } from "@/components/messages/MessageReactions";
-import { PullToRefreshIndicator } from "@/components/messages/PullToRefreshIndicator";
 import { UnreadBadge } from "@/components/messages/UnreadBadge";
 import { SwipeableTabs } from "@/components/messages/SwipeableTabs";
-import { resolveSenderName } from "@/lib/displayResolver";
+import { EvidencePanel } from "@/components/messages/EvidencePanel";
+import { DeliberateComposer } from "@/components/messages/DeliberateComposer";
+import { ThreadSummaryBar } from "@/components/messages/ThreadSummaryBar";
+import { CourtViewToggle } from "@/components/messages/CourtViewToggle";
+import { PullToRefreshIndicator } from "@/components/messages/PullToRefreshIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { Check } from "lucide-react";
+import { resolveSenderName } from "@/lib/displayResolver";
 
-const formatTimestamp = (dateString: string) => {
-  return format(new Date(dateString), "MMM d, yyyy h:mm a");
-};
-
-const formatShortTime = (dateString: string) => {
-  return format(new Date(dateString), "h:mm a");
-};
-
-const formatReadTime = (dateString: string) => {
-  return format(new Date(dateString), "MMM d, h:mm a");
+/**
+ * Role labels for attribution - RULE: No reliance on color alone
+ */
+const ROLE_LABELS: Record<string, string> = {
+  parent: "Parent",
+  guardian: "Guardian",
+  third_party: "Family Member",
 };
 
 const getRoleBadge = (role: string) => {
-  const roleLabels: Record<string, string> = {
-    parent: "Parent",
-    guardian: "Guardian",
-    third_party: "Family Member",
-  };
-  const label = roleLabels[role] || "Member";
-  const variant = role === "parent" || role === "guardian" ? "default" : "secondary";
-  return <Badge variant={variant} className="text-xs">{label}</Badge>;
+  const label = ROLE_LABELS[role] || "Member";
+  return (
+    <Badge variant="outline" className="text-[10px] px-1.5 h-4 font-normal">
+      {label}
+    </Badge>
+  );
 };
 
 const getInitials = (name: string | null | undefined, email: string | null | undefined) => {
@@ -107,8 +129,7 @@ const MessagingHubPage = () => {
   } = useUnreadMessages();
   const isMobile = useIsMobile();
   
-  const [newMessage, setNewMessage] = useState("");
-  const [sending, setSending] = useState(false);
+  // UI State
   const [showNewDM, setShowNewDM] = useState(false);
   const [activeTab, setActiveTab] = useState<"family" | "groups" | "direct">("family");
   const [selectedMembers, setSelectedMembers] = useState<FamilyMember[]>([]);
@@ -117,11 +138,14 @@ const MessagingHubPage = () => {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [messageReactions, setMessageReactions] = useState<Map<string, { emoji: string; count: number; hasReacted: boolean }[]>>(new Map());
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  /**
+   * Court View State
+   * RULE: Court View is first-class, not a buried setting
+   */
+  const [courtView, setCourtView] = useState(false);
 
-  // Pull-to-refresh for messages
+  // Pull-to-refresh for mobile
   const handleRefresh = useCallback(async () => {
     await fetchThreads();
     await refreshUnread();
@@ -136,190 +160,131 @@ const MessagingHubPage = () => {
     enabled: isMobile,
   });
 
-  // Bind pull-to-refresh to scroll area
-  useEffect(() => {
-    if (scrollAreaRef.current && isMobile) {
-      return bindEvents(scrollAreaRef.current);
-    }
-  }, [bindEvents, isMobile]);
-
-  // Fetch reactions for current messages
-  useEffect(() => {
-    const fetchReactions = async () => {
-      if (!messages.length || !profileId) return;
-
-      const messageIds = messages.map(m => m.id);
-      const { data: reactions } = await supabase
-        .from("message_reactions")
-        .select("*")
-        .in("message_id", messageIds);
-
-      if (reactions) {
-        const reactionsMap = new Map<string, { emoji: string; count: number; hasReacted: boolean }[]>();
-        
-        reactions.forEach((r: any) => {
-          const existing = reactionsMap.get(r.message_id) || [];
-          const emojiEntry = existing.find(e => e.emoji === r.emoji);
-          
-          if (emojiEntry) {
-            emojiEntry.count++;
-            if (r.profile_id === profileId) emojiEntry.hasReacted = true;
-          } else {
-            existing.push({
-              emoji: r.emoji,
-              count: 1,
-              hasReacted: r.profile_id === profileId,
-            });
-          }
-          
-          reactionsMap.set(r.message_id, existing);
-        });
-        
-        setMessageReactions(reactionsMap);
-      }
-    };
-
-    fetchReactions();
-  }, [messages, profileId]);
-
-  // Subscribe to reaction changes
-  useEffect(() => {
-    if (!activeThread) return;
-
-    const channel = supabase
-      .channel(`reactions-${activeThread.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "message_reactions",
-        },
-        async () => {
-          // Refetch reactions when changes occur
-          const messageIds = messages.map(m => m.id);
-          if (messageIds.length === 0) return;
-
-          const { data: reactions } = await supabase
-            .from("message_reactions")
-            .select("*")
-            .in("message_id", messageIds);
-
-          if (reactions) {
-            const reactionsMap = new Map<string, { emoji: string; count: number; hasReacted: boolean }[]>();
-            
-            reactions.forEach((r: any) => {
-              const existing = reactionsMap.get(r.message_id) || [];
-              const emojiEntry = existing.find(e => e.emoji === r.emoji);
-              
-              if (emojiEntry) {
-                emojiEntry.count++;
-                if (r.profile_id === profileId) emojiEntry.hasReacted = true;
-              } else {
-                existing.push({
-                  emoji: r.emoji,
-                  count: 1,
-                  hasReacted: r.profile_id === profileId,
-                });
-              }
-              
-              reactionsMap.set(r.message_id, existing);
-            });
-            
-            setMessageReactions(reactionsMap);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeThread, messages, profileId]);
-
-  // Handle adding/toggling a reaction
-  const handleReaction = async (messageId: string, emoji: string) => {
-    if (!profileId) return;
-
-    const existingReactions = messageReactions.get(messageId) || [];
-    const hasReacted = existingReactions.find(r => r.emoji === emoji)?.hasReacted;
-
-    if (hasReacted) {
-      // Remove reaction
-      await supabase
-        .from("message_reactions")
-        .delete()
-        .match({ message_id: messageId, profile_id: profileId, emoji });
-    } else {
-      // Add reaction
-      await supabase
-        .from("message_reactions")
-        .insert({ message_id: messageId, profile_id: profileId, emoji });
-    }
-  };
-
-  // Handle typing indicator on input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewMessage(e.target.value);
-    if (e.target.value.trim()) {
-      setTyping();
-    }
-  };
-
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // Initialize family channel on load
+  // Initialize family channel
   useEffect(() => {
     if (!loading && !familyChannel) {
       ensureFamilyChannel();
     }
   }, [loading, familyChannel, ensureFamilyChannel]);
 
-  // Set family channel as active by default
+  // Set family channel as default active thread
   useEffect(() => {
     if (familyChannel && !activeThread) {
       setActiveThread(familyChannel);
     }
   }, [familyChannel, activeThread, setActiveThread]);
 
-  const handleSend = async () => {
-    if (!newMessage.trim() || sending) return;
-    
+  /**
+   * Handle message send - deliberate action
+   * RULE: Action discipline - no rapid-fire encouragement
+   */
+  const handleSend = useCallback(async (message: string) => {
     clearTyping();
-    setSending(true);
-    const success = await sendMessage(newMessage.trim());
-    if (success) {
-      setNewMessage("");
+    await sendMessage(message);
+  }, [clearTyping, sendMessage]);
+
+  /**
+   * Export to PDF - Court-ready document
+   * RULE: Preserves attribution and order, print-safe
+   */
+  const handleExportPDF = useCallback(() => {
+    const doc = new jsPDF();
+    
+    // Header with thread context
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Message Record", 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Thread: ${activeThread?.name || getThreadDisplayName(activeThread)}`, 14, 28);
+    doc.text(`Exported: ${format(new Date(), "MMMM d, yyyy 'at' h:mm a")}`, 14, 34);
+    doc.text(`Total Messages: ${messages.length}`, 14, 40);
+
+    // Messages table - full attribution
+    const tableData = messages.map((msg) => [
+      format(new Date(msg.created_at), "MMM d, yyyy h:mm a"),
+      resolveSenderName(msg.sender_name),
+      ROLE_LABELS[msg.sender_role] || "Member",
+      msg.content,
+    ]);
+
+    autoTable(doc, {
+      head: [["Date & Time", "Sender", "Role", "Message Content"]],
+      body: tableData,
+      startY: 48,
+      styles: { 
+        fontSize: 9,
+        cellPadding: 3,
+      },
+      headStyles: {
+        fillColor: [51, 51, 51],
+        fontStyle: "bold",
+      },
+      columnStyles: {
+        0: { cellWidth: 35 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: "auto" },
+      },
+      alternateRowStyles: {
+        fillColor: [248, 248, 248],
+      },
+    });
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(128);
+      doc.text(
+        `Page ${i} of ${pageCount} | CoParrent Message Record`,
+        doc.internal.pageSize.width / 2,
+        doc.internal.pageSize.height - 10,
+        { align: "center" }
+      );
     }
-    setSending(false);
+
+    doc.save(`messages-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`);
+    toast.success("Message record exported successfully");
+  }, [activeThread, messages]);
+
+  /**
+   * Print current view
+   * RULE: Court View must be printable
+   */
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
+
+  const getThreadDisplayName = (thread: MessageThread | null) => {
+    if (!thread) return "Messages";
+    if (thread.thread_type === "group_chat") {
+      return thread.name || "Group Chat";
+    }
+    if (thread.thread_type === "family_channel") {
+      return "Family Channel";
+    }
+    return thread.other_participant?.full_name || 
+           thread.other_participant?.email || 
+           "Direct Message";
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
+  // Thread selection handlers
   const toggleMemberSelection = (member: FamilyMember) => {
     if (member.profile_id === profileId) return;
-    
     setSelectedMembers(prev => {
       const isSelected = prev.some(m => m.profile_id === member.profile_id);
-      if (isSelected) {
-        return prev.filter(m => m.profile_id !== member.profile_id);
-      } else {
-        return [...prev, member];
-      }
+      return isSelected 
+        ? prev.filter(m => m.profile_id !== member.profile_id)
+        : [...prev, member];
     });
   };
 
   const handleStartConversation = async () => {
     if (selectedMembers.length === 0) {
-      toast.error("Please select at least one person to message");
+      toast.error("Please select at least one person");
       return;
     }
     
@@ -369,7 +334,7 @@ const MessagingHubPage = () => {
           avatar_url: m.avatar_url,
         })),
       });
-      toast.success("Group chat created!");
+      toast.success("Group created");
       setShowNewDM(false);
       setShowGroupConfirm(false);
       setSelectedMembers([]);
@@ -380,86 +345,180 @@ const MessagingHubPage = () => {
     setCreatingGroup(false);
   };
 
-  const handleStartDM = async (member: FamilyMember) => {
-    if (member.profile_id === profileId) return;
-    
-    const thread = await getOrCreateDMThread(member.profile_id);
-    if (thread) {
-      setActiveThread({
-        ...thread,
-        other_participant: {
-          id: member.profile_id,
-          full_name: member.full_name,
-          email: member.email,
-          role: member.role,
-        },
-      });
-      setShowNewDM(false);
-      setActiveTab("direct");
-      setShowSidebar(false);
-    }
-  };
-
   const handleSelectThread = (thread: MessageThread) => {
     setActiveThread(thread);
-    if (isMobile) {
-      setShowSidebar(false);
-    }
+    if (isMobile) setShowSidebar(false);
   };
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(18);
-    doc.text("Message Log", 14, 22);
-    doc.setFontSize(10);
-    doc.text(`Exported: ${format(new Date(), "PPpp")}`, 14, 30);
-    doc.text(`Thread: ${activeThread?.name || "Direct Message"}`, 14, 36);
-
-    const tableData = messages.map((msg) => [
-      formatTimestamp(msg.created_at),
-      resolveSenderName(msg.sender_name),
-      msg.sender_role,
-      msg.content,
-    ]);
-
-    autoTable(doc, {
-      head: [["Timestamp", "Sender", "Role", "Message"]],
-      body: tableData,
-      startY: 42,
-      styles: { fontSize: 8 },
-      columnStyles: {
-        0: { cellWidth: 35 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 20 },
-        3: { cellWidth: "auto" },
-      },
-    });
-
-    doc.save(`messages-${format(new Date(), "yyyy-MM-dd")}.pdf`);
-  };
-
-  const getThreadDisplayName = (thread: MessageThread) => {
-    if (thread.thread_type === "group_chat") {
-      return thread.name || "Group Chat";
-    }
-    if (thread.thread_type === "family_channel") {
-      return "Family Chat";
-    }
-    return thread.other_participant?.full_name || 
-           thread.other_participant?.email || 
-           "Unknown";
-  };
-
-  // Sidebar content - extracted for reuse in mobile sheet and desktop sidebar
+  // Sidebar content - thread navigation
   const SidebarContent = () => {
     const tabItems = ["family", "groups", "direct"] as const;
     const familyUnread = showIndicator ? getUnreadByType("family_channel") : 0;
     const groupsUnread = showIndicator ? getUnreadByType("group_chat") : 0;
     const directUnread = showIndicator ? getUnreadByType("direct_message") : 0;
 
+    const TabContentInner = () => (
+      <>
+        <TabsContent value="family" className="flex-1 m-0 p-2 overflow-auto">
+          {familyChannel && (
+            <button
+              onClick={() => handleSelectThread(familyChannel)}
+              className={cn(
+                "w-full p-3 rounded-lg text-left transition-colors relative",
+                activeThread?.id === familyChannel.id
+                  ? "bg-muted border border-border"
+                  : "hover:bg-muted/50"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <Hash className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm">Family Channel</p>
+                  <p className="text-xs text-muted-foreground">
+                    {familyMembers.length} members • Official record
+                  </p>
+                </div>
+                {showIndicator && getUnreadForThread(familyChannel.id) > 0 && (
+                  <UnreadBadge count={getUnreadForThread(familyChannel.id)} />
+                )}
+              </div>
+            </button>
+          )}
+
+          <div className="mt-4">
+            <p className="text-[10px] font-medium text-muted-foreground px-3 mb-2 uppercase tracking-wider">
+              Members
+            </p>
+            {familyMembers.map((member) => (
+              <div key={member.id} className="flex items-center gap-3 px-3 py-2">
+                <Avatar className="w-7 h-7 flex-shrink-0">
+                  <AvatarFallback className="text-[10px]">
+                    {getInitials(member.full_name, member.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm truncate">
+                    {member.full_name || member.email}
+                    {member.profile_id === profileId && (
+                      <span className="text-muted-foreground"> (you)</span>
+                    )}
+                  </p>
+                </div>
+                {getRoleBadge(member.role)}
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="groups" className="flex-1 m-0 p-2 overflow-auto">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 mb-2 text-sm"
+            onClick={() => setShowNewDM(true)}
+          >
+            <Plus className="w-4 h-4" />
+            New Group
+          </Button>
+
+          {groupChats.map((thread) => (
+            <button
+              key={thread.id}
+              onClick={() => handleSelectThread(thread)}
+              className={cn(
+                "w-full p-3 rounded-lg text-left transition-colors mb-1",
+                activeThread?.id === thread.id
+                  ? "bg-muted border border-border"
+                  : "hover:bg-muted/50"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <UsersRound className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {thread.name || "Group"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {thread.participants?.length || 0} members
+                  </p>
+                </div>
+                {showIndicator && getUnreadForThread(thread.id) > 0 && (
+                  <UnreadBadge count={getUnreadForThread(thread.id)} />
+                )}
+              </div>
+            </button>
+          ))}
+
+          {groupChats.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No group conversations
+            </p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="direct" className="flex-1 m-0 p-2 overflow-auto">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 mb-2 text-sm"
+            onClick={() => setShowNewDM(true)}
+          >
+            <Plus className="w-4 h-4" />
+            New Message
+          </Button>
+
+          {threads.map((thread) => (
+            <button
+              key={thread.id}
+              onClick={() => handleSelectThread(thread)}
+              className={cn(
+                "w-full p-3 rounded-lg text-left transition-colors mb-1",
+                activeThread?.id === thread.id
+                  ? "bg-muted border border-border"
+                  : "hover:bg-muted/50"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <Avatar className="w-10 h-10 flex-shrink-0">
+                  <AvatarFallback className="text-sm">
+                    {getInitials(
+                      thread.other_participant?.full_name,
+                      thread.other_participant?.email
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {thread.other_participant?.full_name || 
+                     thread.other_participant?.email || 
+                     "Unknown"}
+                  </p>
+                  {thread.other_participant?.role && (
+                    <div className="mt-0.5">
+                      {getRoleBadge(thread.other_participant.role)}
+                    </div>
+                  )}
+                </div>
+                {showIndicator && getUnreadForThread(thread.id) > 0 && (
+                  <UnreadBadge count={getUnreadForThread(thread.id)} />
+                )}
+              </div>
+            </button>
+          ))}
+
+          {threads.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No direct messages
+            </p>
+          )}
+        </TabsContent>
+      </>
+    );
+
     return (
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "family" | "groups" | "direct")} className="flex flex-col h-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex flex-col h-full">
         <TabsList className="grid w-full grid-cols-3 mx-2 mb-0" style={{ width: "calc(100% - 16px)" }}>
           <TabsTrigger value="family" className="gap-1 text-xs relative">
             <Hash className="w-3 h-3" />
@@ -500,167 +559,6 @@ const MessagingHubPage = () => {
     );
   };
 
-  const TabContentInner = () => (
-    <>
-      <TabsContent value="family" className="flex-1 m-0 p-2 overflow-auto">
-        {familyChannel && (
-          <button
-            onClick={() => handleSelectThread(familyChannel)}
-            className={cn(
-              "w-full p-3 rounded-lg text-left transition-colors relative",
-              activeThread?.id === familyChannel.id
-                ? "bg-primary/10 border border-primary/20"
-                : "hover:bg-muted"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                <Users className="w-5 h-5 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">Family Chat</p>
-                <p className="text-xs text-muted-foreground">
-                  {familyMembers.length} members
-                </p>
-              </div>
-              {showIndicator && getUnreadForThread(familyChannel.id) > 0 && (
-                <UnreadBadge count={getUnreadForThread(familyChannel.id)} />
-              )}
-            </div>
-          </button>
-        )}
-
-        <div className="mt-4">
-          <p className="text-xs font-medium text-muted-foreground px-3 mb-2">
-            MEMBERS
-          </p>
-          {familyMembers.map((member) => (
-            <div
-              key={member.id}
-              className="flex items-center gap-3 px-3 py-2"
-            >
-              <Avatar className="w-8 h-8 flex-shrink-0">
-                <AvatarFallback className="text-xs">
-                  {getInitials(member.full_name, member.email)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {member.full_name || member.email}
-                  {member.profile_id === profileId && " (you)"}
-                </p>
-              </div>
-              {getRoleBadge(member.role)}
-            </div>
-          ))}
-        </div>
-      </TabsContent>
-
-      <TabsContent value="groups" className="flex-1 m-0 p-2 overflow-auto">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 mb-2"
-          onClick={() => setShowNewDM(true)}
-        >
-          <Plus className="w-4 h-4" />
-          New Group Chat
-        </Button>
-
-        {groupChats.map((thread) => (
-          <button
-            key={thread.id}
-            onClick={() => handleSelectThread(thread)}
-            className={cn(
-              "w-full p-3 rounded-lg text-left transition-colors mb-1 relative",
-              activeThread?.id === thread.id
-                ? "bg-primary/10 border border-primary/20"
-                : "hover:bg-muted"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                <UsersRound className="w-5 h-5 text-secondary-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">
-                  {thread.name || "Group Chat"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {thread.participants?.length || 0} members
-                </p>
-              </div>
-              {showIndicator && getUnreadForThread(thread.id) > 0 && (
-                <UnreadBadge count={getUnreadForThread(thread.id)} />
-              )}
-            </div>
-          </button>
-        ))}
-
-        {groupChats.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No group chats yet
-          </p>
-        )}
-      </TabsContent>
-
-      <TabsContent value="direct" className="flex-1 m-0 p-2 overflow-auto">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 mb-2"
-          onClick={() => setShowNewDM(true)}
-        >
-          <Plus className="w-4 h-4" />
-          New Message
-        </Button>
-
-        {threads.map((thread) => (
-          <button
-            key={thread.id}
-            onClick={() => handleSelectThread(thread)}
-            className={cn(
-              "w-full p-3 rounded-lg text-left transition-colors mb-1 relative",
-              activeThread?.id === thread.id
-                ? "bg-primary/10 border border-primary/20"
-                : "hover:bg-muted"
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <Avatar className="w-10 h-10 flex-shrink-0">
-                <AvatarFallback>
-                  {getInitials(
-                    thread.other_participant?.full_name,
-                    thread.other_participant?.email
-                  )}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">
-                  {thread.other_participant?.full_name || 
-                   thread.other_participant?.email || 
-                   "Unknown"}
-                </p>
-                {thread.other_participant?.role && (
-                  <div className="mt-1">
-                    {getRoleBadge(thread.other_participant.role)}
-                  </div>
-                )}
-              </div>
-              {showIndicator && getUnreadForThread(thread.id) > 0 && (
-                <UnreadBadge count={getUnreadForThread(thread.id)} />
-              )}
-            </div>
-          </button>
-        ))}
-
-        {threads.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No direct messages yet
-          </p>
-        )}
-      </TabsContent>
-    </>
-  );
-
   if (loading) {
     return (
       <DashboardLayout>
@@ -674,12 +572,31 @@ const MessagingHubPage = () => {
   return (
     <DashboardLayout>
       <TooltipProvider>
-        <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-8rem)] flex flex-col">
-          {/* Header - Mobile optimized */}
+        {/* 
+          Print styles for Court View
+          RULE: Court View must be printable and export-safe
+        */}
+        <style>{`
+          @media print {
+            body * { visibility: hidden; }
+            .print-area, .print-area * { visibility: visible; }
+            .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+          }
+        `}</style>
+
+        <div className={cn(
+          "h-[calc(100vh-8rem)] flex flex-col",
+          courtView && "print-area"
+        )}>
+          {/* 
+            Header - Minimal, functional
+            RULE: No "friendly app" aesthetics
+          */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-2 md:mb-4"
+            className="mb-3 no-print"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -701,17 +618,21 @@ const MessagingHubPage = () => {
                   </Button>
                 )}
                 <div className="min-w-0">
-                  <h1 className="text-xl md:text-2xl lg:text-3xl font-display font-bold truncate">
-                    {isMobile && activeThread ? getThreadDisplayName(activeThread) : "Messages"}
+                  <h1 className="text-lg md:text-xl font-semibold truncate">
+                    {isMobile && activeThread 
+                      ? getThreadDisplayName(activeThread) 
+                      : "Messages"}
                   </h1>
                   {!isMobile && (
-                    <p className="text-muted-foreground mt-1 text-sm">
-                      Communicate with your family group
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Recorded communication • All messages are permanent
                     </p>
                   )}
                 </div>
               </div>
-              <div className="flex gap-1 md:gap-2 flex-shrink-0">
+              
+              {/* Action buttons - Court View prominently placed */}
+              <div className="flex gap-1.5 flex-shrink-0">
                 {isMobile && (
                   <Button 
                     variant="ghost" 
@@ -722,19 +643,47 @@ const MessagingHubPage = () => {
                     <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
                   </Button>
                 )}
+                
                 <Button 
                   variant="ghost" 
-                  size={isMobile ? "icon" : "sm"} 
+                  size="icon"
                   onClick={() => setShowSearch(true)}
+                  aria-label="Search messages"
                 >
                   <Search className="w-4 h-4" />
-                  {!isMobile && <span className="ml-2">Search</span>}
                 </Button>
-                {activeThread && messages.length > 0 && !isMobile && (
-                  <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Export PDF
-                  </Button>
+
+                {/* 
+                  Court View Toggle - FIRST-CLASS, NOT SECONDARY
+                  RULE: Must be discoverable and intentional
+                */}
+                <CourtViewToggle
+                  enabled={courtView}
+                  onToggle={() => setCourtView(!courtView)}
+                  compact={isMobile}
+                />
+
+                {activeThread && messages.length > 0 && (
+                  <>
+                    {courtView && (
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={handlePrint}
+                        aria-label="Print messages"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size={isMobile ? "icon" : "sm"}
+                      onClick={handleExportPDF}
+                    >
+                      <FileText className="w-4 h-4" />
+                      {!isMobile && <span className="ml-2">Export</span>}
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -750,18 +699,18 @@ const MessagingHubPage = () => {
                 threadId={activeThread?.id}
                 onResultClick={(result) => {
                   setShowSearch(false);
-                  toast.success("Found message from " + (result.sender_name || "Unknown"));
+                  toast.success(`Found message from ${resolveSenderName(result.sender_name)}`);
                 }}
                 onClose={() => setShowSearch(false)}
               />
             </DialogContent>
           </Dialog>
 
-          {/* Mobile Sidebar Sheet */}
+          {/* Mobile Sidebar */}
           <Sheet open={showSidebar} onOpenChange={setShowSidebar}>
             <SheetContent side="left" className="w-[300px] p-0">
               <SheetHeader className="p-4 border-b">
-                <SheetTitle className="flex items-center gap-2">
+                <SheetTitle className="flex items-center gap-2 text-sm">
                   Conversations
                   {showIndicator && totalUnread > 0 && (
                     <UnreadBadge count={totalUnread} size="md" />
@@ -774,55 +723,63 @@ const MessagingHubPage = () => {
             </SheetContent>
           </Sheet>
 
-          {/* Main content */}
+          {/* Main Content Area */}
           <div className="flex-1 flex gap-4 min-h-0">
             {/* Desktop Sidebar */}
             {!isMobile && (
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="w-72 lg:w-80 flex-shrink-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col"
+                className="w-72 lg:w-80 flex-shrink-0 rounded-xl border border-border bg-card overflow-hidden flex flex-col no-print"
               >
                 <SidebarContent />
               </motion.div>
             )}
 
-            {/* Chat area */}
+            {/* 
+              Chat Area - Evidence + Action separation
+              RULE: These two may not visually blur together
+            */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex-1 rounded-xl border border-border bg-card overflow-hidden flex flex-col min-w-0"
             >
-              {/* Chat header */}
+              {/* Thread Header - Context for attribution */}
               {activeThread && (
-                <div className="p-3 md:p-4 border-b border-border flex items-center gap-3">
+                <div className={cn(
+                  "px-4 py-3 border-b border-border flex items-center gap-3",
+                  courtView && "bg-muted/30"
+                )}>
                   {activeThread.thread_type === "family_channel" ? (
                     <>
-                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <Users className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <Hash className="w-4 h-4 text-muted-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <h2 className="font-semibold text-sm md:text-base">Family Chat</h2>
-                        <p className="text-xs text-muted-foreground truncate">
-                          All messages are saved for records
+                        <h2 className="font-semibold text-sm">Family Channel</h2>
+                        <p className="text-[11px] text-muted-foreground">
+                          Official family communication record
                         </p>
                       </div>
                     </>
                   ) : activeThread.thread_type === "group_chat" ? (
                     <>
-                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                        <UsersRound className="w-4 h-4 md:w-5 md:h-5 text-secondary-foreground" />
+                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <UsersRound className="w-4 h-4 text-muted-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <h2 className="font-semibold text-sm md:text-base truncate">{activeThread.name || "Group Chat"}</h2>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <h2 className="font-semibold text-sm truncate">
+                          {activeThread.name || "Group"}
+                        </h2>
+                        <p className="text-[11px] text-muted-foreground truncate">
                           {activeThread.participants?.map(p => p.full_name || p.email).join(", ")}
                         </p>
                       </div>
                     </>
                   ) : (
                     <>
-                      <Avatar className="w-9 h-9 md:w-10 md:h-10 flex-shrink-0">
+                      <Avatar className="w-9 h-9 flex-shrink-0">
                         <AvatarFallback className="text-sm">
                           {getInitials(
                             activeThread.other_participant?.full_name,
@@ -831,7 +788,7 @@ const MessagingHubPage = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <h2 className="font-semibold text-sm md:text-base truncate">
+                        <h2 className="font-semibold text-sm truncate">
                           {activeThread.other_participant?.full_name || 
                            activeThread.other_participant?.email || 
                            "Unknown"}
@@ -845,181 +802,48 @@ const MessagingHubPage = () => {
                 </div>
               )}
 
-              {/* Messages with pull-to-refresh */}
-              <div className="flex-1 relative overflow-hidden" ref={scrollAreaRef} data-scroll-area>
-                <PullToRefreshIndicator 
-                  pullDistance={pullDistance} 
-                  isRefreshing={isRefreshing}
-                />
-                <ScrollArea className="h-full p-3 md:p-4">
-                  {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                      <MessageSquare className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground/50 mb-4" />
-                      <p className="text-muted-foreground">No messages yet</p>
-                      <p className="text-sm text-muted-foreground/70">
-                        Start the conversation!
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 md:space-y-4">
-                      {messages.map((message) => (
-                        <motion.div
-                          key={message.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={cn(
-                            "flex gap-2 md:gap-3 group",
-                            message.is_from_me ? "flex-row-reverse" : ""
-                          )}
-                        >
-                          <Avatar className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0">
-                            <AvatarFallback className="text-xs">
-                              {getInitials(message.sender_name, null)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className={cn(
-                            "max-w-[85%] md:max-w-[70%]",
-                            message.is_from_me ? "items-end" : ""
-                          )}>
-                            <div className={cn(
-                              "flex items-center gap-1 md:gap-2 mb-1 flex-wrap",
-                              message.is_from_me ? "flex-row-reverse" : ""
-                            )}>
-                              <span className="text-xs md:text-sm font-medium">
-                                {message.sender_name}
-                              </span>
-                              <span className="hidden md:inline">{getRoleBadge(message.sender_role)}</span>
-                              <span className="text-[10px] md:text-xs text-muted-foreground">
-                                {isMobile ? formatShortTime(message.created_at) : formatTimestamp(message.created_at)}
-                              </span>
-                            </div>
-                            <div className={cn(
-                              "p-2.5 md:p-3 rounded-lg",
-                              message.is_from_me
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted"
-                            )}>
-                              <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                            </div>
-                            
-                            {/* Message Reactions */}
-                            <div className={cn(
-                              "mt-1",
-                              message.is_from_me ? "flex justify-end" : ""
-                            )}>
-                              <MessageReactions
-                                messageId={message.id}
-                                reactions={messageReactions.get(message.id)}
-                                onReact={handleReaction}
-                              />
-                            </div>
-                            
-                            {/* Read receipts */}
-                            {message.is_from_me && message.read_by && message.read_by.length > 0 && (
-                              <div className={cn("flex items-center gap-1 mt-1", message.is_from_me ? "justify-end" : "")}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground cursor-default">
-                                      <CheckCheck className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary" />
-                                      <span>Read</span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="bottom" align={message.is_from_me ? "end" : "start"}>
-                                    <div className="space-y-1">
-                                      {message.read_by.map((receipt) => (
-                                        <div key={receipt.reader_id} className="text-xs">
-                                          <span className="font-medium">{receipt.reader_name}</span>
-                                          <span className="text-muted-foreground ml-2">
-                                            {formatReadTime(receipt.read_at)}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            )}
-                            
-                            {/* Sent indicator for messages without reads yet */}
-                            {message.is_from_me && (!message.read_by || message.read_by.length === 0) && (
-                              <div className="flex items-center gap-1 mt-1 justify-end">
-                                <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-muted-foreground" />
-                                <span className="text-[10px] md:text-xs text-muted-foreground">Sent</span>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
-
-              {/* Input area */}
+              {/* 
+                Thread Summary Bar
+                RULE: Summary Before Scroll - users never scroll to understand urgency
+              */}
               {activeThread && (
-                <div className="p-3 md:p-4 border-t border-border">
-                  {/* Typing indicator */}
-                  <AnimatePresence>
-                    {typingText && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mb-2"
-                      >
-                        <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
-                          <div className="flex gap-1">
-                            <motion.span
-                              animate={{ opacity: [0.4, 1, 0.4] }}
-                              transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
-                              className="w-1 h-1 md:w-1.5 md:h-1.5 bg-primary rounded-full"
-                            />
-                            <motion.span
-                              animate={{ opacity: [0.4, 1, 0.4] }}
-                              transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
-                              className="w-1 h-1 md:w-1.5 md:h-1.5 bg-primary rounded-full"
-                            />
-                            <motion.span
-                              animate={{ opacity: [0.4, 1, 0.4] }}
-                              transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
-                              className="w-1 h-1 md:w-1.5 md:h-1.5 bg-primary rounded-full"
-                            />
-                          </div>
-                          <span className="truncate">{typingText}</span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Type a message..."
-                      value={newMessage}
-                      onChange={handleInputChange}
-                      onKeyPress={handleKeyPress}
-                      disabled={sending}
-                      className="flex-1 text-base"
-                    />
-                    <Button 
-                      onClick={handleSend} 
-                      disabled={!newMessage.trim() || sending}
-                      size={isMobile ? "icon" : "default"}
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  {!isMobile && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Messages are immutable and saved for court records
-                    </p>
-                  )}
+                <ThreadSummaryBar
+                  unreadCount={showIndicator ? getUnreadForThread(activeThread.id) : 0}
+                  totalMessages={messages.length}
+                  threadType={activeThread.thread_type as "family_channel" | "group_chat" | "direct_message"}
+                  courtView={courtView}
+                  className="no-print"
+                />
+              )}
+
+              {/* 
+                EVIDENCE SECTION - Message History
+                RULE: Evidence and Action must be visually separated
+              */}
+              <EvidencePanel
+                messages={messages}
+                courtView={courtView}
+                className="flex-1"
+              />
+
+              {/* 
+                ACTION SECTION - Deliberate Composer
+                RULE: Feel deliberate, not impulsive
+                RULE: Visually separate drafting from history
+              */}
+              {activeThread && (
+                <div className="no-print">
+                  <DeliberateComposer
+                    onSend={handleSend}
+                    onTyping={setTyping}
+                    placeholder="Compose your message..."
+                  />
                 </div>
               )}
             </motion.div>
           </div>
 
-          {/* New DM Modal */}
+          {/* New Conversation Modal */}
           <Dialog open={showNewDM && !showGroupConfirm} onOpenChange={(open) => {
             setShowNewDM(open);
             if (!open) setSelectedMembers([]);
@@ -1029,10 +853,10 @@ const MessagingHubPage = () => {
                 <DialogTitle>New Conversation</DialogTitle>
               </DialogHeader>
               <p className="text-sm text-muted-foreground">
-                Select one person for a direct message, or multiple for a group chat:
+                Select recipients:
               </p>
               <ScrollArea className="flex-1 max-h-64">
-                <div className="space-y-2 pr-2">
+                <div className="space-y-1 pr-2">
                   {familyMembers
                     .filter((m) => m.profile_id !== profileId)
                     .map((member) => {
@@ -1044,23 +868,23 @@ const MessagingHubPage = () => {
                           className={cn(
                             "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
                             isSelected 
-                              ? "bg-primary/10 border border-primary/30" 
-                              : "hover:bg-muted border border-transparent"
+                              ? "bg-muted border border-border" 
+                              : "hover:bg-muted/50 border border-transparent"
                           )}
                         >
                           <div className={cn(
-                            "w-5 h-5 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                            isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
+                            "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0",
+                            isSelected ? "bg-foreground border-foreground" : "border-muted-foreground/30"
                           )}>
-                            {isSelected && <Check className="w-3 h-3 md:w-4 md:h-4 text-primary-foreground" />}
+                            {isSelected && <Check className="w-3 h-3 text-background" />}
                           </div>
-                          <Avatar className="w-9 h-9 md:w-10 md:h-10 flex-shrink-0">
-                            <AvatarFallback>
+                          <Avatar className="w-9 h-9 flex-shrink-0">
+                            <AvatarFallback className="text-sm">
                               {getInitials(member.full_name, member.email)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
+                            <p className="font-medium text-sm truncate">
                               {member.full_name || member.email}
                             </p>
                           </div>
@@ -1073,8 +897,7 @@ const MessagingHubPage = () => {
               
               {selectedMembers.length > 0 && (
                 <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                  <span className="font-medium">{selectedMembers.length} selected:</span>{" "}
-                  <span className="truncate">{selectedMembers.map(m => m.full_name || m.email).join(", ")}</span>
+                  <span className="font-medium">{selectedMembers.length} selected</span>
                 </div>
               )}
               
@@ -1100,47 +923,33 @@ const MessagingHubPage = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Group Chat Creation Modal */}
+          {/* Group Creation Modal */}
           <Dialog open={showGroupConfirm} onOpenChange={setShowGroupConfirm}>
             <DialogContent className="max-w-md mx-4 md:mx-auto">
               <DialogHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <UsersRound className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                  </div>
-                  <div>
-                    <DialogTitle>Create Group Chat</DialogTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedMembers.length} people selected
-                    </p>
-                  </div>
-                </div>
+                <DialogTitle>Create Group</DialogTitle>
               </DialogHeader>
               
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Group Name</label>
                   <Input
-                    placeholder="e.g., Weekend Planning"
+                    placeholder="e.g., Schedule Coordination"
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
                     autoFocus
-                    className="text-base"
                   />
                 </div>
                 
                 <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Members:</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    {selectedMembers.length} members selected
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
                     {selectedMembers.map((member) => (
-                      <div key={member.profile_id} className="flex items-center gap-1.5 bg-background rounded-full px-2.5 py-1 text-sm">
-                        <Avatar className="w-5 h-5">
-                          <AvatarFallback className="text-[10px]">
-                            {getInitials(member.full_name, member.email)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="truncate max-w-[100px]">{member.full_name || member.email}</span>
-                      </div>
+                      <Badge key={member.profile_id} variant="secondary" className="text-xs">
+                        {member.full_name || member.email}
+                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -1160,14 +969,7 @@ const MessagingHubPage = () => {
                   onClick={handleCreateGroupChat}
                   disabled={!groupName.trim() || creatingGroup}
                 >
-                  {creatingGroup ? (
-                    <>
-                      <LoadingSpinner size="sm" />
-                      <span className="ml-2">Creating...</span>
-                    </>
-                  ) : (
-                    "Create Group"
-                  )}
+                  {creatingGroup ? "Creating..." : "Create Group"}
                 </Button>
               </div>
             </DialogContent>
