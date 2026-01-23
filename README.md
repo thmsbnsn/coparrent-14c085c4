@@ -36,6 +36,78 @@ CoParrent helps co-parents:
 
 The application is designed with a **calm, professional, court-friendly aesthetic** using navy blue and sage green as primary colors to reduce stress during what can be a difficult time.
 
+---
+
+## Design Principles
+
+CoParrent is built around a small set of non-negotiable design principles that guide architecture, UX decisions, and feature boundaries:
+
+- **Child-first clarity over convenience**  
+- **Server-enforced rules over client trust**  
+- **Documentation over memory**  
+- **Private by default, share by choice**  
+- **Calm, neutral UX over adversarial workflows**
+
+These principles intentionally shape decisions such as role-based access, gated features, and private ownership of generated content.
+
+---
+
+## Data Ownership & Privacy Model
+
+CoParrent uses a **parent-owned data model**:
+
+- Each parent owns their own data and generated content.
+- Content is **private by default**.
+- Sharing is **explicit and revocable** per item.
+- Shared access is **read-only** unless otherwise stated.
+- No content is publicly accessible or indexed.
+
+This model applies to messages, documents, and all Kids Hub creations.
+
+---
+
+## Feature Maturity Levels
+
+Not all features evolve at the same pace. CoParrent tracks feature maturity explicitly:
+
+| Feature | Status |
+|------|------|
+| Messaging | Stable |
+| Calendar | Stable |
+| Document Vault | Stable |
+| Court Exports | Stable (v1) |
+| Kids Hub – Activities | Stable |
+| Kids Hub – Coloring Pages | Stable |
+| Nurse Nancy | Support Tool (Non-diagnostic) |
+
+---
+
+## Operational Guarantees
+
+The following guarantees are enforced by design:
+
+- Plan limits are enforced **server-side**
+- Role permissions are enforced via **Row Level Security (RLS)**
+- Exported documents are **deterministic**
+- Private data is never auto-shared
+- Deletions respect defined retention rules
+
+---
+
+## What CoParrent Is Not
+
+To avoid misuse or misinterpretation:
+
+- CoParrent is **not** a replacement for legal counsel
+- CoParrent is **not** a medical advice platform
+- CoParrent is **not** an emergency communication system
+- CoParrent is **not** a surveillance or monitoring tool
+
+For exact access rules and plan enforcement, see **`docs/GATED_FEATURES.md`**.
+For security architecture, see **`docs/SECURITY_MODEL.md`**.
+
+---
+
 ## 🧭 Project State
 
 **Current Maturity:** Beta-Candidate — core workflows function, but security, billing, and edge cases need validation before production.
@@ -43,9 +115,9 @@ The application is designed with a **calm, professional, court-friendly aestheti
 **Current Phase:** Active Development (Beta-Ready)  
 **Environment:** Lovable Cloud + Supabase  
 **Stripe Mode:** Test  
-**Last Verified Build:** 2026-01-22  
+**Last Verified Build:** 2026-01-23  
 **Verified By:** Lovable  
-**Last README Update:** 2026-01-22
+**Last README Update:** 2026-01-23
 
 > **Note:** The `Last Verified Build` and `Verified By` fields must be updated whenever a behavioral or architectural change is made.
 
