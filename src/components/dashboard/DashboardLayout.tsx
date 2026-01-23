@@ -29,6 +29,7 @@ import { NotificationDropdown } from "@/components/notifications/NotificationDro
 import { TrialBadge } from "@/components/dashboard/TrialBadge";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { OnboardingOverlay } from "@/components/onboarding/OnboardingOverlay";
+import { FamilySwitcher } from "@/components/family/FamilySwitcher";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -127,6 +128,11 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
           </Link>
           <TrialBadge collapsed={sidebarCollapsed} />
         </div>
+      </div>
+
+      {/* Family Switcher */}
+      <div className="px-3 py-2 border-b border-sidebar-border shrink-0">
+        <FamilySwitcher collapsed={sidebarCollapsed} />
       </div>
 
       {/* Navigation - Scrollable with custom scrollbar */}
