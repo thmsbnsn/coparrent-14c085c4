@@ -44,7 +44,7 @@ export const PremiumFeatureGate = ({
         denialReason
       );
     }
-  }, [loading, hasAccess, featureName, subscriptionTier, denialReason]);
+  }, [loading, hasAccess, featureName, tier, denialReason]);
 
   if (loading) {
     return inline ? (
