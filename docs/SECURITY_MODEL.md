@@ -219,10 +219,43 @@ Security changes are considered **breaking changes** unless explicitly backward 
 
 ---
 
+## Executable Assertion Tests
+
+This security model is enforced by executable tests in:
+
+- `src/lib/securityAssertions.ts` — Runtime assertion tests for all security invariants
+- `src/lib/securityGuards.ts` — Server-verified guard functions
+- `src/lib/securityInvariants.ts` — Invariant enforcement utilities
+- `src/hooks/useSecurityContext.ts` — React hook for security context
+- `src/components/gates/SecurityBoundary.tsx` — Error boundary for security violations
+
+### Invariants Tested
+
+| Invariant | Code Reference | Enforcement Layer |
+|-----------|---------------|-------------------|
+| Third-party cannot write | `THIRD_PARTY_RESTRICTED_ACTIONS` | RLS + Edge Functions |
+| Child cannot access parent routes | `PARENT_ONLY_ROUTES` | ProtectedRoute + ChildAccountGate |
+| Child cannot create data | `assertChildCannotCreateData()` | RLS + UI Gate |
+| Admin via user_roles only | `assertAdminAccessSource()` | is_admin() RPC |
+| Client gating never trusted alone | `SERVER_ENFORCED_FEATURES` | RLS + Edge Functions |
+| Subscription from server only | `assertSubscriptionNotClientTrusted()` | Profile DB |
+| Trial expiry checked real-time | `assertTrialExpiryCheckedRealtime()` | aiGuard |
+| Fail closed on error | `assertFailClosed()` | All guards |
+
+### Failure Conditions
+
+Every assertion explicitly fails if:
+- A role escalation bug is introduced
+- A new route is added without enforcement
+- A server endpoint trusts client input
+
+---
+
 ## Related Documentation
 
 - `README.md` — Design principles and product intent  
 - `GATED_FEATURES.md` — Feature access and enforcement rules  
+- `GATED_FEATURES_AUDIT.md` — Audit verification status
 
 ---
 
