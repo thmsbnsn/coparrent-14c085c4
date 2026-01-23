@@ -299,6 +299,7 @@ export type Database = {
         Row: {
           action: string
           actor_profile_id: string | null
+          actor_role_at_action: string | null
           actor_user_id: string
           after: Json | null
           before: Json | null
@@ -313,6 +314,7 @@ export type Database = {
         Insert: {
           action: string
           actor_profile_id?: string | null
+          actor_role_at_action?: string | null
           actor_user_id: string
           after?: Json | null
           before?: Json | null
@@ -327,6 +329,7 @@ export type Database = {
         Update: {
           action?: string
           actor_profile_id?: string | null
+          actor_role_at_action?: string | null
           actor_user_id?: string
           after?: Json | null
           before?: Json | null
@@ -2539,6 +2542,18 @@ export type Database = {
           _entity_id?: string
           _entity_type: string
           _family_context?: Json
+          _metadata?: Json
+        }
+        Returns: string
+      }
+      log_audit_event_system: {
+        Args: {
+          _action: string
+          _actor_profile_id: string
+          _actor_user_id: string
+          _child_id?: string
+          _entity_id?: string
+          _entity_type: string
           _metadata?: Json
         }
         Returns: string

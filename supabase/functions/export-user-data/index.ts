@@ -189,13 +189,13 @@ Deno.serve(async (req) => {
       },
     };
 
-    // Log the export action
-    await supabase.from("audit_logs").insert({
-      actor_user_id: user.id,
-      actor_profile_id: profile.id,
-      action: "DATA_EXPORT",
-      entity_type: "user_data",
-      metadata: { export_type: "gdpr_full_export" },
+    // Log the export action via RPC (bypasses INSERT policy, captures role)
+    await supabase.rpc("log_audit_event_system", {
+      _actor_user_id: user.id,
+      _actor_profile_id: profile.id,
+      _action: "DATA_EXPORT",
+      _entity_type: "user_data",
+      _metadata: { export_type: "gdpr_full_export" },
     });
 
     return new Response(JSON.stringify(exportData, null, 2), {
