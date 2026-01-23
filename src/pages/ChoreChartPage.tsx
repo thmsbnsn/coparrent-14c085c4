@@ -1,399 +1,322 @@
-import { useState } from "react";
+/**
+ * ChoreChartPage - Multi-household chore chart management
+ * 
+ * Features:
+ * - Database-backed with RLS
+ * - Household separation (parent_a / parent_b)
+ * - Age-based UX for children
+ * - PDF/Print export with CoParrent Creations branding
+ */
+
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Plus,
-  Trash2,
-  Download,
-  Printer,
-  CheckSquare,
-  Star,
-  GripVertical,
-} from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowLeft, Download, Printer, Plus, Home, Users } from "lucide-react";
+import { startOfWeek, addWeeks, subWeeks, format } from "date-fns";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PremiumFeatureGate } from "@/components/premium/PremiumFeatureGate";
 import { RoleGate } from "@/components/gates/RoleGate";
 import { useToast } from "@/hooks/use-toast";
 import { useChildren } from "@/hooks/useChildren";
-import jsPDF from "jspdf";
-import { format } from "date-fns";
-
-interface Chore {
-  id: string;
-  name: string;
-  days: boolean[];
-}
-
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const BRAND_COLOR: [number, number, number] = [33, 176, 254];
+import { useChoreCharts, getAgeGroup, type Household } from "@/hooks/useChoreCharts";
+import { HouseholdToggle } from "@/components/chores/HouseholdToggle";
+import { ChoreListEditor } from "@/components/chores/ChoreListEditor";
+import { ChoreChartView } from "@/components/chores/ChoreChartView";
+import { generateChoreChartPDF, openChoreChartPrint } from "@/components/chores/ChoreChartExport";
 
 const ChoreChartContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { children } = useChildren();
   
-  const [selectedChild, setSelectedChild] = useState<string>("");
-  const [chartTitle, setChartTitle] = useState("Weekly Chore Chart");
-  const [chores, setChores] = useState<Chore[]>([
-    { id: "1", name: "Make bed", days: [true, true, true, true, true, true, true] },
-    { id: "2", name: "Brush teeth", days: [true, true, true, true, true, true, true] },
-    { id: "3", name: "Pick up toys", days: [true, true, true, true, true, false, false] },
-  ]);
-  const [newChore, setNewChore] = useState("");
+  const {
+    choreLists,
+    choreListsLoading,
+    myActiveChoreList,
+    otherParentChoreList,
+    createChoreList,
+    updateChoreList,
+    isCreatingList,
+    useChoresForList,
+    addChore,
+    deleteChore,
+    useCompletions,
+    toggleCompletion,
+    selectedHousehold,
+    setSelectedHousehold,
+    isParent,
+    profileId,
+  } = useChoreCharts();
 
-  const addChore = () => {
-    if (!newChore.trim()) return;
-    setChores([
-      ...chores,
-      { id: Date.now().toString(), name: newChore.trim(), days: [true, true, true, true, true, true, true] },
-    ]);
-    setNewChore("");
-  };
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-  const removeChore = (id: string) => {
-    setChores(chores.filter((c) => c.id !== id));
-  };
+  // Get chores for active lists
+  const { data: myChores = [] } = useChoresForList(myActiveChoreList?.id || null);
+  const { data: otherChores = [] } = useChoresForList(otherParentChoreList?.id || null);
 
-  const toggleDay = (choreId: string, dayIndex: number) => {
-    setChores(
-      chores.map((c) =>
-        c.id === choreId
-          ? { ...c, days: c.days.map((d, i) => (i === dayIndex ? !d : d)) }
-          : c
-      )
-    );
-  };
+  // Get completions for the week
+  const weekEnd = addWeeks(weekStart, 1);
+  const { data: myCompletions = [] } = useCompletions(myActiveChoreList?.id || null, weekStart, weekEnd);
+  const { data: otherCompletions = [] } = useCompletions(otherParentChoreList?.id || null, weekStart, weekEnd);
 
-  const childName = children.find((c) => c.id === selectedChild)?.name || "Child";
-
-  const generatePdf = () => {
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: "letter",
-    });
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 15;
-
-    // Header
-    doc.setFillColor(...BRAND_COLOR);
-    doc.rect(0, 0, pageWidth, 18, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("CoParrent Creations", pageWidth / 2, 12, { align: "center" });
-
-    // Title
-    let y = 28;
-    doc.setTextColor(30, 30, 30);
-    doc.setFontSize(16);
-    doc.text(chartTitle, pageWidth / 2, y, { align: "center" });
-    y += 6;
-
-    if (selectedChild) {
-      doc.setFontSize(11);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`For: ${childName}`, pageWidth / 2, y, { align: "center" });
-      y += 6;
+  // Auto-select first child if none selected
+  useMemo(() => {
+    if (!selectedChildId && children.length > 0) {
+      setSelectedChildId(children[0].id);
     }
-    y += 8;
+  }, [children, selectedChildId]);
 
-    // Table
-    const colWidth = (pageWidth - margin * 2 - 60) / 7;
-    const rowHeight = 10;
-    const labelWidth = 60;
+  const selectedChild = children.find((c) => c.id === selectedChildId);
+  const ageGroup = getAgeGroup(selectedChild?.date_of_birth || null);
 
-    // Header row
-    doc.setFillColor(240, 248, 255);
-    doc.rect(margin, y, pageWidth - margin * 2, rowHeight, "F");
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(30, 30, 30);
-    doc.text("Chore", margin + 5, y + 7);
+  // Determine which list to show based on filter
+  const showMyList = selectedHousehold === "all" || selectedHousehold === (myActiveChoreList?.household || "parent_a");
+  const showOtherList = selectedHousehold === "all" || selectedHousehold === (otherParentChoreList?.household || "parent_b");
 
-    DAYS.forEach((day, i) => {
-      const x = margin + labelWidth + colWidth * i + colWidth / 2;
-      doc.text(day, x, y + 7, { align: "center" });
-    });
-    y += rowHeight;
-
-    // Chore rows
-    doc.setFont("helvetica", "normal");
-    chores.forEach((chore, rowIndex) => {
-      if (rowIndex % 2 === 0) {
-        doc.setFillColor(250, 250, 250);
-        doc.rect(margin, y, pageWidth - margin * 2, rowHeight, "F");
-      }
-
-      doc.setTextColor(30, 30, 30);
-      doc.text(chore.name.slice(0, 25), margin + 5, y + 7);
-
-      chore.days.forEach((active, dayIndex) => {
-        const x = margin + labelWidth + colWidth * dayIndex + colWidth / 2;
-        if (active) {
-          // Draw checkbox
-          doc.setDrawColor(180, 180, 180);
-          doc.rect(x - 3, y + 2, 6, 6);
-        }
+  const handleCreateList = async (data: any) => {
+    try {
+      const newList = await createChoreList({
+        household: "parent_a", // Will be determined by system
+        household_label: data.householdLabel,
+        color_scheme: data.colorScheme,
+        allow_child_completion: data.allowChildCompletion,
+        require_parent_confirm: data.requireParentConfirm,
       });
 
-      y += rowHeight;
+      // Add chores
+      for (const chore of data.chores) {
+        await addChore({
+          chore_list_id: newList.id,
+          title: chore.title,
+          description: chore.description,
+          completion_style: chore.completion_style,
+          days_active: chore.days_active,
+          assigned_child_ids: chore.assigned_child_ids,
+        });
+      }
+
+      setIsEditing(false);
+      toast({ title: "Chore chart created!" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleToggleCompletion = async (choreId: string, childId: string, date: Date, isComplete: boolean) => {
+    try {
+      await toggleCompletion({
+        choreId,
+        childId,
+        date,
+        isComplete,
+        role: isParent ? "parent" : "child",
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleExportPDF = () => {
+    const list = myActiveChoreList || otherParentChoreList;
+    const chores = myActiveChoreList ? myChores : otherChores;
+    if (!list) return;
+
+    generateChoreChartPDF({
+      choreList: list,
+      chores,
+      children,
+      selectedChildId,
+      weekStart,
     });
-
-    // Footer
-    doc.setFontSize(8);
-    doc.setTextColor(128, 128, 128);
-    doc.text(`Generated: ${format(new Date(), "MMMM d, yyyy")}`, margin, pageHeight - 10);
-    doc.text("coparrent.lovable.app", pageWidth - margin, pageHeight - 10, { align: "right" });
-
-    doc.save(`chore-chart-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     toast({ title: "Downloaded!", description: "Chore chart PDF saved." });
   };
 
-  const openPrint = () => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
+  const handlePrint = () => {
+    const list = myActiveChoreList || otherParentChoreList;
+    const chores = myActiveChoreList ? myChores : otherChores;
+    if (!list) return;
+
+    const success = openChoreChartPrint({
+      choreList: list,
+      chores,
+      children,
+      selectedChildId,
+      weekStart,
+    });
+    if (!success) {
       toast({ title: "Popup blocked", description: "Please allow popups to print.", variant: "destructive" });
-      return;
     }
-
-    const tableRows = chores
-      .map(
-        (chore) => `
-        <tr>
-          <td class="chore-name">${chore.name}</td>
-          ${chore.days.map((active) => `<td class="day-cell">${active ? '<span class="checkbox">☐</span>' : ''}</td>`).join("")}
-        </tr>
-      `
-      )
-      .join("");
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${chartTitle}</title>
-        <style>
-          @page { size: letter landscape; margin: 0.75in; }
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
-          .header { background: #21B0FE; color: white; text-align: center; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 4px; margin-bottom: 20px; }
-          .title { font-size: 22px; font-weight: bold; text-align: center; margin-bottom: 5px; }
-          .subtitle { text-align: center; color: #666; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-          th { background: #f0f8ff; font-weight: 600; }
-          .chore-name { text-align: left; font-weight: 500; }
-          .checkbox { font-size: 18px; }
-          .footer { text-align: center; color: #888; font-size: 10px; margin-top: 30px; }
-          @media print { .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-        </style>
-      </head>
-      <body>
-        <div class="header">CoParrent Creations</div>
-        <div class="title">${chartTitle}</div>
-        ${selectedChild ? `<div class="subtitle">For: ${childName}</div>` : ''}
-        <table>
-          <thead>
-            <tr>
-              <th>Chore</th>
-              ${DAYS.map((d) => `<th>${d}</th>`).join("")}
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRows}
-          </tbody>
-        </table>
-        <div class="footer">coparrent.lovable.app • ${format(new Date(), "MMMM d, yyyy")}</div>
-        <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); };</script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
   };
+
+  // Show editor if editing or no active list exists
+  if (isEditing || (!myActiveChoreList && isParent)) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-8rem)]">
+        <div className="flex items-center gap-3 p-4 border-b">
+          <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-xl font-semibold">
+            {myActiveChoreList ? "Edit Chore Chart" : "Create Chore Chart"}
+          </h1>
+        </div>
+        <div className="flex-1 p-4 overflow-auto">
+          <div className="max-w-4xl mx-auto">
+            <ChoreListEditor
+              choreList={myActiveChoreList}
+              existingChores={myChores}
+              children={children}
+              onSave={handleCreateList}
+              onCancel={() => setIsEditing(false)}
+              isSaving={isCreatingList}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/dashboard/kids-hub")}
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/kids-hub")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <CheckSquare className="h-5 w-5 text-primary" />
+              <Home className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold">Chore Chart</h1>
-              <p className="text-xs text-muted-foreground">Create printable chore charts</p>
+              <h1 className="text-xl font-semibold">Chore Charts</h1>
+              <p className="text-xs text-muted-foreground">Track chores across households</p>
             </div>
           </div>
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={generatePdf} className="gap-2">
+          <Button variant="outline" onClick={handleExportPDF} className="gap-2" disabled={!myActiveChoreList && !otherParentChoreList}>
             <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export PDF</span>
+            <span className="hidden sm:inline">PDF</span>
           </Button>
-          <Button variant="outline" onClick={openPrint} className="gap-2">
+          <Button variant="outline" onClick={handlePrint} className="gap-2" disabled={!myActiveChoreList && !otherParentChoreList}>
             <Printer className="h-4 w-4" />
             <span className="hidden sm:inline">Print</span>
           </Button>
+          {isParent && (
+            <Button onClick={() => setIsEditing(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">{myActiveChoreList ? "Edit" : "Create"}</span>
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="p-4 border-b bg-muted/30">
+        <div className="max-w-4xl mx-auto flex flex-wrap gap-4 items-center">
+          {/* Child selector */}
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedChildId || ""} onValueChange={setSelectedChildId}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Select child" />
+              </SelectTrigger>
+              <SelectContent>
+                {children.map((child) => (
+                  <SelectItem key={child.id} value={child.id}>
+                    {child.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Household toggle */}
+          {(myActiveChoreList || otherParentChoreList) && (
+            <HouseholdToggle
+              value={selectedHousehold}
+              onChange={setSelectedHousehold}
+              parentALabel={myActiveChoreList?.household_label || "My House"}
+              parentBLabel={otherParentChoreList?.household_label || "Other House"}
+              showAllOption
+              className="flex-1 max-w-md"
+            />
+          )}
+
+          {/* Week navigation */}
+          <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
+              ←
+            </Button>
+            <span className="text-sm font-medium min-w-32 text-center">
+              {format(weekStart, "MMM d")} - {format(addWeeks(weekStart, 1), "MMM d")}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
+              →
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 p-4 overflow-auto">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Chart Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">Chart Title</label>
-                  <Input
-                    value={chartTitle}
-                    onChange={(e) => setChartTitle(e.target.value)}
-                    placeholder="Weekly Chore Chart"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">Child (optional)</label>
-                  <Select 
-                    value={selectedChild || "none"} 
-                    onValueChange={(val) => setSelectedChild(val === "none" ? "" : val)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select child..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No child selected</SelectItem>
-                      {children.map((child) => (
-                        <SelectItem key={child.id} value={child.id}>
-                          {child.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Chores List */}
-          <Card>
-            <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="text-base">Chores</CardTitle>
-              <Badge variant="secondary">{chores.length} chores</Badge>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Add chore */}
-              <div className="flex gap-2">
-                <Input
-                  value={newChore}
-                  onChange={(e) => setNewChore(e.target.value)}
-                  placeholder="Add a chore..."
-                  onKeyDown={(e) => e.key === "Enter" && addChore()}
-                />
-                <Button onClick={addChore} disabled={!newChore.trim()}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Chores table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-2 font-medium">Chore</th>
-                      {DAYS.map((day) => (
-                        <th key={day} className="text-center py-2 px-1 font-medium w-12">
-                          {day}
-                        </th>
-                      ))}
-                      <th className="w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {chores.map((chore) => (
-                      <motion.tr
-                        key={chore.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="border-b hover:bg-muted/50"
-                      >
-                        <td className="py-2 px-2">{chore.name}</td>
-                        {chore.days.map((active, i) => (
-                          <td key={i} className="text-center py-2 px-1">
-                            <Checkbox
-                              checked={active}
-                              onCheckedChange={() => toggleDay(chore.id, i)}
-                            />
-                          </td>
-                        ))}
-                        <td className="py-2 px-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                            onClick={() => removeChore(chore.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {chores.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No chores added yet. Add some above!
-                  </div>
+          {/* No charts message */}
+          {!myActiveChoreList && !otherParentChoreList && (
+            <Card className="border-dashed">
+              <CardContent className="py-12 text-center">
+                <Home className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="font-semibold text-lg mb-2">No chore charts yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create a chore chart for your household to help kids build responsibility.
+                </p>
+                {isParent && (
+                  <Button onClick={() => setIsEditing(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Chore Chart
+                  </Button>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Preview info */}
-          <Card className="bg-muted/50 border-dashed">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <Star className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-medium">Ready to print!</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Click Export PDF or Print to create a beautiful chore chart with the 
-                    "CoParrent Creations" header. Print it out and let your kids check off 
-                    their completed chores each day!
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* My chore chart */}
+          {myActiveChoreList && showMyList && (
+            <ChoreChartView
+              choreList={myActiveChoreList}
+              chores={myChores}
+              completions={myCompletions}
+              children={children}
+              selectedChildId={selectedChildId}
+              ageGroup={ageGroup}
+              weekStart={weekStart}
+              isOwner={true}
+              onToggleCompletion={handleToggleCompletion}
+              onEdit={() => setIsEditing(true)}
+            />
+          )}
+
+          {/* Other parent's chore chart (view only) */}
+          {otherParentChoreList && showOtherList && (
+            <ChoreChartView
+              choreList={otherParentChoreList}
+              chores={otherChores}
+              completions={otherCompletions}
+              children={children}
+              selectedChildId={selectedChildId}
+              ageGroup={ageGroup}
+              weekStart={weekStart}
+              isOwner={false}
+              onToggleCompletion={handleToggleCompletion}
+              readOnly={otherParentChoreList.created_by_parent_id !== profileId}
+            />
+          )}
         </div>
       </div>
     </div>

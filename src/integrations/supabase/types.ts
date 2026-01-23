@@ -854,6 +854,281 @@ export type Database = {
           },
         ]
       }
+      chore_assignments: {
+        Row: {
+          child_id: string | null
+          chore_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          child_id?: string | null
+          chore_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          child_id?: string | null
+          chore_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_assignments_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_assignments_chore_id_fkey"
+            columns: ["chore_id"]
+            isOneToOne: false
+            referencedRelation: "chores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chore_completions: {
+        Row: {
+          child_id: string
+          chore_id: string
+          completed_by_profile_id: string
+          completed_by_role: string
+          completion_date: string
+          created_at: string
+          id: string
+          parent_confirmed: boolean | null
+        }
+        Insert: {
+          child_id: string
+          chore_id: string
+          completed_by_profile_id: string
+          completed_by_role: string
+          completion_date: string
+          created_at?: string
+          id?: string
+          parent_confirmed?: boolean | null
+        }
+        Update: {
+          child_id?: string
+          chore_id?: string
+          completed_by_profile_id?: string
+          completed_by_role?: string
+          completion_date?: string
+          created_at?: string
+          id?: string
+          parent_confirmed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_completions_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_completions_chore_id_fkey"
+            columns: ["chore_id"]
+            isOneToOne: false
+            referencedRelation: "chores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_completions_completed_by_profile_id_fkey"
+            columns: ["completed_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chore_lists: {
+        Row: {
+          active: boolean
+          allow_child_completion: boolean
+          color_scheme: string | null
+          created_at: string
+          created_by_parent_id: string
+          family_id: string
+          household: string
+          household_label: string | null
+          id: string
+          require_parent_confirm: boolean
+          rewards_enabled: boolean
+          theme_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          allow_child_completion?: boolean
+          color_scheme?: string | null
+          created_at?: string
+          created_by_parent_id: string
+          family_id: string
+          household: string
+          household_label?: string | null
+          id?: string
+          require_parent_confirm?: boolean
+          rewards_enabled?: boolean
+          theme_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          allow_child_completion?: boolean
+          color_scheme?: string | null
+          created_at?: string
+          created_by_parent_id?: string
+          family_id?: string
+          household?: string
+          household_label?: string | null
+          id?: string
+          require_parent_confirm?: boolean
+          rewards_enabled?: boolean
+          theme_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_lists_created_by_parent_id_fkey"
+            columns: ["created_by_parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_lists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chore_rewards: {
+        Row: {
+          child_id: string
+          created_at: string
+          created_by: string
+          criteria: string | null
+          description: string
+          family_id: string
+          fulfilled: boolean
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          household: string
+          id: string
+          reward_type: string
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          created_by: string
+          criteria?: string | null
+          description: string
+          family_id: string
+          fulfilled?: boolean
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          household: string
+          id?: string
+          reward_type: string
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          created_by?: string
+          criteria?: string | null
+          description?: string
+          family_id?: string
+          fulfilled?: boolean
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          household?: string
+          id?: string
+          reward_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_rewards_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_rewards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_rewards_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_rewards_fulfilled_by_fkey"
+            columns: ["fulfilled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chores: {
+        Row: {
+          chore_list_id: string
+          completion_style: string
+          created_at: string
+          days_active: boolean[]
+          description: string | null
+          id: string
+          order_index: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          chore_list_id: string
+          completion_style?: string
+          created_at?: string
+          days_active?: boolean[]
+          description?: string | null
+          id?: string
+          order_index?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          chore_list_id?: string
+          completion_style?: string
+          created_at?: string
+          days_active?: boolean[]
+          description?: string | null
+          id?: string
+          order_index?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chores_chore_list_id_fkey"
+            columns: ["chore_list_id"]
+            isOneToOne: false
+            referencedRelation: "chore_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coloring_page_details: {
         Row: {
           created_at: string
@@ -2922,6 +3197,7 @@ export type Database = {
           status: string
         }[]
       }
+      get_my_profile_id: { Args: never; Returns: string }
       get_plan_limits: { Args: { p_profile_id: string }; Returns: Json }
       get_plan_tier: { Args: { p_profile_id: string }; Returns: string }
       get_plan_usage: { Args: { p_profile_id: string }; Returns: Json }
@@ -2948,18 +3224,19 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_child_account: { Args: { _user_id: string }; Returns: boolean }
-      is_family_member: {
-        Args: { _primary_parent_id: string; _user_id: string }
-        Returns: boolean
-      }
+      is_family_member:
+        | {
+            Args: { _primary_parent_id: string; _user_id: string }
+            Returns: boolean
+          }
+        | { Args: { p_family_id: string }; Returns: boolean }
       is_family_member_v2: {
         Args: { p_family_id: string; p_user_id: string }
         Returns: boolean
       }
-      is_parent_in_family: {
-        Args: { p_family_id: string; p_user_id: string }
-        Returns: boolean
-      }
+      is_parent_in_family:
+        | { Args: { p_family_id: string }; Returns: boolean }
+        | { Args: { p_family_id: string; p_user_id: string }; Returns: boolean }
       is_parent_or_guardian: { Args: { p_user_id?: string }; Returns: boolean }
       log_audit_event: {
         Args: {
