@@ -1355,6 +1355,7 @@ export type Database = {
           invited_by: string | null
           primary_parent_id: string
           profile_id: string
+          relationship_label: string | null
           role: Database["public"]["Enums"]["member_role"]
           status: string
           updated_at: string
@@ -1369,6 +1370,7 @@ export type Database = {
           invited_by?: string | null
           primary_parent_id: string
           profile_id: string
+          relationship_label?: string | null
           role?: Database["public"]["Enums"]["member_role"]
           status?: string
           updated_at?: string
@@ -1383,6 +1385,7 @@ export type Database = {
           invited_by?: string | null
           primary_parent_id?: string
           profile_id?: string
+          relationship_label?: string | null
           role?: Database["public"]["Enums"]["member_role"]
           status?: string
           updated_at?: string
@@ -2758,6 +2761,14 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      can_read_in_family: {
+        Args: { p_family_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      can_write_in_family: {
+        Args: { p_family_id: string; p_user_id: string }
+        Returns: boolean
+      }
       count_third_party_members: {
         Args: { _primary_parent_id: string }
         Returns: number
@@ -2793,6 +2804,10 @@ export type Database = {
       get_plan_limits: { Args: { p_profile_id: string }; Returns: Json }
       get_plan_tier: { Args: { p_profile_id: string }; Returns: string }
       get_plan_usage: { Args: { p_profile_id: string }; Returns: Json }
+      get_role_in_family: {
+        Args: { p_family_id: string; p_user_id: string }
+        Returns: Database["public"]["Enums"]["member_role"]
+      }
       get_user_co_parent_id: { Args: { user_uuid: string }; Returns: string }
       get_user_families: { Args: { p_user_id: string }; Returns: string[] }
       get_user_family_primary_parent: {
@@ -2817,6 +2832,10 @@ export type Database = {
         Returns: boolean
       }
       is_family_member_v2: {
+        Args: { p_family_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_parent_in_family: {
         Args: { p_family_id: string; p_user_id: string }
         Returns: boolean
       }
@@ -2874,7 +2893,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       creation_type: "activity" | "coloring_page"
-      member_role: "parent" | "guardian" | "third_party"
+      member_role: "parent" | "guardian" | "third_party" | "child"
       thread_type: "family_channel" | "direct_message" | "group_chat"
     }
     CompositeTypes: {
@@ -3005,7 +3024,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       creation_type: ["activity", "coloring_page"],
-      member_role: ["parent", "guardian", "third_party"],
+      member_role: ["parent", "guardian", "third_party", "child"],
       thread_type: ["family_channel", "direct_message", "group_chat"],
     },
   },
