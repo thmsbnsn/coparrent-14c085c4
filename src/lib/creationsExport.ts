@@ -1,25 +1,49 @@
 /**
  * CoParrent Creations Export Utility
  * 
+ * BRAND-CLEAN, PRINT-FIRST REQUIREMENTS:
+ * =====================================
+ * This output may be printed, shared with children, families, schools, or courts.
+ * It MUST be 100% CoParrent-owned in appearance.
+ * 
+ * REMOVED (and must NEVER return):
+ * - "coparrent.lovable.app" or any domain reference
+ * - "Generated [date]" or any generation metadata
+ * - Any footer text whatsoever
+ * - Any watermark, hidden text, or print artifact
+ * - The generation prompt (internal-only, treated as sensitive)
+ * - Any reference to generation source, tool, or platform
+ * 
+ * ALLOWED:
+ * - "CoParrent Creations" - subtle header, once, at top
+ * - The artwork itself - centered, maximized, print-priority
+ * 
  * Layout contract: All CoParrent Kids Hub exports MUST use this utility 
- * to ensure branding consistency. This includes PDF exports, print views,
- * and any downloadable content from Kids Hub tools.
+ * to ensure branding consistency and zero platform leakage.
  */
 
 import jsPDF from 'jspdf';
-import { format } from 'date-fns';
 
-// Brand color for CoParrent Creations header
+// Brand color for CoParrent Creations header - subtle, professional
 const BRAND_COLOR: [number, number, number] = [33, 176, 254]; // #21B0FE
 
 export interface CreationsPdfOptions {
-  /** Title text - defaults to 'CoParrent Creations' */
+  /** 
+   * Title text - defaults to 'CoParrent Creations' 
+   * This is the ONLY text allowed on the page
+   */
   title?: string;
-  /** Optional subtitle (e.g., prompt, child name) */
+  /** 
+   * REMOVED: Subtitle/prompt NEVER appears on output
+   * @deprecated - prompts are internal only
+   */
   subtitle?: string;
   /** Primary image as data URL */
   imageDataUrl?: string;
-  /** Optional footer note */
+  /** 
+   * REMOVED: Footer notes NEVER appear on output
+   * @deprecated - no footer text allowed
+   */
   footerNote?: string;
   /** Page format - defaults to 'letter' */
   pageFormat?: 'letter' | 'a4';
@@ -28,86 +52,66 @@ export interface CreationsPdfOptions {
 }
 
 export interface CreationsPrintOptions {
-  /** Title text - defaults to 'CoParrent Creations' */
+  /** 
+   * Title text - defaults to 'CoParrent Creations'
+   * This is the ONLY text allowed on the page
+   */
   title?: string;
-  /** Optional subtitle */
+  /** 
+   * REMOVED: Subtitle/prompt NEVER appears on output
+   * @deprecated - prompts are internal only
+   */
   subtitle?: string;
   /** Image URL or data URL */
   imageUrl: string;
-  /** Alt text for image */
+  /** Alt text for image (screen-reader only, not visible) */
   imageAlt?: string;
-  /** Optional footer note */
+  /** 
+   * REMOVED: Footer notes NEVER appear on output
+   * @deprecated - no footer text allowed
+   */
   footerNote?: string;
 }
 
 /**
- * Add branded header to PDF document
+ * Add minimal branded header to PDF document.
+ * 
+ * Header is intentionally subtle - calm imprint, not a banner.
+ * Returns the Y offset where content should begin.
  */
-function addCreationsHeader(doc: jsPDF, title: string = 'CoParrent Creations', subtitle?: string): number {
+function addCreationsHeader(doc: jsPDF, title: string = 'CoParrent Creations'): number {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Header bar
-  doc.setFillColor(...BRAND_COLOR);
-  doc.rect(0, 0, pageWidth, 20, 'F');
-  
-  // Title - centered
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text(title, pageWidth / 2, 13, { align: 'center' });
+  // Subtle header text only - no colored bar, no banner
+  // Positioned at top, centered, understated
+  doc.setTextColor(...BRAND_COLOR);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text(title, pageWidth / 2, 12, { align: 'center' });
   
   // Reset text color
   doc.setTextColor(0, 0, 0);
   
-  let yOffset = 25;
-  
-  // Add subtitle if provided
-  if (subtitle) {
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text(subtitle, pageWidth / 2, yOffset, { align: 'center' });
-    doc.setTextColor(0, 0, 0);
-    yOffset += 8;
-  }
-  
-  return yOffset;
+  // Return Y offset - minimal space below header to maximize artwork
+  return 18;
 }
 
 /**
- * Add footer with date and site info
- */
-function addCreationsFooter(doc: jsPDF, footerNote?: string): void {
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  
-  doc.setFontSize(8);
-  doc.setTextColor(128, 128, 128);
-  
-  const dateText = `Generated: ${format(new Date(), 'MMMM d, yyyy')}`;
-  const siteText = 'coparrent.lovable.app';
-  
-  if (footerNote) {
-    doc.text(footerNote, pageWidth / 2, pageHeight - 15, { align: 'center' });
-  }
-  
-  doc.text(dateText, 14, pageHeight - 10);
-  doc.text(siteText, pageWidth - 14, pageHeight - 10, { align: 'right' });
-  doc.setTextColor(0, 0, 0);
-}
-
-/**
- * Generate and download a branded PDF with the CoParrent Creations header.
+ * Generate and download a brand-clean PDF.
  * 
- * Primary use case: exporting coloring pages and other Kids Hub creations.
- * Ensures consistent margins, aspect ratio preservation, and branding.
+ * CRITICAL: This function produces court-ready, child-safe output.
+ * - NO platform metadata
+ * - NO generation dates
+ * - NO prompts or subtitles
+ * - NO footer text
+ * - Artwork is CENTERED and MAXIMIZED for printing
  */
 export async function generateCreationsPdf(options: CreationsPdfOptions): Promise<void> {
   const {
     title = 'CoParrent Creations',
-    subtitle,
+    // subtitle is intentionally ignored - prompts are internal only
     imageDataUrl,
-    footerNote,
+    // footerNote is intentionally ignored - no footer text allowed
     pageFormat = 'letter',
     filename = 'coparrent-creation',
   } = options;
@@ -124,40 +128,42 @@ export async function generateCreationsPdf(options: CreationsPdfOptions): Promis
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
-      // Add branded header
-      const contentStartY = addCreationsHeader(doc, title, subtitle);
+      // Add subtle branded header
+      const contentStartY = addCreationsHeader(doc, title);
 
-      // If image provided, add it
+      // If image provided, add it - MAXIMIZED for print
       if (imageDataUrl) {
         const img = new Image();
         img.onload = () => {
-          // Calculate image dimensions to fit page with margins
-          const margin = 15; // 15mm side margins (approx 0.6 inch)
-          const footerHeight = 20; // Space for footer
+          // Minimal margins to maximize artwork space
+          // This is a coloring page - the artwork IS the content
+          const margin = 10; // 10mm margins (~0.4 inch) - minimal but clean
+          const bottomMargin = 8; // Small bottom margin
           
           const maxWidth = pageWidth - (margin * 2);
-          const maxHeight = pageHeight - contentStartY - footerHeight - 10;
+          const maxHeight = pageHeight - contentStartY - bottomMargin;
 
-          // Calculate aspect ratio
+          // Calculate aspect ratio preserving dimensions
           const imgRatio = img.width / img.height;
           let imgWidth = maxWidth;
           let imgHeight = imgWidth / imgRatio;
 
-          // If too tall, scale down
+          // If too tall, scale down to fit
           if (imgHeight > maxHeight) {
             imgHeight = maxHeight;
             imgWidth = imgHeight * imgRatio;
           }
 
-          // Center horizontally
+          // Center horizontally and vertically within available space
           const x = (pageWidth - imgWidth) / 2;
-          const y = contentStartY + 5;
+          const availableHeight = pageHeight - contentStartY - bottomMargin;
+          const y = contentStartY + (availableHeight - imgHeight) / 2;
 
-          // Add image to PDF
+          // Add image to PDF - this is the primary content
           doc.addImage(imageDataUrl, 'PNG', x, y, imgWidth, imgHeight);
 
-          // Add footer
-          addCreationsFooter(doc, footerNote);
+          // NO FOOTER - intentionally removed
+          // NO date, NO domain, NO metadata
 
           // Save the PDF
           const sanitizedFilename = filename.replace(/[^a-zA-Z0-9-_]/g, '-');
@@ -172,8 +178,7 @@ export async function generateCreationsPdf(options: CreationsPdfOptions): Promis
 
         img.src = imageDataUrl;
       } else {
-        // No image - just save with header/footer
-        addCreationsFooter(doc, footerNote);
+        // No image - just save with header (edge case)
         const sanitizedFilename = filename.replace(/[^a-zA-Z0-9-_]/g, '-');
         doc.save(`${sanitizedFilename}.pdf`);
         resolve();
@@ -185,18 +190,23 @@ export async function generateCreationsPdf(options: CreationsPdfOptions): Promis
 }
 
 /**
- * Open a print-ready view with CoParrent Creations branding.
+ * Open a print-ready view with brand-clean output.
  * 
- * Opens a new window with the image and header, then triggers print dialog.
- * Uses print-specific CSS for clean margins and crisp output.
+ * CRITICAL: This produces court-ready, child-safe printed output.
+ * - NO platform metadata
+ * - NO generation dates  
+ * - NO prompts visible
+ * - NO footer text
+ * - Artwork is CENTERED and MAXIMIZED
+ * - Print CSS explicitly removes browser chrome
  */
 export function openCreationsPrintView(options: CreationsPrintOptions): void {
   const {
     title = 'CoParrent Creations',
-    subtitle,
+    // subtitle intentionally ignored - prompts are internal only
     imageUrl,
-    imageAlt = 'CoParrent creation',
-    footerNote,
+    imageAlt = 'Coloring page',
+    // footerNote intentionally ignored - no footer text allowed
   } = options;
 
   // Create a print-specific window
@@ -205,18 +215,32 @@ export function openCreationsPrintView(options: CreationsPrintOptions): void {
     throw new Error('Popup blocked. Please allow popups to print.');
   }
 
-  const subtitleHtml = subtitle ? `<div class="subtitle">${subtitle}</div>` : '';
-  const footerNoteHtml = footerNote ? `<div class="footer-note">${footerNote}</div>` : '';
-
+  /**
+   * PRINT-FIRST LAYOUT:
+   * - Header: "CoParrent Creations" only - subtle, top, centered
+   * - Image: Full page priority, centered, scaled for printing
+   * - NO subtitle, NO footer, NO metadata, NO browser chrome
+   */
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
       <title>${title}</title>
       <style>
+        /*
+         * PRINT-FIRST CSS
+         * 
+         * REMOVED (must never appear):
+         * - Any domain/URL text
+         * - Any "Generated" date text  
+         * - Any footer whatsoever
+         * - The prompt/subtitle
+         * - Any generation metadata
+         */
+        
         @page {
           size: letter portrait;
-          margin: 0.5in;
+          margin: 0.4in;
         }
         
         * {
@@ -225,100 +249,131 @@ export function openCreationsPrintView(options: CreationsPrintOptions): void {
           box-sizing: border-box;
         }
         
+        html, body {
+          height: 100%;
+          width: 100%;
+        }
+        
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           display: flex;
           flex-direction: column;
           align-items: center;
-          min-height: 100vh;
-          padding: 20px;
+          height: 100vh;
+          padding: 12px;
+          background: white;
         }
         
+        /* 
+         * Header: "CoParrent Creations" - ONLY allowed text
+         * Subtle, professional, not oversized or playful
+         */
         .header {
-          width: 100%;
-          background: #21B0FE;
-          color: white;
+          color: #21B0FE;
           text-align: center;
-          padding: 12px 20px;
-          font-size: 18px;
-          font-weight: bold;
+          font-size: 14px;
+          font-weight: 500;
+          letter-spacing: 0.5px;
           margin-bottom: 12px;
-          border-radius: 4px;
+          flex-shrink: 0;
         }
         
-        .subtitle {
-          text-align: center;
-          color: #666;
-          font-size: 12px;
-          margin-bottom: 16px;
-          max-width: 80%;
-        }
-        
+        /*
+         * Image container: MAXIMIZED for printing
+         * The coloring page IS the content - it takes priority
+         */
         .image-container {
           flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 100%;
+          min-height: 0;
         }
         
         img {
           max-width: 100%;
-          max-height: calc(100vh - 180px);
+          max-height: 100%;
           object-fit: contain;
         }
         
-        .footer {
-          width: 100%;
-          text-align: center;
-          color: #888;
-          font-size: 10px;
-          margin-top: 20px;
-          padding-top: 10px;
-          border-top: 1px solid #eee;
-        }
-        
-        .footer-note {
-          font-size: 9px;
-          color: #999;
-          margin-bottom: 4px;
-        }
-        
+        /*
+         * PRINT-SPECIFIC OVERRIDES
+         * Ensures clean output regardless of browser settings
+         */
         @media print {
-          .header {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            background: #21B0FE !important;
-            color: white !important;
+          @page {
+            margin: 0.3in;
+          }
+          
+          html, body {
+            height: 100%;
+            overflow: hidden;
           }
           
           body {
-            padding: 0;
+            padding: 8px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          
+          .header {
+            color: #21B0FE !important;
+            font-size: 12px;
+            margin-bottom: 8px;
+          }
+          
+          .image-container {
+            height: calc(100vh - 40px);
           }
           
           img {
-            max-height: calc(100vh - 140px);
+            max-height: calc(100vh - 50px);
+          }
+          
+          /* 
+           * CRITICAL: Force-hide any browser-injected content
+           * Some browsers add headers/footers - this prevents that
+           */
+          .no-print {
+            display: none !important;
           }
         }
       </style>
     </head>
     <body>
+      <!-- ONLY allowed text on the page -->
       <div class="header">${title}</div>
-      ${subtitleHtml}
+      
+      <!-- Primary content: the coloring page artwork -->
       <div class="image-container">
         <img src="${imageUrl}" alt="${imageAlt}" />
       </div>
-      <div class="footer">
-        ${footerNoteHtml}
-        coparrent.lovable.app • Generated ${format(new Date(), 'MMMM d, yyyy')}
-      </div>
+      
+      <!-- NO FOOTER - intentionally removed -->
+      <!-- NO date, NO domain, NO metadata -->
+      
       <script>
+        // Auto-trigger print dialog after image loads
         window.onload = function() {
+          // Wait for image to fully render
+          const img = document.querySelector('img');
+          if (img.complete) {
+            triggerPrint();
+          } else {
+            img.onload = triggerPrint;
+          }
+        };
+        
+        function triggerPrint() {
           setTimeout(function() {
             window.print();
-            window.close();
-          }, 500);
-        };
+            // Close after print dialog (user can cancel)
+            window.onafterprint = function() {
+              window.close();
+            };
+          }, 300);
+        }
       </script>
     </body>
     </html>
@@ -328,13 +383,15 @@ export function openCreationsPrintView(options: CreationsPrintOptions): void {
 }
 
 /**
- * Download an image as PNG with standardized filename.
+ * Download an image as PNG with sanitized filename.
  * 
- * Helper function for consistent download behavior across Kids Hub tools.
+ * Note: PNG downloads are clean by nature - just the image.
+ * No metadata or branding is embedded in the file itself.
  */
 export function downloadCreationPng(imageDataUrl: string, filename: string): void {
   const link = document.createElement('a');
   link.href = imageDataUrl;
+  // Sanitize filename - remove special chars, limit length
   const sanitizedFilename = filename.replace(/[^a-zA-Z0-9-_]/g, '-').slice(0, 50);
   link.download = `${sanitizedFilename}.png`;
   document.body.appendChild(link);

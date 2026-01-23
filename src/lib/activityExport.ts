@@ -1,12 +1,26 @@
 /**
  * Activity Export Utility
  * 
+ * BRAND-CLEAN EXPORT REQUIREMENTS:
+ * ================================
+ * This output may be printed, shared with children, families, schools, or courts.
+ * It MUST be 100% CoParrent-owned in appearance.
+ * 
+ * REMOVED (and must NEVER return):
+ * - "coparrent.lovable.app" or any domain reference
+ * - "Generated [date]" or any generation metadata
+ * - Any footer text whatsoever
+ * - Any watermark, hidden text, or print artifact
+ * - Any reference to generation source, tool, or platform
+ * 
+ * ALLOWED:
+ * - "CoParrent Creations" - header, once
+ * - Activity content (title, steps, materials, etc.)
+ * 
  * Extends the CoParrent Creations export system for Activity Generator.
- * Uses the shared branding header and consistent PDF styling.
  */
 
 import jsPDF from 'jspdf';
-import { format } from 'date-fns';
 import type { GeneratedActivity } from '@/hooks/useActivityGenerator';
 
 // Brand color for CoParrent Creations header
@@ -16,7 +30,9 @@ const MUTED_TEXT: [number, number, number] = [100, 100, 100];
 const ACCENT_BG: [number, number, number] = [240, 248, 255]; // Light blue
 
 /**
- * Generate a professionally styled PDF for an activity
+ * Generate a professionally styled, brand-clean PDF for an activity
+ * 
+ * CRITICAL: No platform metadata, no dates, no domain references
  */
 export async function generateActivityPdf(activity: GeneratedActivity): Promise<void> {
   const doc = new jsPDF({
@@ -30,14 +46,13 @@ export async function generateActivityPdf(activity: GeneratedActivity): Promise<
   const margin = 15;
   let y = 0;
 
-  // ===== HEADER BAR =====
-  doc.setFillColor(...BRAND_COLOR);
-  doc.rect(0, 0, pageWidth, 20, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('CoParrent Creations', pageWidth / 2, 13, { align: 'center' });
-  y = 28;
+  // ===== HEADER: "CoParrent Creations" - subtle, professional =====
+  // Using subtle text instead of colored bar for cleaner look
+  doc.setTextColor(...BRAND_COLOR);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('CoParrent Creations', pageWidth / 2, 12, { align: 'center' });
+  y = 22;
 
   // ===== TITLE + AGE RANGE =====
   doc.setTextColor(...DARK_TEXT);
@@ -90,7 +105,7 @@ export async function generateActivityPdf(activity: GeneratedActivity): Promise<
     activity.steps.forEach((step, i) => {
       const lines = doc.splitTextToSize(`${i + 1}. ${step}`, pageWidth - margin * 2 - 10);
       lines.forEach((line: string) => {
-        if (y > pageHeight - 30) {
+        if (y > pageHeight - 20) {
           doc.addPage();
           y = 20;
         }
@@ -146,7 +161,7 @@ export async function generateActivityPdf(activity: GeneratedActivity): Promise<
     const safetyLines = doc.splitTextToSize(activity.safety_notes, pageWidth - margin * 2 - 20);
     const boxHeight = safetyLines.length * 5 + 12;
     
-    if (y + boxHeight > pageHeight - 30) {
+    if (y + boxHeight > pageHeight - 20) {
       doc.addPage();
       y = 20;
     }
@@ -165,11 +180,9 @@ export async function generateActivityPdf(activity: GeneratedActivity): Promise<
     doc.text(safetyLines, margin + 5, y);
   }
 
-  // ===== FOOTER =====
-  doc.setFontSize(8);
-  doc.setTextColor(128, 128, 128);
-  doc.text(`Generated: ${format(new Date(), 'MMMM d, yyyy')}`, margin, pageHeight - 10);
-  doc.text('coparrent.lovable.app', pageWidth - margin, pageHeight - 10, { align: 'right' });
+  // ===== NO FOOTER =====
+  // REMOVED: "Generated: [date]" - no generation metadata allowed
+  // REMOVED: "coparrent.lovable.app" - no domain references allowed
 
   // Save
   const filename = activity.title.replace(/[^a-zA-Z0-9-_]/g, '-').slice(0, 40);
@@ -177,7 +190,9 @@ export async function generateActivityPdf(activity: GeneratedActivity): Promise<
 }
 
 /**
- * Open a print-ready view for an activity
+ * Open a print-ready view for an activity - brand-clean output
+ * 
+ * CRITICAL: No platform metadata, no dates, no domain references
  */
 export function openActivityPrintView(activity: GeneratedActivity): void {
   const printWindow = window.open('', '_blank');
@@ -216,16 +231,45 @@ export function openActivityPrintView(activity: GeneratedActivity): void {
     ? `<section class="safety"><h2>⚠️ Safety Notes</h2><p>${activity.safety_notes}</p></section>` 
     : '';
 
+  /**
+   * PRINT-FIRST LAYOUT:
+   * - Header: "CoParrent Creations" only - subtle
+   * - Activity content takes priority
+   * - NO footer, NO metadata, NO domain references
+   */
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
       <title>${activity.title} - CoParrent Creations</title>
       <style>
-        @page { size: letter portrait; margin: 0.75in; }
+        /*
+         * PRINT-FIRST CSS - BRAND-CLEAN
+         * 
+         * REMOVED (must never appear):
+         * - Any domain/URL text
+         * - Any "Generated" date text  
+         * - Any footer whatsoever
+         */
+        
+        @page { size: letter portrait; margin: 0.6in; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; color: #1e1e1e; }
-        .header { background: #21B0FE; color: white; text-align: center; padding: 12px 20px; font-size: 18px; font-weight: bold; border-radius: 4px; margin-bottom: 20px; }
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+          padding: 20px; 
+          color: #1e1e1e; 
+        }
+        
+        /* Header: "CoParrent Creations" - subtle, not a banner */
+        .header { 
+          color: #21B0FE;
+          text-align: center; 
+          font-size: 14px; 
+          font-weight: 500;
+          letter-spacing: 0.5px;
+          margin-bottom: 20px; 
+        }
+        
         .title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 5px; }
         .age { text-align: center; color: #666; margin-bottom: 15px; }
         .facts { background: #f0f8ff; padding: 10px 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-size: 14px; }
@@ -235,12 +279,22 @@ export function openActivityPrintView(activity: GeneratedActivity): void {
         li { margin-bottom: 5px; }
         .safety { background: #fffae6; border: 1px solid #ffb400; border-radius: 8px; padding: 15px; }
         .safety h2 { border: none; color: #b47800; }
-        .footer { text-align: center; color: #888; font-size: 10px; margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; }
-        @media print { .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        
+        /* NO FOOTER - intentionally removed */
+        
+        @media print { 
+          body { padding: 0; }
+          .header { 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+          } 
+        }
       </style>
     </head>
     <body>
+      <!-- ONLY header text allowed -->
       <div class="header">CoParrent Creations</div>
+      
       <div class="title">${activity.title}</div>
       <div class="age">Ages ${activity.age_range}</div>
       <div class="facts">${factsHtml}</div>
@@ -249,9 +303,17 @@ export function openActivityPrintView(activity: GeneratedActivity): void {
       ${variationsHtml}
       ${goalsHtml}
       ${safetyHtml}
-      <div class="footer">coparrent.lovable.app • Generated ${format(new Date(), 'MMMM d, yyyy')}</div>
+      
+      <!-- NO FOOTER - intentionally removed -->
+      <!-- NO date, NO domain, NO metadata -->
+      
       <script>
-        window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); };
+        window.onload = function() { 
+          setTimeout(function() { 
+            window.print(); 
+            window.onafterprint = function() { window.close(); };
+          }, 500); 
+        };
       </script>
     </body>
     </html>
