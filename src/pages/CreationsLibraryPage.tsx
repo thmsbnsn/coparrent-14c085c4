@@ -43,6 +43,7 @@ import {
 import { useCreations, type Creation, type CreationType, type CreationFilters } from "@/hooks/useCreations";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { CreationsPrivacyTooltip } from "@/components/onboarding/CreationsPrivacyTooltip";
 
 const CreationsLibraryContent = () => {
   const navigate = useNavigate();
@@ -477,6 +478,9 @@ const CreationsLibraryContent = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Privacy onboarding tooltip - shown once per user */}
+      <CreationsPrivacyTooltip />
     </DashboardLayout>
   );
 };
