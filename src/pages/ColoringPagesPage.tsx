@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Palette, Download, FileText, Printer, Save, AlertCircle, Info, History } from "lucide-react";
+import { ArrowLeft, Sparkles, Palette, Download, FileText, Printer, Save, AlertCircle, Info, History, FolderOpen, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,7 @@ const ColoringPagesContent = () => {
     loadingHistory,
     generateColoringPage,
     saveToVault,
+    saveToCreations,
     downloadPNG,
     clearCurrentImage,
   } = useColoringPages();
@@ -89,6 +90,11 @@ const ColoringPagesContent = () => {
   const handleSaveToVault = async () => {
     if (!currentImage) return;
     await saveToVault(currentImage, prompt, difficulty, currentPageId || undefined);
+  };
+
+  const handleSaveToCreations = async () => {
+    if (!currentImage) return;
+    await saveToCreations(currentImage, prompt, difficulty);
   };
 
   const handleNewPage = () => {
@@ -315,16 +321,27 @@ const ColoringPagesContent = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-4 space-y-3"
               >
-                {/* Save to Vault */}
-                <Button
-                  onClick={handleSaveToVault}
-                  disabled={saving}
-                  className="w-full"
-                  variant="default"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? "Saving..." : "Save to Vault"}
-                </Button>
+                {/* Save Options */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={handleSaveToCreations}
+                    disabled={saving}
+                    variant="default"
+                    className="gap-2"
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    {saving ? "Saving..." : "Save to Library"}
+                  </Button>
+                  <Button
+                    onClick={handleSaveToVault}
+                    disabled={saving}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    Save to Vault
+                  </Button>
+                </div>
 
                 {/* Export Options */}
                 <div className="grid grid-cols-3 gap-2">

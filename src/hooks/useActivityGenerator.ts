@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCreations } from "@/hooks/useCreations";
 
 // ============= Type Exports =============
 
@@ -121,6 +122,7 @@ export interface UseActivityGeneratorReturn {
 export const useActivityGenerator = (): UseActivityGeneratorReturn => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { createCreation } = useCreations();
   
   // Data state
   const [folders, setFolders] = useState<ActivityFolder[]>([]);
@@ -244,6 +246,7 @@ export const useActivityGenerator = (): UseActivityGeneratorReturn => {
     if (!user) return null;
     
     try {
+      // Save to legacy generated_activities table for backward compatibility
       const insertData = {
         user_id: user.id,
         folder_id: folderId || selectedFolder || null,
@@ -269,13 +272,52 @@ export const useActivityGenerator = (): UseActivityGeneratorReturn => {
 
       if (insertError) throw insertError;
       
+      // Also save to unified creations system
+      try {
+        // Create activity_details record
+        const { data: detail, error: detailError } = await supabase
+          .from('activity_details')
+          .insert([{
+            owner_user_id: user.id,
+            activity_type: (data.type || 'activity') as string,
+            age_range: data.age_range || null,
+            duration: data.duration_minutes ? `${data.duration_minutes} minutes` : null,
+            energy_level: data.energy_level || null,
+            materials: JSON.parse(JSON.stringify(data.materials || [])),
+            steps: JSON.parse(JSON.stringify(data.steps || [])),
+            variations: JSON.parse(JSON.stringify(data.variations || {})),
+            learning_goals: JSON.parse(JSON.stringify(data.learning_goals || [])),
+            safety_notes: data.safety_notes ? JSON.parse(JSON.stringify([data.safety_notes])) : [],
+            raw_response: JSON.parse(JSON.stringify(data)),
+          }])
+          .select()
+          .single();
+
+        if (!detailError && detail) {
+          // Create creations index entry
+          await createCreation({
+            type: 'activity',
+            title: data.title,
+            detail_id: detail.id,
+            meta: {
+              age_range: data.age_range,
+              duration_minutes: data.duration_minutes,
+              energy_level: data.energy_level,
+            },
+          });
+        }
+      } catch (creationErr) {
+        // Log but don't fail the save - legacy table is primary
+        console.warn('Failed to save to unified creations:', creationErr);
+      }
+      
       toast({ title: "Activity saved!", description: `"${data.title}" saved to your collection.` });
       return saved as GeneratedActivity;
     } catch (err) {
       toast({ title: "Error", description: "Failed to save activity.", variant: "destructive" });
       return null;
     }
-  }, [user, selectedFolder, toast]);
+  }, [user, selectedFolder, toast, createCreation]);
 
   const deleteActivity = useCallback(async (id: string): Promise<boolean> => {
     try {
