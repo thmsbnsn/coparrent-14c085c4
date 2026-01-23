@@ -308,6 +308,7 @@ export type Database = {
           entity_id: string | null
           entity_type: string
           family_context: Json | null
+          family_id: string | null
           id: string
           metadata: Json | null
         }
@@ -323,6 +324,7 @@ export type Database = {
           entity_id?: string | null
           entity_type: string
           family_context?: Json | null
+          family_id?: string | null
           id?: string
           metadata?: Json | null
         }
@@ -338,10 +340,19 @@ export type Database = {
           entity_id?: string | null
           entity_type?: string
           family_context?: Json | null
+          family_id?: string | null
           id?: string
           metadata?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       blog_posts: {
         Row: {
@@ -391,6 +402,143 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          all_day: boolean
+          calendar_id: string
+          child_id: string | null
+          created_at: string
+          created_by: string
+          custody_parent: string | null
+          description: string | null
+          end_date: string | null
+          end_time: string | null
+          event_type: string
+          family_id: string
+          id: string
+          location: string | null
+          start_date: string
+          start_time: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          calendar_id: string
+          child_id?: string | null
+          created_at?: string
+          created_by: string
+          custody_parent?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          event_type?: string
+          family_id: string
+          id?: string
+          location?: string | null
+          start_date: string
+          start_time?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          calendar_id?: string
+          child_id?: string | null
+          created_at?: string
+          created_by?: string
+          custody_parent?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          event_type?: string
+          family_id?: string
+          id?: string
+          location?: string | null
+          start_date?: string
+          start_time?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendars: {
+        Row: {
+          calendar_type: string
+          child_id: string | null
+          color: string | null
+          created_at: string
+          family_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          calendar_type?: string
+          child_id?: string | null
+          color?: string | null
+          created_at?: string
+          family_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          calendar_type?: string
+          child_id?: string | null
+          color?: string | null
+          created_at?: string
+          family_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendars_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendars_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       child_activities: {
         Row: {
           child_id: string
@@ -399,6 +547,7 @@ export type Database = {
           coach_phone: string | null
           created_at: string
           equipment_checklist: Json | null
+          family_id: string | null
           id: string
           is_active: boolean
           name: string
@@ -417,6 +566,7 @@ export type Database = {
           coach_phone?: string | null
           created_at?: string
           equipment_checklist?: Json | null
+          family_id?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -435,6 +585,7 @@ export type Database = {
           coach_phone?: string | null
           created_at?: string
           equipment_checklist?: Json | null
+          family_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
@@ -452,6 +603,13 @@ export type Database = {
             columns: ["child_id"]
             isOneToOne: false
             referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "child_activities_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
           {
@@ -636,6 +794,7 @@ export type Database = {
           doctor_phone: string | null
           emergency_contact: string | null
           emergency_phone: string | null
+          family_id: string | null
           grade: string | null
           id: string
           medical_notes: string | null
@@ -655,6 +814,7 @@ export type Database = {
           doctor_phone?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
+          family_id?: string | null
           grade?: string | null
           id?: string
           medical_notes?: string | null
@@ -674,6 +834,7 @@ export type Database = {
           doctor_phone?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
+          family_id?: string | null
           grade?: string | null
           id?: string
           medical_notes?: string | null
@@ -683,7 +844,15 @@ export type Database = {
           school_phone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "children_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coloring_page_details: {
         Row: {
@@ -885,6 +1054,7 @@ export type Database = {
           created_at: string
           exchange_location: string | null
           exchange_time: string | null
+          family_id: string | null
           holidays: Json | null
           id: string
           parent_a_id: string
@@ -898,6 +1068,7 @@ export type Database = {
           created_at?: string
           exchange_location?: string | null
           exchange_time?: string | null
+          family_id?: string | null
           holidays?: Json | null
           id?: string
           parent_a_id: string
@@ -911,6 +1082,7 @@ export type Database = {
           created_at?: string
           exchange_location?: string | null
           exchange_time?: string | null
+          family_id?: string | null
           holidays?: Json | null
           id?: string
           parent_a_id?: string
@@ -920,6 +1092,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "custody_schedules_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "custody_schedules_parent_a_id_fkey"
             columns: ["parent_a_id"]
@@ -977,6 +1156,7 @@ export type Database = {
           child_id: string | null
           created_at: string
           description: string | null
+          family_id: string | null
           file_name: string
           file_path: string
           file_size: number
@@ -991,6 +1171,7 @@ export type Database = {
           child_id?: string | null
           created_at?: string
           description?: string | null
+          family_id?: string | null
           file_name: string
           file_path: string
           file_size: number
@@ -1005,6 +1186,7 @@ export type Database = {
           child_id?: string | null
           created_at?: string
           description?: string | null
+          family_id?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
@@ -1020,6 +1202,13 @@ export type Database = {
             columns: ["child_id"]
             isOneToOne: false
             referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
         ]
@@ -1071,6 +1260,7 @@ export type Database = {
           created_by: string
           description: string
           expense_date: string
+          family_id: string | null
           id: string
           notes: string | null
           receipt_path: string | null
@@ -1085,6 +1275,7 @@ export type Database = {
           created_by: string
           description: string
           expense_date?: string
+          family_id?: string | null
           id?: string
           notes?: string | null
           receipt_path?: string | null
@@ -1099,6 +1290,7 @@ export type Database = {
           created_by?: string
           description?: string
           expense_date?: string
+          family_id?: string | null
           id?: string
           notes?: string | null
           receipt_path?: string | null
@@ -1114,6 +1306,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expenses_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_created_by"
             columns: ["created_by"]
             isOneToOne: false
@@ -1122,10 +1321,35 @@ export type Database = {
           },
         ]
       }
+      families: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           accepted_at: string | null
           created_at: string
+          family_id: string | null
           id: string
           invited_at: string | null
           invited_by: string | null
@@ -1139,6 +1363,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           created_at?: string
+          family_id?: string | null
           id?: string
           invited_at?: string | null
           invited_by?: string | null
@@ -1152,6 +1377,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           created_at?: string
+          family_id?: string | null
           id?: string
           invited_at?: string | null
           invited_by?: string | null
@@ -1163,6 +1389,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "family_members_invited_by_fkey"
             columns: ["invited_by"]
@@ -1376,6 +1609,7 @@ export type Database = {
           created_at: string
           custom_occasion_name: string | null
           event_date: string | null
+          family_id: string | null
           id: string
           occasion_type: string
           primary_parent_id: string
@@ -1387,6 +1621,7 @@ export type Database = {
           created_at?: string
           custom_occasion_name?: string | null
           event_date?: string | null
+          family_id?: string | null
           id?: string
           occasion_type?: string
           primary_parent_id: string
@@ -1398,6 +1633,7 @@ export type Database = {
           created_at?: string
           custom_occasion_name?: string | null
           event_date?: string | null
+          family_id?: string | null
           id?: string
           occasion_type?: string
           primary_parent_id?: string
@@ -1409,6 +1645,13 @@ export type Database = {
             columns: ["child_id"]
             isOneToOne: false
             referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_lists_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
           {
@@ -1460,6 +1703,7 @@ export type Database = {
         Row: {
           created_at: string
           expires_at: string
+          family_id: string | null
           id: string
           invitation_type: string
           invitee_email: string
@@ -1472,6 +1716,7 @@ export type Database = {
         Insert: {
           created_at?: string
           expires_at?: string
+          family_id?: string | null
           id?: string
           invitation_type?: string
           invitee_email: string
@@ -1484,6 +1729,7 @@ export type Database = {
         Update: {
           created_at?: string
           expires_at?: string
+          family_id?: string | null
           id?: string
           invitation_type?: string
           invitee_email?: string
@@ -1494,6 +1740,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invitations_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invitations_inviter_id_fkey"
             columns: ["inviter_id"]
@@ -1725,6 +1978,7 @@ export type Database = {
       message_threads: {
         Row: {
           created_at: string
+          family_id: string | null
           id: string
           name: string | null
           participant_a_id: string | null
@@ -1735,6 +1989,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          family_id?: string | null
           id?: string
           name?: string | null
           participant_a_id?: string | null
@@ -1745,6 +2000,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          family_id?: string | null
           id?: string
           name?: string | null
           participant_a_id?: string | null
@@ -1754,6 +2010,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "message_threads_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "message_threads_participant_a_id_fkey"
             columns: ["participant_a_id"]
@@ -1781,6 +2044,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          family_id: string | null
           id: string
           read_at: string | null
           recipient_id: string
@@ -1789,6 +2053,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          family_id?: string | null
           id?: string
           read_at?: string | null
           recipient_id: string
@@ -1797,12 +2062,20 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          family_id?: string | null
           id?: string
           read_at?: string | null
           recipient_id?: string
           sender_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_recipient_id_fkey"
             columns: ["recipient_id"]
@@ -2100,6 +2373,7 @@ export type Database = {
       schedule_requests: {
         Row: {
           created_at: string
+          family_id: string | null
           id: string
           message_id: string | null
           original_date: string
@@ -2113,6 +2387,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          family_id?: string | null
           id?: string
           message_id?: string | null
           original_date: string
@@ -2126,6 +2401,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          family_id?: string | null
           id?: string
           message_id?: string | null
           original_date?: string
@@ -2138,6 +2414,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "schedule_requests_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "schedule_requests_message_id_fkey"
             columns: ["message_id"]
@@ -2511,6 +2794,7 @@ export type Database = {
       get_plan_tier: { Args: { p_profile_id: string }; Returns: string }
       get_plan_usage: { Args: { p_profile_id: string }; Returns: Json }
       get_user_co_parent_id: { Args: { user_uuid: string }; Returns: string }
+      get_user_families: { Args: { p_user_id: string }; Returns: string[] }
       get_user_family_primary_parent: {
         Args: { _user_id: string }
         Returns: string
@@ -2530,6 +2814,10 @@ export type Database = {
       is_child_account: { Args: { _user_id: string }; Returns: boolean }
       is_family_member: {
         Args: { _primary_parent_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_family_member_v2: {
+        Args: { p_family_id: string; p_user_id: string }
         Returns: boolean
       }
       is_parent_or_guardian: { Args: { p_user_id?: string }; Returns: boolean }
