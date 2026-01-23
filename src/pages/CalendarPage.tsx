@@ -1,3 +1,14 @@
+/**
+ * @page-role Overview/Action
+ * @summary-pattern Custody calendar with parenting time visualization
+ * @ownership Parent A (blue) vs Parent B (green) via semantic tokens
+ * @court-view Print export and calendar export dialog for legal documentation
+ * 
+ * LAW 1: Hybrid Overview (calendar view) + Action (wizard setup)
+ * LAW 3: Uses parent-a/parent-b semantic classes for ownership distinction
+ * LAW 5: Colors are purely semantic - blue=you, green=co-parent
+ * LAW 6: Export dialog provides court-ready schedule documentation
+ */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Printer, Download, Settings2, ArrowRightLeft, Loader2, Calendar, Trophy, X } from "lucide-react";

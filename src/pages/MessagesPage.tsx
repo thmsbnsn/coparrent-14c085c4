@@ -1,3 +1,14 @@
+/**
+ * @page-role Action
+ * @summary-pattern Thread conversation with schedule change request handling
+ * @ownership Sender attribution via neutral display names
+ * @court-view PDF export for message history documentation
+ * 
+ * LAW 1: Action role - focused on message composition and sending
+ * LAW 3: Uses resolvePersonName for neutral sender/recipient attribution
+ * LAW 6: exportMessagesToPDF provides court-ready message history
+ * LAW 7: Mobile-first conversation view preserves all functionality
+ */
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";

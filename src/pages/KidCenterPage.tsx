@@ -1,3 +1,13 @@
+/**
+ * @page-role Overview
+ * @summary-pattern Activity generation tools with child age targeting
+ * @ownership Activities belong to generating user; shareable to family
+ * @court-view N/A (Kids Hub is creative, not evidentiary)
+ * 
+ * LAW 1: Overview role - tool cards with minimal direct actions
+ * LAW 4: All activity tool cards use identical ToolCard component
+ * LAW 7: Card grid adapts to mobile while preserving tool selection
+ */
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Palette, Scissors, Gamepad2, ChefHat, Sparkles, Loader2 } from "lucide-react";

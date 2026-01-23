@@ -1,3 +1,14 @@
+/**
+ * @page-role Overview
+ * @summary-pattern Expense totals + pending reimbursements + category breakdown
+ * @ownership Creator attribution via resolver; neutral language throughout
+ * @court-view Court Report generator creates print-safe financial summary
+ * 
+ * LAW 1: Overview role - summary-first with action dialogs for add/reimburse
+ * LAW 2: getTotals() summary displayed before expense list
+ * LAW 3: Uses resolvePersonName for neutral "Added by" attribution
+ * LAW 6: Court Report is first-class - prominent header action
+ */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 

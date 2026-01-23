@@ -1,3 +1,13 @@
+/**
+ * @page-role Overview
+ * @summary-pattern Parenting time summary + messages widget + children quick access
+ * @ownership Parent A (blue) highlights current user's time; neutral for shared
+ * @court-view N/A (Dashboard is navigational, not evidentiary)
+ * 
+ * LAW 1: Overview role - summary-first, minimal direct actions
+ * LAW 2: Summary cards answer "what's happening today" before detail
+ * LAW 3: Ownership uses parent-a semantic tokens for user distinction
+ */
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, MessageSquare, Users, ArrowRight, Clock, BookHeart } from "lucide-react";

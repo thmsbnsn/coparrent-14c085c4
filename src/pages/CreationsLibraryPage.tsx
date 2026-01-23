@@ -1,6 +1,16 @@
 /**
- * Creations Library Page
+ * @page-role Overview
+ * @summary-pattern Unified creations grid with folder organization and sharing
+ * @ownership Private-by-default; explicit sharing to family members
+ * @court-view PDF/Print export via creationsExport.ts branding contract
  * 
+ * LAW 1: Overview role - creation cards with minimal inline actions
+ * LAW 2: Filter tabs and folder structure provide summary before detail
+ * LAW 3: Ownership icons (Lock/Users) show private vs shared state
+ * LAW 4: All creation cards use identical Card component structure
+ * LAW 6: Export follows CoParrent Creations branding contract
+ * 
+ * Creations Library Page
  * Unified view for all Kids Hub generated content.
  * Route: /dashboard/kids-hub/creations
  */
