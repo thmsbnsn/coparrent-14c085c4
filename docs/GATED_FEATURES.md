@@ -3,7 +3,83 @@
 This document lists all premium, role-gated, and admin-restricted features in CoParrent,
 along with where each gate is enforced (UI component + server-side).
 
-**Last Updated:** 2026-01-22
+**Last Updated:** 2026-01-23
+
+---
+
+## Enforcement Model
+
+All gated features in CoParrent are enforced at the **server level**, never by UI logic alone.
+
+| Enforcement Layer | Purpose |
+|------------------|--------|
+| Route Guards | Prevent unauthorized navigation |
+| RPC / Edge Functions | Enforce plan limits and roles |
+| Row Level Security (RLS) | Enforce data access rules |
+| Storage Policies | Restrict file access |
+
+Client-side checks are considered **advisory only**.
+
+---
+
+## Privacy Defaults
+
+Unless explicitly shared by the owner:
+
+- All creations are **private per parent**
+- Co-parents do not see each other's generated content
+- Children cannot generate or access creations
+- Third-party users have no default visibility
+
+Sharing is:
+- Explicit
+- Item-level
+- Revocable at any time
+
+---
+
+## Role Capability Matrix
+
+| Action | Parent (Owner) | Co-Parent | Third-Party | Child |
+|------|---------------|----------|-------------|-------|
+| Create Activities | ✅ | ❌ | ❌ | ❌ |
+| Create Coloring Pages | ✅ | ❌ | ❌ | ❌ |
+| View Private Creations | ✅ | ❌ | ❌ | ❌ |
+| View Shared Creations | ✅ | ✅ | ❌ | ❌ |
+| Edit Creations | ✅ | ❌ | ❌ | ❌ |
+| Export / Print Shared | ✅ | ✅ | ❌ | ❌ |
+| Manage Sharing | ✅ | ❌ | ❌ | ❌ |
+
+---
+
+## AI Tool Safety Scope
+
+AI-powered tools in CoParrent are intentionally constrained:
+
+- Provide **general, educational support only**
+- Do **not** provide medical, legal, or diagnostic advice
+- Always defer emergencies to **local emergency services**
+- Enforce **rate limits** and safety rules server-side
+- Preserve user privacy (no sensitive data logging)
+
+---
+
+## Intentional Limitations
+
+The following limitations are **by design**, not omissions:
+
+- No public sharing links
+- No co-parent editing of privately owned creations
+- No AI-generated diagnoses or treatment guidance
+- No child-initiated AI content creation
+- No family-wide default visibility
+
+---
+
+## Cross-Reference
+
+- Security architecture: **`docs/SECURITY_MODEL.md`**
+- Design principles: **`README.md`**
 
 ---
 
