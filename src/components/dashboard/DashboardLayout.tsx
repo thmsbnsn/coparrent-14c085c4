@@ -51,9 +51,17 @@ const parentNavItems = [
   { icon: Settings, label: "Settings", href: "/dashboard/settings", thirdPartyAllowed: false, id: "nav-settings" },
 ];
 
+/**
+ * Law office navigation - routes must exist
+ * 
+ * REGRESSION PREVENTION:
+ * - /dashboard/cases was removed as it doesn't exist
+ * - Law offices use the same document management as parents
+ * 
+ * @see src/lib/routes.ts for route registry
+ */
 const lawOfficeNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true, id: "nav-dashboard" },
-  { icon: Users, label: "Cases", href: "/dashboard/cases", thirdPartyAllowed: false, id: "nav-cases" },
   { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false, id: "nav-documents" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings", thirdPartyAllowed: false, id: "nav-settings" },
 ];

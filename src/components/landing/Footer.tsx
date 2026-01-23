@@ -11,6 +11,15 @@ import { APP_VERSION, getEnvironment } from "@/lib/version";
  * - Consistent with authority-driven brand
  */
 
+/**
+ * Footer links - all routes must resolve (verified by route audit)
+ * 
+ * REGRESSION PREVENTION:
+ * - All links here are tested in tests/e2e/route-audit.spec.ts
+ * - Adding a link? Add it to src/lib/routes.ts FOOTER_LINKS first
+ * 
+ * @see src/lib/routes.ts for route registry
+ */
 const footerLinks = {
   Product: [
     { label: "Features", href: "/features" },
@@ -19,13 +28,13 @@ const footerLinks = {
   ],
   Support: [
     { label: "Help Center", href: "/help" },
-    { label: "Contact", href: "/contact" },
+    { label: "Contact", href: "/help/contact" }, // Fixed: was /contact (404)
     { label: "About", href: "/about" },
   ],
   Legal: [
     { label: "Privacy", href: "/privacy" },
     { label: "Terms", href: "/terms" },
-    { label: "Security", href: "/security" },
+    { label: "Security", href: "/help/security" }, // Fixed: was /security (404)
   ],
 };
 
