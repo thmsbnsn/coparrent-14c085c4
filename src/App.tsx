@@ -18,6 +18,18 @@ import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import FeaturesPage from "./pages/FeaturesPage";
 import HelpCenter from "./pages/HelpCenter";
+import HelpGettingStarted from "./pages/help/HelpGettingStarted";
+import HelpScheduling from "./pages/help/HelpScheduling";
+import HelpMessaging from "./pages/help/HelpMessaging";
+import HelpDocuments from "./pages/help/HelpDocuments";
+import HelpExpenses from "./pages/help/HelpExpenses";
+import HelpAccount from "./pages/help/HelpAccount";
+import HelpPrivacy from "./pages/help/HelpPrivacy";
+import HelpTrialEnding from "./pages/help/HelpTrialEnding";
+import HelpScheduleChangeRequests from "./pages/help/HelpScheduleChangeRequests";
+import HelpInvitations from "./pages/help/HelpInvitations";
+import HelpDocumentExports from "./pages/help/HelpDocumentExports";
+import HelpSchedulePatterns from "./pages/help/HelpSchedulePatterns";
 import CourtRecordsPage from "./pages/CourtRecordsPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
@@ -82,6 +94,18 @@ const App = () => (
               <Route path="/about" element={<RouteErrorBoundary routeName="About"><About /></RouteErrorBoundary>} />
               <Route path="/features" element={<RouteErrorBoundary routeName="Features"><FeaturesPage /></RouteErrorBoundary>} />
               <Route path="/help" element={<RouteErrorBoundary routeName="Help"><HelpCenter /></RouteErrorBoundary>} />
+              <Route path="/help/getting-started" element={<RouteErrorBoundary routeName="Help - Getting Started"><HelpGettingStarted /></RouteErrorBoundary>} />
+              <Route path="/help/getting-started/invitations" element={<RouteErrorBoundary routeName="Help - Invitations"><HelpInvitations /></RouteErrorBoundary>} />
+              <Route path="/help/scheduling" element={<RouteErrorBoundary routeName="Help - Scheduling"><HelpScheduling /></RouteErrorBoundary>} />
+              <Route path="/help/scheduling/change-requests" element={<RouteErrorBoundary routeName="Help - Change Requests"><HelpScheduleChangeRequests /></RouteErrorBoundary>} />
+              <Route path="/help/scheduling/patterns" element={<RouteErrorBoundary routeName="Help - Patterns"><HelpSchedulePatterns /></RouteErrorBoundary>} />
+              <Route path="/help/messaging" element={<RouteErrorBoundary routeName="Help - Messaging"><HelpMessaging /></RouteErrorBoundary>} />
+              <Route path="/help/documents" element={<RouteErrorBoundary routeName="Help - Documents"><HelpDocuments /></RouteErrorBoundary>} />
+              <Route path="/help/documents/exports" element={<RouteErrorBoundary routeName="Help - Exports"><HelpDocumentExports /></RouteErrorBoundary>} />
+              <Route path="/help/expenses" element={<RouteErrorBoundary routeName="Help - Expenses"><HelpExpenses /></RouteErrorBoundary>} />
+              <Route path="/help/account" element={<RouteErrorBoundary routeName="Help - Account"><HelpAccount /></RouteErrorBoundary>} />
+              <Route path="/help/account/trial-ending" element={<RouteErrorBoundary routeName="Help - Trial Ending"><HelpTrialEnding /></RouteErrorBoundary>} />
+              <Route path="/help/privacy" element={<RouteErrorBoundary routeName="Help - Privacy"><HelpPrivacy /></RouteErrorBoundary>} />
               <Route path="/court-records" element={<RouteErrorBoundary routeName="Court Records"><CourtRecordsPage /></RouteErrorBoundary>} />
               <Route path="/terms" element={<RouteErrorBoundary routeName="Terms"><TermsPage /></RouteErrorBoundary>} />
               <Route path="/privacy" element={<RouteErrorBoundary routeName="Privacy"><PrivacyPage /></RouteErrorBoundary>} />
