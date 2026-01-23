@@ -133,6 +133,11 @@ function normalizeTier(tier: string | null): PlanTier {
 
 /**
  * Determines user's subscription plan tier
+ * 
+ * INVARIANTS ENFORCED (Server-side, never trust client):
+ * 1. Trial users ≠ Premium users (tracked via planTier)
+ * 2. Expired trial = Free immediately (real-time check)
+ * 3. Stripe webhook is source of truth (reads profile fields set by webhook)
  */
 async function getUserPlanTier(
   // deno-lint-ignore no-explicit-any
@@ -150,30 +155,48 @@ async function getUserPlanTier(
       return { planTier: "free", hasPremiumAccess: false };
     }
 
-    // Admin free access
-    if (profile.free_premium_access) {
+    // INVARIANT: Admin free access (highest priority)
+    if (profile.free_premium_access === true) {
       return { planTier: "admin_access", hasPremiumAccess: true };
     }
 
-    // Check active subscription
+    // INVARIANT: Active paid subscription
     if (profile.subscription_status === "active") {
       const tier = normalizeTier(profile.subscription_tier);
       if (tier === "power") {
         return { planTier: tier, hasPremiumAccess: true };
       }
     }
+    
+    // INVARIANT: Past due (grace period - still has access)
+    if (profile.subscription_status === "past_due") {
+      return { planTier: "power", hasPremiumAccess: true };
+    }
 
-    // Check trial
-    if (profile.subscription_status === "trial" && profile.trial_ends_at) {
+    // INVARIANT: Trial - MUST check expiration in real-time!
+    // Never trust cached status alone - validate trial_ends_at
+    if (profile.trial_ends_at) {
       const trialEnd = new Date(profile.trial_ends_at);
-      if (trialEnd > new Date()) {
+      const now = new Date();
+      
+      if (trialEnd > now) {
+        // Trial still active
         return { planTier: "trial", hasPremiumAccess: true };
       }
+      
+      // INVARIANT 2: Expired trial = Free IMMEDIATELY (no grace)
+      // Log for debugging race conditions
+      console.log("[aiGuard] Trial expired, denying access", {
+        userId,
+        trialEnd: profile.trial_ends_at,
+        now: now.toISOString(),
+      });
     }
 
     return { planTier: "free", hasPremiumAccess: false };
   } catch (error) {
     console.error("Error fetching plan tier:", error);
+    // FAIL CLOSED: on error, deny access
     return { planTier: "free", hasPremiumAccess: false };
   }
 }

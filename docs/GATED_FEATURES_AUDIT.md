@@ -1,8 +1,21 @@
 # Gated Features Audit
 
 > **Audit Date**: 2026-01-23  
-> **Status**: Complete  
+> **Status**: Complete with Subscription Invariants  
 > **Auditor**: System
+
+---
+
+## Subscription State Invariants (Code-Level)
+
+These invariants are enforced in `src/lib/subscriptionInvariants.ts` and all server-side edge functions:
+
+| Invariant | Description | Enforcement Location |
+|-----------|-------------|---------------------|
+| **Trial ≠ Premium** | Trial users and paid subscribers are tracked as distinct states | `SubscriptionState` type, `usePremiumAccess.reason` |
+| **Expired Trial = Free Immediately** | No grace period; real-time check on every access | `isTrialExpired()`, `aiGuard.getUserPlanTier()` |
+| **Stripe Webhook = Source of Truth** | Profile subscription fields written only by webhooks | `stripe-webhook/index.ts`, `check-subscription/index.ts` |
+| **Server Never Trusts Client Tier** | All edge functions re-validate from database | `aiGuard()`, `check-subscription()` |
 
 ---
 

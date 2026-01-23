@@ -26,7 +26,7 @@ export const PremiumButton = ({
   const { hasAccess, loading, reason } = usePremiumAccess();
 
   const isLocked = !loading && !hasAccess;
-  const isExpired = reason === "expired";
+  const isExpired = reason === "trial_expired";
 
   if (isLocked) {
     return (

@@ -39,6 +39,15 @@ const mapStripeStatus = (stripeStatus: string): string => {
   }
 };
 
+/**
+ * INVARIANT: Expired trial = Free immediately
+ * Real-time check, not cached
+ */
+function isTrialExpired(trialEndsAt: string | null): boolean {
+  if (!trialEndsAt) return false;
+  return new Date(trialEndsAt) <= new Date();
+}
+
 serve(async (req) => {
   // Strict CORS validation
   const corsResponse = strictCors(req);
@@ -145,10 +154,10 @@ serve(async (req) => {
       
       // Check if user is in trial period (co-parent linked trial)
       if (profileData?.trial_ends_at) {
-        const trialEnd = new Date(profileData.trial_ends_at);
-        const now = new Date();
+        // INVARIANT 2: Check expiration in real-time!
+        const expired = isTrialExpired(profileData.trial_ends_at);
         
-        if (trialEnd > now) {
+        if (!expired) {
           logStep("User is in trial period", { trialEndsAt: profileData.trial_ends_at });
           
           await supabaseClient
@@ -167,12 +176,27 @@ serve(async (req) => {
             status: 200,
           });
         } else {
-          logStep("Trial has expired");
+          // INVARIANT 2: Expired trial = Free IMMEDIATELY
+          logStep("Trial has expired - reverting to free", { 
+            trialEndsAt: profileData.trial_ends_at,
+            now: new Date().toISOString() 
+          });
           
           await supabaseClient
             .from("profiles")
             .update({ subscription_status: "expired", subscription_tier: "free" })
             .eq("user_id", user.id);
+          
+          // Return explicit expired state for UI
+          return new Response(JSON.stringify({ 
+            subscribed: false, 
+            tier: "free",
+            trial_expired: true,
+            trial_ends_at: profileData.trial_ends_at
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
         }
       } else {
         // Update profile to reflect no subscription
@@ -216,8 +240,10 @@ serve(async (req) => {
       
       // Check local trial as fallback
       if (profileData?.trial_ends_at) {
-        const trialEnd = new Date(profileData.trial_ends_at);
-        if (trialEnd > new Date()) {
+        // INVARIANT 2: Check expiration in real-time!
+        const expired = isTrialExpired(profileData.trial_ends_at);
+        
+        if (!expired) {
           await supabaseClient
             .from("profiles")
             .update({ subscription_status: "trial", subscription_tier: "power" })
@@ -234,6 +260,9 @@ serve(async (req) => {
             status: 200,
           });
         }
+        
+        // Trial expired - immediately free
+        logStep("Local trial expired during Stripe check fallback");
       }
       
       // Update profile to reflect expired/no subscription
@@ -244,7 +273,9 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({ 
         subscribed: false, 
-        tier: "free" 
+        tier: "free",
+        trial_expired: profileData?.trial_ends_at ? true : undefined,
+        trial_ends_at: profileData?.trial_ends_at || undefined
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
