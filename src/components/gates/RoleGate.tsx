@@ -65,7 +65,7 @@ export const RoleGate = ({
         tier || "free"
       );
     }
-  }, [loading, hasAccess, isThirdParty, featureName, subscriptionTier]);
+  }, [loading, hasAccess, isThirdParty, featureName, tier]);
 
   // Get user-friendly context
   const context = getDenialContext("role_restricted", featureName);
