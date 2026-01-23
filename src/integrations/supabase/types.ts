@@ -59,6 +59,57 @@ export type Database = {
           },
         ]
       }
+      activity_details: {
+        Row: {
+          activity_type: string
+          age_range: string | null
+          created_at: string
+          duration: string | null
+          energy_level: string | null
+          id: string
+          learning_goals: Json | null
+          materials: Json | null
+          owner_user_id: string
+          raw_response: Json | null
+          safety_notes: Json | null
+          steps: Json | null
+          updated_at: string
+          variations: Json | null
+        }
+        Insert: {
+          activity_type?: string
+          age_range?: string | null
+          created_at?: string
+          duration?: string | null
+          energy_level?: string | null
+          id?: string
+          learning_goals?: Json | null
+          materials?: Json | null
+          owner_user_id: string
+          raw_response?: Json | null
+          safety_notes?: Json | null
+          steps?: Json | null
+          updated_at?: string
+          variations?: Json | null
+        }
+        Update: {
+          activity_type?: string
+          age_range?: string | null
+          created_at?: string
+          duration?: string | null
+          energy_level?: string | null
+          id?: string
+          learning_goals?: Json | null
+          materials?: Json | null
+          owner_user_id?: string
+          raw_response?: Json | null
+          safety_notes?: Json | null
+          steps?: Json | null
+          updated_at?: string
+          variations?: Json | null
+        }
+        Relationships: []
+      }
       activity_events: {
         Row: {
           activity_id: string
@@ -631,6 +682,39 @@ export type Database = {
         }
         Relationships: []
       }
+      coloring_page_details: {
+        Row: {
+          created_at: string
+          difficulty: string
+          id: string
+          image_url: string | null
+          owner_user_id: string
+          prompt: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty?: string
+          id?: string
+          image_url?: string | null
+          owner_user_id: string
+          prompt: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          difficulty?: string
+          id?: string
+          image_url?: string | null
+          owner_user_id?: string
+          prompt?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coloring_pages: {
         Row: {
           created_at: string
@@ -665,6 +749,129 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creation_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      creation_shares: {
+        Row: {
+          created_at: string
+          creation_id: string
+          id: string
+          owner_user_id: string
+          permission: string
+          shared_with_profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          creation_id: string
+          id?: string
+          owner_user_id: string
+          permission?: string
+          shared_with_profile_id: string
+        }
+        Update: {
+          created_at?: string
+          creation_id?: string
+          id?: string
+          owner_user_id?: string
+          permission?: string
+          shared_with_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creation_shares_creation_id_fkey"
+            columns: ["creation_id"]
+            isOneToOne: false
+            referencedRelation: "creations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creation_shares_shared_with_profile_id_fkey"
+            columns: ["shared_with_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creations: {
+        Row: {
+          created_at: string
+          detail_id: string
+          folder_id: string | null
+          id: string
+          meta: Json | null
+          owner_profile_id: string | null
+          owner_user_id: string
+          thumbnail_url: string | null
+          title: string
+          type: Database["public"]["Enums"]["creation_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail_id: string
+          folder_id?: string | null
+          id?: string
+          meta?: Json | null
+          owner_profile_id?: string | null
+          owner_user_id: string
+          thumbnail_url?: string | null
+          title: string
+          type: Database["public"]["Enums"]["creation_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail_id?: string
+          folder_id?: string | null
+          id?: string
+          meta?: Json | null
+          owner_profile_id?: string | null
+          owner_user_id?: string
+          thumbnail_url?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["creation_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creations_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "creation_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creations_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2363,6 +2570,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      creation_type: "activity" | "coloring_page"
       member_role: "parent" | "guardian" | "third_party"
       thread_type: "family_channel" | "direct_message" | "group_chat"
     }
@@ -2493,6 +2701,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      creation_type: ["activity", "coloring_page"],
       member_role: ["parent", "guardian", "third_party"],
       thread_type: ["family_channel", "direct_message", "group_chat"],
     },

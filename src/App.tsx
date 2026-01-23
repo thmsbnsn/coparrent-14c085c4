@@ -50,6 +50,9 @@ import KidCenterPage from "./pages/KidCenterPage";
 import KidsHubPage from "./pages/KidsHubPage";
 import NurseNancyPage from "./pages/NurseNancyPage";
 import ColoringPagesPage from "./pages/ColoringPagesPage";
+import ChoreChartPage from "./pages/ChoreChartPage";
+import ActivitiesPage from "./pages/ActivitiesPage";
+import CreationsLibraryPage from "./pages/CreationsLibraryPage";
 import LawOfficeLogin from "./pages/LawOfficeLogin";
 import LawOfficeSignup from "./pages/LawOfficeSignup";
 import OfflinePage from "./pages/OfflinePage";
@@ -121,6 +124,9 @@ const App = () => (
               <Route path="/dashboard/kids-hub" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Kids Hub"><KidsHubPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/kids-hub/nurse-nancy" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Nurse Nancy"><NurseNancyPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/kids-hub/coloring-pages" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Coloring Pages"><ColoringPagesPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/chore-chart" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Chore Chart"><ChoreChartPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/activities" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Activities"><ActivitiesPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/creations" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Creations Library"><CreationsLibraryPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/kids-hub/*" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Kids Hub"><KidsHubPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/audit" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Audit Log"><AuditLogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog"><BlogPage /></RouteErrorBoundary></ProtectedRoute>} />
