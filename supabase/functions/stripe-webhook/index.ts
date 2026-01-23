@@ -1,21 +1,46 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { 
+  checkIdempotency, 
+  markEventProcessed, 
+  markEventFailed 
+} from "../_shared/webhookIdempotency.ts";
+
+/**
+ * Stripe Webhook Handler
+ * 
+ * BILLING INTEGRITY INVARIANTS:
+ * 1. Webhook is source of truth for subscription state
+ * 2. Events are processed exactly once (idempotency)
+ * 3. Signature is verified before processing
+ * 4. No sensitive data logged
+ * 5. Safe logging only (no emails, tokens, etc.)
+ */
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2025-08-27.basil",
 });
 
-const supabaseAdmin = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-  { auth: { persistSession: false } }
-);
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { persistSession: false }
+});
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
+// Safe logging - never log sensitive data
+const logStep = (step: string, details?: Record<string, unknown>) => {
+  // Filter out any sensitive fields
+  const safeDetails = details ? Object.fromEntries(
+    Object.entries(details).filter(([key]) => 
+      !["email", "token", "key", "secret"].some(s => key.toLowerCase().includes(s))
+    )
+  ) : undefined;
+  
+  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : "";
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
@@ -74,21 +99,27 @@ async function sendEmail(to: string, subject: string, html: string, type: EmailT
     });
 
     const data = await response.json();
-    logStep("Email sent", { to, subject, response: data });
+    logStep("Email sent", { subject, status: response.status });
     return data;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("Email send error", { error: errorMessage });
+    logStep("Email send error", { errorType: typeof error });
     return null;
   }
 }
 
+/**
+ * Update profile subscription state
+ * 
+ * INVARIANT: This is the ONLY place subscription state should be modified
+ * (outside of admin tools). All changes come through webhooks.
+ */
 async function updateProfileSubscription(
   email: string,
   status: string,
   tier: string | null
 ) {
-  logStep("Updating profile", { email, status, tier });
+  logStep("Updating profile", { status, tier });
   
   const { error } = await supabaseAdmin
     .from("profiles")
@@ -99,7 +130,7 @@ async function updateProfileSubscription(
     .eq("email", email);
 
   if (error) {
-    logStep("Error updating profile", { error: error.message });
+    logStep("Error updating profile", { code: error.code });
     throw error;
   }
   
@@ -237,6 +268,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
 
   // On cancellation, revert to free tier
+  // INVARIANT: Downgrade removes access immediately
   await updateProfileSubscription(email, "canceled", "free");
 
   await sendEmail(
@@ -273,6 +305,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     return;
   }
 
+  // INVARIANT: Payment failure sets past_due, but user keeps access (grace period)
   await updateProfileSubscription(customerEmail, "past_due", "power");
 
   await sendEmail(
@@ -299,6 +332,8 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 }
 
 serve(async (req) => {
+  // ============ STEP 1: Verify Signature ============
+  // INVARIANT: Never process unverified webhooks
   const signature = req.headers.get("stripe-signature");
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
@@ -307,12 +342,39 @@ serve(async (req) => {
     return new Response("Missing signature or webhook secret", { status: 400 });
   }
 
+  let event: Stripe.Event;
+  let body: string;
+  
   try {
-    const body = await req.text();
-    const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    
-    logStep("Received event", { type: event.type });
+    body = await req.text();
+    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown";
+    logStep("Signature verification failed", { errorType: typeof error });
+    return new Response("Invalid signature", { status: 400 });
+  }
+  
+  logStep("Received event", { type: event.type, id: event.id });
 
+  // ============ STEP 2: Check Idempotency ============
+  // INVARIANT: Process each event exactly once
+  const { shouldProcess, alreadyProcessed } = await checkIdempotency(
+    event.id,
+    event.type,
+    supabaseUrl,
+    supabaseServiceKey
+  );
+  
+  if (!shouldProcess) {
+    logStep("Event already processed, skipping", { id: event.id });
+    return new Response(JSON.stringify({ received: true, skipped: true }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
+  }
+
+  // ============ STEP 3: Process Event ============
+  try {
     switch (event.type) {
       case "checkout.session.completed":
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
@@ -330,13 +392,27 @@ serve(async (req) => {
         logStep("Unhandled event type", { type: event.type });
     }
 
+    // ============ STEP 4: Mark as Processed ============
+    await markEventProcessed(event.id, supabaseUrl, supabaseServiceKey, {
+      outcome: "success",
+    });
+
     return new Response(JSON.stringify({ received: true }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("Webhook error", { error: errorMessage });
-    return new Response("Webhook processing failed", { status: 400 });
+    logStep("Webhook processing error", { errorType: typeof error });
+    
+    // Mark as failed for debugging
+    await markEventFailed(event.id, supabaseUrl, supabaseServiceKey, errorMessage);
+    
+    // Still return 200 to prevent Stripe retries (we've logged the error)
+    // This is intentional - failed events can be investigated via logs
+    return new Response(JSON.stringify({ received: true, error: true }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
   }
 });
