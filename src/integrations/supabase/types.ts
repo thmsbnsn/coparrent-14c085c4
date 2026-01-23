@@ -2366,6 +2366,42 @@ export type Database = {
           },
         ]
       }
+      rate_limit_events: {
+        Row: {
+          action: string
+          created_at: string
+          endpoint: string
+          id: string
+          ip_hash: string | null
+          limit_type: string
+          limit_value: number | null
+          outcome: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_hash?: string | null
+          limit_type: string
+          limit_value?: number | null
+          outcome?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_hash?: string | null
+          limit_type?: string
+          limit_value?: number | null
+          outcome?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       reimbursement_requests: {
         Row: {
           amount: number
@@ -2563,6 +2599,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stripe_webhook_events: {
+        Row: {
+          customer_email: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          processed_at: string
+          status: string
+        }
+        Insert: {
+          customer_email?: string | null
+          event_type: string
+          id: string
+          metadata?: Json | null
+          processed_at?: string
+          status?: string
+        }
+        Update: {
+          customer_email?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          processed_at?: string
+          status?: string
+        }
+        Relationships: []
       }
       thread_messages: {
         Row: {
@@ -2826,6 +2889,7 @@ export type Database = {
         Args: { p_family_id: string; p_user_id: string }
         Returns: boolean
       }
+      cleanup_old_webhook_events: { Args: never; Returns: undefined }
       count_third_party_members: {
         Args: { _primary_parent_id: string }
         Returns: number
