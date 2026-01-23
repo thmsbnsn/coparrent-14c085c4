@@ -151,6 +151,72 @@ export type Database = {
           },
         ]
       }
+      activity_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      activity_shares: {
+        Row: {
+          activity_id: string
+          created_at: string
+          id: string
+          owner_user_id: string
+          permission: string
+          shared_with_profile_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          permission?: string
+          shared_with_profile_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          permission?: string
+          shared_with_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_shares_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "generated_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_shares_shared_with_profile_id_fkey"
+            columns: ["shared_with_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage_daily: {
         Row: {
           created_at: string
@@ -945,6 +1011,77 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      generated_activities: {
+        Row: {
+          age_range: string
+          created_at: string
+          duration_minutes: number | null
+          energy_level: string | null
+          folder_id: string | null
+          id: string
+          indoor_outdoor: string | null
+          learning_goals: Json | null
+          materials: Json | null
+          mess_level: string | null
+          safety_notes: string | null
+          steps: Json | null
+          supervision_level: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          variations: Json | null
+        }
+        Insert: {
+          age_range: string
+          created_at?: string
+          duration_minutes?: number | null
+          energy_level?: string | null
+          folder_id?: string | null
+          id?: string
+          indoor_outdoor?: string | null
+          learning_goals?: Json | null
+          materials?: Json | null
+          mess_level?: string | null
+          safety_notes?: string | null
+          steps?: Json | null
+          supervision_level?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          variations?: Json | null
+        }
+        Update: {
+          age_range?: string
+          created_at?: string
+          duration_minutes?: number | null
+          energy_level?: string | null
+          folder_id?: string | null
+          id?: string
+          indoor_outdoor?: string | null
+          learning_goals?: Json | null
+          materials?: Json | null
+          mess_level?: string | null
+          safety_notes?: string | null
+          steps?: Json | null
+          supervision_level?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          variations?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_activities_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "activity_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gift_items: {
         Row: {
