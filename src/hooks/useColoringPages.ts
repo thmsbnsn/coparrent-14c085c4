@@ -8,6 +8,7 @@ import {
   releaseMutationLock 
 } from '@/lib/mutations';
 import { downloadCreationPng } from '@/lib/creationsExport';
+import { useCreations } from '@/hooks/useCreations';
 
 export type Difficulty = 'simple' | 'medium' | 'detailed';
 
@@ -32,6 +33,7 @@ interface GenerateResult {
 
 export const useColoringPages = () => {
   const { user } = useAuth();
+  const { createCreation } = useCreations();
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -277,6 +279,67 @@ export const useColoringPages = () => {
     }
   }, [user]);
 
+  // Save to unified Creations library
+  const saveToCreations = useCallback(async (
+    imageUrl: string,
+    prompt: string,
+    difficulty: Difficulty
+  ): Promise<boolean> => {
+    if (!user) {
+      toast.error('Please sign in to save');
+      return false;
+    }
+
+    const mutationKey = getMutationKey('saveColoringToCreations', prompt, Date.now().toString());
+    if (!acquireMutationLock(mutationKey)) {
+      toast.error('Please wait...');
+      return false;
+    }
+
+    setSaving(true);
+
+    try {
+      // First create the coloring_page_details record
+      const { data: detail, error: detailError } = await supabase
+        .from('coloring_page_details')
+        .insert({
+          owner_user_id: user.id,
+          prompt,
+          difficulty,
+          image_url: imageUrl,
+          thumbnail_url: imageUrl, // Use same for thumbnail for now
+        })
+        .select()
+        .single();
+
+      if (detailError) throw detailError;
+
+      // Create the creations index entry
+      const title = prompt.length > 50 ? `${prompt.slice(0, 50)}...` : prompt;
+      const creation = await createCreation({
+        type: 'coloring_page',
+        title,
+        detail_id: detail.id,
+        thumbnail_url: imageUrl,
+        meta: { difficulty, prompt },
+      });
+
+      if (!creation) {
+        throw new Error('Failed to create creation entry');
+      }
+
+      toast.success('Saved to Creations Library!');
+      return true;
+    } catch (error) {
+      console.error('Error saving to creations:', error);
+      toast.error('Failed to save to library');
+      return false;
+    } finally {
+      setSaving(false);
+      releaseMutationLock(mutationKey);
+    }
+  }, [user, createCreation]);
+
   const downloadPNG = useCallback((imageUrl: string, prompt: string) => {
     try {
       downloadCreationPng(imageUrl, `${prompt.slice(0, 30)}-coloring-page`);
@@ -303,6 +366,7 @@ export const useColoringPages = () => {
     loadingHistory,
     generateColoringPage,
     saveToVault,
+    saveToCreations,
     downloadPNG,
     clearCurrentImage,
   };
