@@ -79,6 +79,36 @@ Not all features evolve at the same pace. CoParrent tracks feature maturity expl
 | Kids Hub – Activities | Stable |
 | Kids Hub – Coloring Pages | Stable |
 | Nurse Nancy | Support Tool (Non-diagnostic) |
+| PWA & Push Notifications | Stable |
+
+---
+
+## PWA Support
+
+CoParrent is a Progressive Web App (PWA) with full push notification support:
+
+| Platform | Installation | Push Notifications |
+|----------|-------------|-------------------|
+| **Android** | Install via browser "Add to Home Screen" | ✅ Supported |
+| **iOS 16.4+** | Add to Home Screen via Safari Share button | ✅ Supported (PWA mode only) |
+| **Desktop** | Install via browser address bar icon | ✅ Supported |
+
+### Enabling Push Notifications
+
+1. Navigate to **Settings → Notifications**
+2. Tap **Enable Notifications**
+3. Grant permission when prompted
+4. Verify status shows "Subscribed"
+
+**iOS Users:** You must install the app to your Home Screen first. Safari browser mode does not support push.
+
+### Verifying PWA Health
+
+Internal diagnostics available at `/pwa-diagnostics` (authenticated users only) shows:
+- Service worker status
+- Push subscription state
+- Platform detection
+- Backend health
 
 ---
 
@@ -1404,10 +1434,10 @@ The `.env` file is auto-configured by Lovable Cloud with:
 
 ### High Priority
 
-- [ ] **Push Notifications**: Complete browser push notification implementation with service worker
+- [ ] **VAPID Keys**: Add production VAPID keys as secrets (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`)
 - [ ] **Email Notifications**: Send transactional emails for messages, schedule changes, document uploads
-- [ ] **Court Export**: Generate court-ready PDF exports of communications, schedules, and expense reports
-- [ ] **Production Stripe**: Switch from test mode to live Stripe integration with proper webhooks
+- [ ] **Production Stripe**: Switch from test mode to live Stripe integration (webhooks configured)
+- [ ] **PWA Device Testing**: Run PWA Test Checklist on physical iOS/Android devices
 
 ### Medium Priority
 
@@ -1457,15 +1487,19 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [x] **GDPR Data Export**: User data export feature in settings with JSON download
 - [x] **Data Retention Policy**: Documented data retention schedules in Privacy Policy
 - [x] **CCPA Compliance**: California Privacy Rights disclosures in Privacy Policy
+- [x] **PWA & Push Notifications**: Full PWA with Web Push support for Android, iOS (PWA mode), and desktop
+- [x] **Per-Family Role Authorization**: Family-scoped roles with RLS enforcement
+- [x] **Rate Limiting & Cost Control**: Unified rate limiter with tier-based limits and abuse telemetry
+- [x] **Stripe Billing Integrity**: Idempotent webhook handling with signature verification
 
 ### Technical Debt
 
 - [ ] **Unit Tests**: Add comprehensive test coverage with Vitest
-- [ ] **E2E Tests**: Playwright or Cypress end-to-end testing
+- [ ] **E2E Tests**: Expand Playwright end-to-end testing coverage
 - [ ] **Accessibility Audit**: Full WCAG 2.1 AA compliance review
 - [ ] **Performance Optimization**: Lazy loading for routes, image optimization, bundle splitting
-- [ ] **API Rate Limiting**: Add rate limiting to edge functions
-- [ ] **Audit Logging**: Comprehensive audit trail for all data changes
+- [x] **API Rate Limiting**: Unified rate limiter implemented for all edge functions
+- [x] **Audit Logging**: Comprehensive audit trail for all data changes
 
 ### Known Issues to Verify
 
@@ -1473,6 +1507,7 @@ The `.env` file is auto-configured by Lovable Cloud with:
 - [ ] Test subscription webhook handling with live Stripe events
 - [ ] Validate realtime subscriptions cleanup on component unmount
 - [ ] Test law library file downloads with actual uploaded PDFs
+- [ ] Run PWA Test Checklist on iOS and Android devices before production release
 
 ---
 

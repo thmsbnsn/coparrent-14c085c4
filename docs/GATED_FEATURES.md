@@ -163,6 +163,8 @@ Features restricted to users with `admin` role in `user_roles` table.
 | Law Library Delete | `AdminLawLibraryManager.tsx` + `AdminGate` | RLS, storage policies | |
 | Admin Dashboard | `ProtectedRoute` - `/admin` | `is_admin()` function | |
 | User Management | `AdminDashboard.tsx` | `admin-manage-users` edge function | |
+| Push Notification Tester | `AdminPushTester.tsx` | `is_admin()` + audit logging | |
+| PWA Diagnostics | `/pwa-diagnostics` | Open to authenticated users | Internal QA tool |
 
 ---
 

@@ -157,6 +157,17 @@ Deno.serve(async (req) => {
       console.log(`Revoked ${expiredEndpoints.length} expired subscriptions`);
     }
 
+    // Audit log test pushes (if tag indicates admin test)
+    if (tag === "admin-test-push") {
+      await supabase.from("audit_logs").insert({
+        actor_user_id: user.id,
+        action: "TEST_PUSH_SENT",
+        entity_type: "push_notification",
+        entity_id: profile_id,
+        metadata: { sent, failed, expired: expiredEndpoints.length },
+      });
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
