@@ -1,125 +1,139 @@
 import { motion } from "framer-motion";
-import { Calendar, MessageSquare, Users, Briefcase, FileText, Bell } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Calendar, MessageSquare, Users, FileText, DollarSign, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const features = [
+/**
+ * Features Section - System Overview
+ * 
+ * Design Intent:
+ * - Group by user intent, not engineering category
+ * - Make it obvious this is a cohesive system
+ * - Clear visual rhythm and intentional spacing
+ * - Purpose-built feel, not borrowed components
+ */
+
+const coreCapabilities = [
   {
     icon: Calendar,
-    title: "Smart Parenting Calendar",
-    description:
-      "Build court-friendly custody schedules with our step-by-step wizard. Choose from common patterns like 2-2-3 or create custom arrangements.",
-    gradient: "from-primary to-info",
-  },
-  {
-    icon: Users,
-    title: "Child Info Hub",
-    description:
-      "Keep all important details in one place—medical info, school schedules, clothing sizes, and recent purchases shared between parents.",
-    gradient: "from-accent-foreground to-success",
+    title: "Scheduling",
+    description: "Visual custody calendars with pattern-based scheduling, exchange tracking, and change request workflows.",
+    color: "hsl(222 60% 50%)",
   },
   {
     icon: MessageSquare,
-    title: "Court-Ready Messaging",
-    description:
-      "Communicate with documented, timestamped messages. Export conversation logs formatted for legal proceedings when needed.",
-    gradient: "from-warning to-destructive",
+    title: "Communication",
+    description: "Timestamped messaging with read receipts, tone assistance, and complete conversation history for records.",
+    color: "hsl(199 89% 48%)",
   },
   {
-    icon: Briefcase,
-    title: "Law Office Portal",
-    description:
-      "Family law professionals can manage multiple cases, access court views, and export documentation with ease.",
-    gradient: "from-primary to-accent-foreground",
+    icon: Users,
+    title: "Child Records",
+    description: "Centralized medical info, school details, and emergency contacts—shared and always up to date.",
+    color: "hsl(152 60% 38%)",
   },
   {
     icon: FileText,
-    title: "Document Export",
-    description:
-      "Generate clean, professional summaries of schedules, messages, and child information for court filings.",
-    gradient: "from-success to-info",
+    title: "Documentation",
+    description: "Secure document storage with audit trails and court-ready PDF exports of all records.",
+    color: "hsl(174 50% 42%)",
   },
   {
-    icon: Bell,
-    title: "Smart Notifications",
-    description:
-      "Stay informed about schedule changes, upcoming exchanges, and new messages with customizable alerts.",
-    gradient: "from-info to-primary",
+    icon: DollarSign,
+    title: "Expenses",
+    description: "Shared expense tracking with reimbursement workflows, receipt uploads, and exportable reports.",
+    color: "hsl(38 92% 50%)",
   },
 ];
 
 export const Features = () => {
   return (
-    <section className="py-16 lg:py-24 bg-muted/30 relative overflow-hidden">
-      {/* Subtle background texture */}
-      <div className="absolute inset-0 opacity-30 dark:opacity-20 pointer-events-none">
-        <div 
-          className="absolute inset-0"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 20% 50%, hsl(var(--primary) / 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 50%, hsl(var(--accent) / 0.05) 0%, transparent 50%)'
-          }}
-        />
-      </div>
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-        {/* Section Header */}
-        <div className="max-w-3xl mx-auto text-center mb-12 lg:mb-16">
+    <section className="py-20 lg:py-28 bg-background relative">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header - Direct, Authoritative */}
+        <div className="max-w-2xl mx-auto text-center mb-16 lg:mb-20">
           <motion.span
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-sm font-medium text-primary uppercase tracking-wider"
+            className="inline-block text-sm font-semibold text-primary uppercase tracking-widest mb-4"
           >
-            Features
+            The Platform
           </motion.span>
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold mt-4 mb-6"
+            className="mb-5"
           >
-            Everything you need for peaceful co-parenting
+            Everything in one place
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-lg text-muted-foreground"
+            transition={{ delay: 0.15 }}
+            className="text-lg text-muted-foreground leading-relaxed"
           >
-            From scheduling to documentation, CoParrent helps you focus on what matters most—your children.
+            A complete system for coordinating custody—schedules, messages, 
+            expenses, and records—designed to reduce conflict and create clarity.
           </motion.p>
         </div>
 
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {features.map((feature, index) => (
+        {/* Capabilities Grid - Structured, Cohesive */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-12">
+          {coreCapabilities.map((capability, index) => (
             <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 30 }}
+              key={capability.title}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -4, boxShadow: '0 20px 40px -15px hsl(var(--primary) / 0.15)' }}
-              className="group relative p-5 lg:p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300"
+              transition={{ delay: index * 0.08 }}
+              className="group relative p-6 lg:p-7 rounded-xl bg-card border border-border hover:border-primary/20 hover:shadow-lg transition-all duration-300"
             >
-              {/* Icon */}
-              <div
-                className={`inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br ${feature.gradient} mb-4`}
+              {/* Icon with color accent */}
+              <div 
+                className="inline-flex items-center justify-center w-11 h-11 rounded-lg mb-5"
+                style={{ backgroundColor: `${capability.color}15` }}
               >
-                <feature.icon className="w-5 h-5 text-primary-foreground" />
+                <capability.icon 
+                  className="w-5 h-5" 
+                  style={{ color: capability.color }}
+                />
               </div>
 
               {/* Content */}
               <h3 className="text-lg font-display font-semibold mb-2 group-hover:text-primary transition-colors">
-                {feature.title}
+                {capability.title}
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {capability.description}
+              </p>
 
-              {/* Hover Glow Effect */}
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity -z-10" />
+              {/* Subtle hover indicator */}
+              <div 
+                className="absolute bottom-0 left-6 right-6 h-0.5 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"
+                style={{ backgroundColor: capability.color }}
+              />
             </motion.div>
           ))}
         </div>
+
+        {/* CTA - Clear Next Step */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center"
+        >
+          <Button asChild variant="outline" size="lg" className="group">
+            <Link to="/features" className="flex items-center gap-2">
+              Explore All Features
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </Button>
+        </motion.div>
       </div>
     </section>
   );
