@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale, ClipboardCheck, Database } from "lucide-react";
+import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale, ClipboardCheck, Database, Activity } from "lucide-react";
 import { resolveDisplayValue } from "@/lib/displayResolver";
 import {
   AlertDialog,
@@ -26,6 +26,7 @@ import {
 import { AdminLawLibraryManager } from "@/components/admin/AdminLawLibraryManager";
 import { ProductionChecklist } from "@/components/admin/ProductionChecklist";
 import { SeedDataPanel } from "@/components/admin/SeedDataPanel";
+import { MigrationDryRunPanel } from "@/components/admin/MigrationDryRunPanel";
 
 interface UserProfile {
   id: string;
@@ -265,6 +266,10 @@ const AdminDashboard = () => {
               <Database className="h-4 w-4" />
               Seed Data
             </TabsTrigger>
+            <TabsTrigger value="migration" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Migration
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -404,6 +409,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="seed">
             <SeedDataPanel />
+          </TabsContent>
+
+          <TabsContent value="migration">
+            <MigrationDryRunPanel />
           </TabsContent>
         </Tabs>
       </div>
