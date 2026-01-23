@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale, ClipboardCheck, Database, Activity } from "lucide-react";
+import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale, ClipboardCheck, Database, Activity, Bell } from "lucide-react";
 import { resolveDisplayValue } from "@/lib/displayResolver";
 import {
   AlertDialog,
@@ -27,6 +27,7 @@ import { AdminLawLibraryManager } from "@/components/admin/AdminLawLibraryManage
 import { ProductionChecklist } from "@/components/admin/ProductionChecklist";
 import { SeedDataPanel } from "@/components/admin/SeedDataPanel";
 import { MigrationDryRunPanel } from "@/components/admin/MigrationDryRunPanel";
+import { AdminPushTester } from "@/components/admin/AdminPushTester";
 
 interface UserProfile {
   id: string;
@@ -270,6 +271,10 @@ const AdminDashboard = () => {
               <Activity className="h-4 w-4" />
               Migration
             </TabsTrigger>
+            <TabsTrigger value="push" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Push
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -413,6 +418,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="migration">
             <MigrationDryRunPanel />
+          </TabsContent>
+
+          <TabsContent value="push">
+            <AdminPushTester />
           </TabsContent>
         </Tabs>
       </div>

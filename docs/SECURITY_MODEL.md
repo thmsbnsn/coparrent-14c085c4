@@ -138,20 +138,39 @@ AI tools are treated as **support tools**, not decision-makers.
 
 ---
 
+## Push Notification Security
+
+Push notifications follow the same zero-trust model as other features:
+
+### Subscription Storage
+- Push subscriptions are stored in `push_subscriptions` table
+- RLS ensures users can only manage their own subscriptions
+- Subscription endpoints and keys are never exposed to the client after registration
+
+### VAPID Key Handling
+- VAPID keys are stored as server-side secrets (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`)
+- Public key is exposed only during subscription registration
+- Private key never leaves the server environment
+
+### Admin Push Testing
+- Admin-only test push tool requires `is_admin()` check
+- Test sends are audit-logged with action `TEST_PUSH_SENT`
+- Rate-limited server-side to prevent abuse
+
+### Notification Payload Safety
+- Notification bodies are sanitized (emails, phone numbers stripped)
+- Maximum payload length enforced (200 chars)
+- No private message content in push payloads
+- Deep links are relative paths, resolved within authenticated session
+
+### Platform Support
+- **Android**: Full Web Push support in browser and PWA
+- **iOS**: Requires PWA installation (Add to Home Screen) on iOS 16.4+
+- Browser-based iOS Safari does not support push
+
+---
+
 ## Rate Limiting & Abuse Prevention
-
-Rate limits are enforced server-side to prevent:
-- Abuse
-- Cost overruns
-- Model exhaustion
-- Prompt manipulation
-
-Rate limiting applies to:
-- AI interactions
-- Resource-heavy operations
-- Export generation
-
-Exceeding limits returns structured, user-safe errors.
 
 ---
 
