@@ -30,6 +30,8 @@ import HelpScheduleChangeRequests from "./pages/help/HelpScheduleChangeRequests"
 import HelpInvitations from "./pages/help/HelpInvitations";
 import HelpDocumentExports from "./pages/help/HelpDocumentExports";
 import HelpSchedulePatterns from "./pages/help/HelpSchedulePatterns";
+import HelpContact from "./pages/help/HelpContact";
+import HelpSecurity from "./pages/help/HelpSecurity";
 import CourtRecordsPage from "./pages/CourtRecordsPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
@@ -106,6 +108,8 @@ const App = () => (
               <Route path="/help/account" element={<RouteErrorBoundary routeName="Help - Account"><HelpAccount /></RouteErrorBoundary>} />
               <Route path="/help/account/trial-ending" element={<RouteErrorBoundary routeName="Help - Trial Ending"><HelpTrialEnding /></RouteErrorBoundary>} />
               <Route path="/help/privacy" element={<RouteErrorBoundary routeName="Help - Privacy"><HelpPrivacy /></RouteErrorBoundary>} />
+              <Route path="/help/security" element={<RouteErrorBoundary routeName="Help - Security"><HelpSecurity /></RouteErrorBoundary>} />
+              <Route path="/help/contact" element={<RouteErrorBoundary routeName="Help - Contact"><HelpContact /></RouteErrorBoundary>} />
               <Route path="/court-records" element={<RouteErrorBoundary routeName="Court Records"><CourtRecordsPage /></RouteErrorBoundary>} />
               <Route path="/terms" element={<RouteErrorBoundary routeName="Terms"><TermsPage /></RouteErrorBoundary>} />
               <Route path="/privacy" element={<RouteErrorBoundary routeName="Privacy"><PrivacyPage /></RouteErrorBoundary>} />
