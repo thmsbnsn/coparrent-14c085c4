@@ -16,6 +16,9 @@ import { addChildSchema } from "@/lib/validations";
 import { ChildAvatar } from "@/components/children/ChildAvatar";
 import { ChildPhotoGallery } from "@/components/children/ChildPhotoGallery";
 import { DeleteChildDialog } from "@/components/children/DeleteChildDialog";
+import { ViewOnlyBadge } from "@/components/ui/ViewOnlyBadge";
+import { PermissionButton } from "@/components/ui/PermissionButton";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { Child } from "@/hooks/useChildren";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { Progress } from "@/components/ui/progress";
@@ -138,6 +141,7 @@ const InfoCard = ({
 const ChildrenPage = () => {
   const { children, loading, addChild, updateChild, deleteChild } = useRealtimeChildren();
   const { kids_used, max_kids, canAddChild, isAtChildLimit, tier, refresh: refreshLimits } = usePlanLimits();
+  const { permissions } = usePermissions();
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -346,8 +350,17 @@ const ChildrenPage = () => {
               <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-display font-bold">Child Information Hub</h1>
-              <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">Keep important details organized and shared</p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-display font-bold">Child Information Hub</h1>
+                {permissions.isViewOnly && (
+                  <ViewOnlyBadge reason={permissions.viewOnlyReason || undefined} size="sm" />
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">
+                {permissions.isViewOnly 
+                  ? "View child information (managed by parents)"
+                  : "Keep important details organized and shared"}
+              </p>
             </div>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
@@ -355,10 +368,15 @@ const ChildrenPage = () => {
             setIsAddDialogOpen(open);
           }}>
             <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto shrink-0" disabled={isAtChildLimit}>
+              <PermissionButton 
+                className="w-full sm:w-auto shrink-0" 
+                disabled={isAtChildLimit}
+                hasPermission={permissions.canManageChildren}
+                deniedMessage="Only parents can add children"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 {isAtChildLimit ? `Limit Reached (${max_kids})` : "Add Child"}
-              </Button>
+              </PermissionButton>
             </DialogTrigger>
             <DialogContent className="mx-4 sm:mx-auto max-w-md">
               <DialogHeader>
