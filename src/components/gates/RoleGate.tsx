@@ -1,10 +1,12 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserX, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
+import { useSubscription } from "@/hooks/useSubscription";
+import { recordRoleDenial, getDenialContext } from "@/lib/denialTelemetry";
 
 interface RoleGateProps {
   children: ReactNode;
@@ -18,6 +20,8 @@ interface RoleGateProps {
   fallback?: ReactNode;
   /** Custom message for restricted access */
   restrictedMessage?: string;
+  /** Feature name for telemetry */
+  featureName?: string;
 }
 
 /**
@@ -43,9 +47,28 @@ export const RoleGate = ({
   hideWhenLocked = false,
   fallback,
   restrictedMessage = "This feature requires parent access.",
+  featureName = "This feature",
 }: RoleGateProps) => {
   const navigate = useNavigate();
   const { isThirdParty, isParent, loading } = useFamilyRole();
+  const { tier } = useSubscription();
+
+  // Check if user has required role
+  const hasAccess = requireParent ? isParent : true;
+
+  // Record telemetry when access is denied
+  useEffect(() => {
+    if (!loading && !hasAccess && isThirdParty) {
+      recordRoleDenial(
+        featureName,
+        "third_party",
+        tier || "free"
+      );
+    }
+  }, [loading, hasAccess, isThirdParty, featureName, subscriptionTier]);
+
+  // Get user-friendly context
+  const context = getDenialContext("role_restricted", featureName);
 
   if (loading) {
     return inline ? (
@@ -58,9 +81,6 @@ export const RoleGate = ({
       </Card>
     );
   }
-
-  // Check if user has required role
-  const hasAccess = requireParent ? isParent : true;
 
   if (hasAccess) {
     return <>{children}</>;
@@ -78,7 +98,7 @@ export const RoleGate = ({
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
         <UserX className="h-4 w-4" />
-        <span>{isThirdParty ? "View-only access" : "Parent access required"}</span>
+        <span>{context.title}</span>
       </div>
     );
   }
@@ -91,19 +111,17 @@ export const RoleGate = ({
         </div>
         
         <div className="space-y-2">
-          <h3 className="font-semibold text-lg">
-            {isThirdParty ? "Limited Access" : "Parent Access Required"}
-          </h3>
+          <h3 className="font-semibold text-lg">{context.title}</h3>
           <p className="text-muted-foreground text-sm max-w-sm">
             {isThirdParty 
-              ? "As a third-party member, you have view-only access to shared information."
+              ? context.description
               : restrictedMessage
             }
           </p>
         </div>
 
         <Button variant="outline" onClick={() => navigate("/dashboard")}>
-          Return to Dashboard
+          {context.action.label}
         </Button>
       </CardContent>
     </Card>

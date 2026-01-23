@@ -1,10 +1,13 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Crown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { usePremiumAccess } from "@/hooks/usePremiumAccess";
 import { Skeleton } from "@/components/ui/skeleton";
+import { recordPremiumDenial, getDenialContext } from "@/lib/denialTelemetry";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useFamilyRole } from "@/hooks/useFamilyRole";
 
 interface PremiumFeatureGateProps {
   children: ReactNode;
@@ -26,6 +29,22 @@ export const PremiumFeatureGate = ({
 }: PremiumFeatureGateProps) => {
   const navigate = useNavigate();
   const { hasAccess, loading, reason } = usePremiumAccess();
+  const { tier } = useSubscription();
+  const { isParent } = useFamilyRole();
+
+  const isExpired = reason === "trial_expired";
+  const denialReason = isExpired ? "trial_expired" : "premium_required";
+
+  // Record telemetry when access is denied
+  useEffect(() => {
+    if (!loading && !hasAccess) {
+      recordPremiumDenial(
+        featureName,
+        tier || "free",
+        denialReason
+      );
+    }
+  }, [loading, hasAccess, featureName, subscriptionTier, denialReason]);
 
   if (loading) {
     return inline ? (
@@ -51,20 +70,21 @@ export const PremiumFeatureGate = ({
     return <>{fallback}</>;
   }
 
-  const isExpired = reason === "trial_expired";
+  // Get user-friendly context
+  const context = getDenialContext(denialReason, featureName);
 
   if (inline) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
         <Lock className="h-4 w-4" />
-        <span>{isExpired ? "Trial expired" : "Power feature"}</span>
+        <span>{context.title}</span>
         <Button 
           variant="link" 
           size="sm" 
           className="h-auto p-0 text-primary"
           onClick={() => navigate("/pricing")}
         >
-          Get Power
+          {context.action.label}
         </Button>
       </div>
     );
@@ -82,20 +102,15 @@ export const PremiumFeatureGate = ({
         </div>
         
         <div className="space-y-2">
-          <h3 className="font-semibold text-lg">
-            {isExpired ? "Trial Expired" : "Power Feature"}
-          </h3>
+          <h3 className="font-semibold text-lg">{context.title}</h3>
           <p className="text-muted-foreground text-sm max-w-sm">
-            {isExpired 
-              ? `Your trial has ended. Upgrade to Power to continue using ${featureName.toLowerCase()}.`
-              : `${featureName} is available with the Power plan ($5/month).`
-            }
+            {context.description}
           </p>
         </div>
 
         <Button onClick={() => navigate("/pricing")} className="gap-2">
           <Sparkles className="h-4 w-4" />
-          {isExpired ? "Upgrade to Power" : "Get Power"}
+          {context.action.label}
         </Button>
       </CardContent>
     </Card>

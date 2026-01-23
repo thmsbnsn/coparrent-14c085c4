@@ -1,11 +1,15 @@
+import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useChildAccount } from "@/hooks/useChildAccount";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { recordChildDenial } from "@/lib/denialTelemetry";
 
 interface ChildAccountGateProps {
   children: React.ReactNode;
   requireParent?: boolean;
   fallback?: React.ReactNode;
+  /** Feature name for telemetry */
+  featureName?: string;
 }
 
 // Routes that children can access
@@ -30,9 +34,23 @@ export const ChildAccountGate = ({
   children,
   requireParent = false,
   fallback,
+  featureName = "This feature",
 }: ChildAccountGateProps) => {
   const { isChildAccount, permissions, loading } = useChildAccount();
   const location = useLocation();
+
+  // Record telemetry when child is blocked
+  useEffect(() => {
+    if (!loading && isChildAccount) {
+      const isParentOnly = PARENT_ONLY_ROUTES.some(
+        (route) => location.pathname === route || location.pathname.startsWith(route + "/")
+      );
+      
+      if (requireParent || isParentOnly) {
+        recordChildDenial(featureName, "free");
+      }
+    }
+  }, [loading, isChildAccount, requireParent, location.pathname, featureName]);
 
   if (loading) {
     return <LoadingSpinner fullScreen message="Loading..." />;
