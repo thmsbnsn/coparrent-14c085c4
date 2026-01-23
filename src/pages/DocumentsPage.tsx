@@ -25,6 +25,9 @@ import { useDocuments, DOCUMENT_CATEGORIES } from '@/hooks/useDocuments';
 import { DocumentUploadDialog } from '@/components/documents/DocumentUploadDialog';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { CourtExportDialog } from '@/components/documents/CourtExportDialog';
+import { ViewOnlyBadge } from '@/components/ui/ViewOnlyBadge';
+import { PermissionButton } from '@/components/ui/PermissionButton';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const DocumentsPageContent = () => {
   const {
@@ -37,6 +40,8 @@ const DocumentsPageContent = () => {
     deleteDocument,
     getAccessLogs,
   } = useDocuments();
+
+  const { permissions } = usePermissions();
 
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showCourtExportDialog, setShowCourtExportDialog] = useState(false);
@@ -62,23 +67,37 @@ const DocumentsPageContent = () => {
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <div>
-            <h1 className="text-2xl lg:text-3xl font-display font-bold">
-              Document Vault
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl lg:text-3xl font-display font-bold">
+                Document Vault
+              </h1>
+              {permissions.isViewOnly && (
+                <ViewOnlyBadge reason={permissions.viewOnlyReason || undefined} />
+              )}
+            </div>
             <p className="text-muted-foreground mt-1 flex items-center gap-2">
               <Shield className="w-4 h-4" />
               Secure storage with complete audit trail
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowCourtExportDialog(true)}>
+            <PermissionButton
+              variant="outline"
+              hasPermission={permissions.canManageDocuments}
+              deniedMessage="Only parents can export documents"
+              onClick={() => setShowCourtExportDialog(true)}
+            >
               <Scale className="w-4 h-4 mr-2" />
               Court Export
-            </Button>
-            <Button onClick={() => setShowUploadDialog(true)}>
+            </PermissionButton>
+            <PermissionButton
+              hasPermission={permissions.canManageDocuments}
+              deniedMessage="Only parents can upload documents"
+              onClick={() => setShowUploadDialog(true)}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Upload Document
-            </Button>
+            </PermissionButton>
           </div>
         </motion.div>
 
@@ -174,7 +193,7 @@ const DocumentsPageContent = () => {
                 ? 'Try adjusting your search or filter'
                 : 'Upload important documents like custody agreements, medical records, and school information to share securely with your co-parent.'}
             </p>
-            {!searchQuery && categoryFilter === 'all' && (
+            {!searchQuery && categoryFilter === 'all' && permissions.canManageDocuments && (
               <Button onClick={() => setShowUploadDialog(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Upload Your First Document

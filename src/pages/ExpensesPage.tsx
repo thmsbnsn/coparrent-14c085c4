@@ -41,8 +41,11 @@ import { Label } from "@/components/ui/label";
 import { FeatureErrorBoundary } from "@/components/ui/FeatureErrorBoundary";
 import { PremiumFeatureGate } from "@/components/premium/PremiumFeatureGate";
 import { ExpenseCharts } from "@/components/expenses/ExpenseCharts";
+import { ViewOnlyBadge } from "@/components/ui/ViewOnlyBadge";
+import { PermissionButton } from "@/components/ui/PermissionButton";
 import { useExpenses, EXPENSE_CATEGORIES, Expense, ReimbursementRequest } from "@/hooks/useExpenses";
 import { useChildren } from "@/hooks/useChildren";
+import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from "date-fns";
@@ -63,6 +66,7 @@ function ExpensesPageContent() {
     getTotals,
   } = useExpenses();
   const { children } = useChildren();
+  const { permissions } = usePermissions();
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -418,22 +422,34 @@ function ExpensesPageContent() {
           className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
         >
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <DollarSign className="h-7 w-7 text-[#21B0FE]" />
-              Shared Expenses
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <DollarSign className="h-7 w-7 text-[#21B0FE]" />
+                Shared Expenses
+              </h1>
+              {permissions.isViewOnly && (
+                <ViewOnlyBadge reason={permissions.viewOnlyReason || undefined} />
+              )}
+            </div>
             <p className="text-muted-foreground mt-1">
-              Track costs, request reimbursements, and export reports
+              {permissions.isViewOnly 
+                ? "View shared expense records"
+                : "Track costs, request reimbursements, and export reports"}
             </p>
           </div>
           
           <div className="flex flex-wrap gap-2">
             <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
+                <PermissionButton 
+                  variant="outline" 
+                  className="border-primary/50 text-primary hover:bg-primary/10"
+                  hasPermission={permissions.canManageExpenses}
+                  deniedMessage="Only parents can generate court reports"
+                >
                   <FileText className="h-4 w-4 mr-2" />
                   Court Report
-                </Button>
+                </PermissionButton>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[400px]">
                 <DialogHeader>
@@ -504,10 +520,14 @@ function ExpensesPageContent() {
               setIsAddOpen(open);
             }}>
               <DialogTrigger asChild>
-                <Button className="bg-[#21B0FE] hover:bg-[#21B0FE]/90">
+                <PermissionButton 
+                  className="bg-[#21B0FE] hover:bg-[#21B0FE]/90"
+                  hasPermission={permissions.canManageExpenses}
+                  deniedMessage="Only parents can add expenses"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Expense
-                </Button>
+                </PermissionButton>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
