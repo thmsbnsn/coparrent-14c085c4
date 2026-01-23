@@ -282,12 +282,15 @@ const ChoreChartContent = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Child (optional)</label>
-                  <Select value={selectedChild} onValueChange={setSelectedChild}>
+                  <Select 
+                    value={selectedChild || "none"} 
+                    onValueChange={(val) => setSelectedChild(val === "none" ? "" : val)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select child..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No child selected</SelectItem>
+                      <SelectItem value="none">No child selected</SelectItem>
                       {children.map((child) => (
                         <SelectItem key={child.id} value={child.id}>
                           {child.name}
