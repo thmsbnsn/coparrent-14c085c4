@@ -1,3 +1,13 @@
+/**
+ * @page-role Action
+ * @summary-pattern Tab-organized configuration sections
+ * @ownership User's personal settings and family connections
+ * @court-view N/A (configuration, not evidentiary)
+ * 
+ * LAW 1: Action role - focused configuration controls
+ * LAW 4: All setting sections use consistent card/form patterns
+ * LAW 7: Tab navigation adapts to mobile with preserved functionality
+ */
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { User, Bell, Shield, LogOut, Users, BellOff, Baby } from "lucide-react";

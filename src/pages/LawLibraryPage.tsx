@@ -1,3 +1,13 @@
+/**
+ * @page-role Reference
+ * @summary-pattern Legal resource categories with search/filter
+ * @ownership Public resource library (no user-specific data)
+ * @court-view N/A (informational reference only)
+ * 
+ * LAW 1: Reference role - read-only, low cognitive load
+ * LAW 2: Category tabs provide summary before individual articles
+ * LAW 7: Mobile-friendly card layout with preserved hierarchy
+ */
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {

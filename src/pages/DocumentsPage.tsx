@@ -1,3 +1,13 @@
+/**
+ * @page-role Reference
+ * @summary-pattern Category counts + document grid with search/filter
+ * @ownership Both co-parents can view all documents (shared vault)
+ * @court-view Court Export dialog generates neutral, print-safe document bundles
+ * 
+ * LAW 1: Reference role - read-only browsing, low cognitive load
+ * LAW 2: Stats summary (total, legal, medical, school) before document grid
+ * LAW 6: Court Export is first-class - accessible from header actions
+ */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
