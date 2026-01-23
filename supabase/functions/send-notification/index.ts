@@ -16,6 +16,10 @@ interface NotificationPayload {
   data?: Record<string, any>;
 }
 
+/**
+ * Get email template - NO SENSITIVE CONTENT
+ * Only includes neutral copy and CTA link
+ */
 const getEmailTemplate = (payload: NotificationPayload): { subject: string; html: string } => {
   const baseStyles = `
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -61,6 +65,18 @@ const getEmailTemplate = (payload: NotificationPayload): { subject: string; html
 
   const actionUrl = payload.action_url || "https://coparrent.lovable.app/dashboard";
 
+  // PRIVACY: Generic messages only - no actual content
+  const safeMessageMap: Record<NotificationPayload["type"], string> = {
+    new_message: "You have a new message waiting for you in CoParrent.",
+    schedule_change: "A schedule change has been requested. Please review it in the app.",
+    schedule_response: "Your schedule request has been updated.",
+    document_upload: "A new document has been shared with you.",
+    child_update: "Child information has been updated.",
+    exchange_reminder: "You have an upcoming custody exchange.",
+  };
+
+  const safeMessage = safeMessageMap[payload.type] || "You have a new notification in CoParrent.";
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -75,8 +91,7 @@ const getEmailTemplate = (payload: NotificationPayload): { subject: string; html
       </div>
       <div style="${contentStyles}">
         <h2 style="color: #1e3a5f; margin-top: 0;">${payload.title}</h2>
-        <p style="color: #333; line-height: 1.6;">${payload.message}</p>
-        ${payload.sender_name ? `<p style="color: #666; font-size: 14px;">From: ${payload.sender_name}</p>` : ""}
+        <p style="color: #333; line-height: 1.6;">${safeMessage}</p>
         <a href="${actionUrl}" style="${buttonStyles}">View in CoParrent</a>
       </div>
       <div style="${footerStyles}">
@@ -88,7 +103,7 @@ const getEmailTemplate = (payload: NotificationPayload): { subject: string; html
   `;
 
   const subjectMap: Record<NotificationPayload["type"], string> = {
-    new_message: `New message from ${payload.sender_name || "your co-parent"}`,
+    new_message: "New message in CoParrent",
     schedule_change: "Schedule change request",
     schedule_response: "Schedule request update",
     document_upload: "New document shared",
@@ -101,6 +116,38 @@ const getEmailTemplate = (payload: NotificationPayload): { subject: string; html
     html,
   };
 };
+
+/**
+ * Audit log for notification sends (high-level, no payload)
+ * Uses any type to avoid Supabase client typing issues in edge functions
+ */
+async function logNotificationAudit(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  type: string,
+  recipientId: string,
+  channel: "email" | "push" | "in_app",
+  success: boolean
+): Promise<void> {
+  try {
+    // Insert directly into audit_logs table for system events
+    await supabase.from("audit_logs").insert({
+      actor_user_id: "00000000-0000-0000-0000-000000000000",
+      actor_role_at_action: "system",
+      action: `NOTIFICATION_${channel.toUpperCase()}_${success ? "SENT" : "FAILED"}`,
+      entity_type: "notification",
+      metadata: {
+        notification_type: type,
+        recipient_id: recipientId,
+        channel,
+        success,
+      },
+    });
+  } catch (error) {
+    // Non-blocking audit
+    console.error("Audit log failed (non-blocking):", error);
+  }
+}
 
 const handler = async (req: Request): Promise<Response> => {
   // Strict CORS validation
@@ -140,7 +187,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const payload: NotificationPayload = await req.json();
-    console.log("Received notification request:", payload);
+    // Sanitized log - no message content
+    console.log("Notification request:", { type: payload.type, recipient: payload.recipient_profile_id });
 
     // Get recipient's profile and preferences
     const { data: recipientProfile, error: profileError } = await supabase
@@ -150,7 +198,7 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (profileError || !recipientProfile) {
-      console.error("Error fetching recipient profile:", profileError);
+      console.error("Recipient not found:", payload.recipient_profile_id);
       return new Response(
         JSON.stringify({ error: "Recipient not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -188,6 +236,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Create in-app notification
+    let inAppSuccess = false;
     const { error: notifError } = await supabase.from("notifications").insert({
       user_id: recipientProfile.id,
       type: payload.type,
@@ -197,7 +246,11 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (notifError) {
-      console.error("Error creating notification:", notifError);
+      console.error("Error creating in-app notification:", notifError);
+      await logNotificationAudit(supabase, payload.type, payload.recipient_profile_id, "in_app", false);
+    } else {
+      inAppSuccess = true;
+      await logNotificationAudit(supabase, payload.type, payload.recipient_profile_id, "in_app", true);
     }
 
     // Send email notification
@@ -214,27 +267,29 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         if (emailError) {
-          console.error("Error sending email:", emailError);
+          console.error("Email send failed");
+          await logNotificationAudit(supabase, payload.type, payload.recipient_profile_id, "email", false);
         } else {
           emailSent = true;
-          console.log("Email sent successfully to:", recipientProfile.email);
+          await logNotificationAudit(supabase, payload.type, payload.recipient_profile_id, "email", true);
+          console.log("Email sent successfully");
         }
       } catch (emailErr) {
-        console.error("Email sending exception:", emailErr);
+        console.error("Email exception");
+        await logNotificationAudit(supabase, payload.type, payload.recipient_profile_id, "email", false);
       }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        notification_created: !notifError,
+        notification_created: inAppSuccess,
         email_sent: emailSent,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Error in send-notification:", errorMessage);
+    console.error("Error in send-notification");
     return new Response(
       JSON.stringify({ error: "Unable to send notification. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

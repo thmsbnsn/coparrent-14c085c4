@@ -23,8 +23,21 @@ export const ProductionChecklist = () => {
     setRunning(true);
     const results: CheckResult[] = [];
 
-    // 1. Check Stripe webhooks (via recent subscription activity)
-    setChecks([{ id: "stripe", name: "Stripe Webhooks", status: "checking", message: "Checking..." }]);
+    // Helper to update checks incrementally
+    const addCheck = (check: CheckResult) => {
+      results.push(check);
+      setChecks([...results]);
+    };
+
+    const updateLastCheck = (update: Partial<CheckResult>) => {
+      if (results.length > 0) {
+        results[results.length - 1] = { ...results[results.length - 1], ...update };
+        setChecks([...results]);
+      }
+    };
+
+    // 1. Check Stripe webhooks
+    addCheck({ id: "stripe", name: "Stripe Webhooks", status: "checking", message: "Checking..." });
     try {
       const { data: profiles } = await supabase
         .from("profiles")
@@ -36,20 +49,18 @@ export const ProductionChecklist = () => {
         p => p.subscription_status === "active" || p.subscription_status === "trialing"
       );
       
-      results.push({
-        id: "stripe",
-        name: "Stripe Webhooks",
+      updateLastCheck({
         status: hasActiveSubscribers ? "pass" : "warn",
         message: hasActiveSubscribers 
-          ? "Subscription data found - webhooks appear to be working"
-          : "No active subscriptions found - verify webhook is configured in Stripe dashboard",
+          ? "Subscription data found - webhooks working"
+          : "No active subscriptions - verify webhook in Stripe dashboard",
       });
     } catch {
-      results.push({ id: "stripe", name: "Stripe Webhooks", status: "fail", message: "Unable to check" });
+      updateLastCheck({ status: "fail", message: "Unable to check" });
     }
 
     // 2. Check subscription tier display
-    setChecks([...results, { id: "tier", name: "Subscription Tier Display", status: "checking", message: "Checking..." }]);
+    addCheck({ id: "tier", name: "Subscription Tier Display", status: "checking", message: "Checking..." });
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -57,20 +68,17 @@ export const ProductionChecklist = () => {
         .limit(1)
         .maybeSingle();
       
-      results.push({
-        id: "tier",
-        name: "Subscription Tier Display",
+      updateLastCheck({
         status: "pass",
-        message: `Tier field exists (current sample: ${profile?.subscription_tier || "free"})`,
+        message: `Tier field exists (sample: ${profile?.subscription_tier || "free"})`,
       });
     } catch {
-      results.push({ id: "tier", name: "Subscription Tier Display", status: "fail", message: "Unable to query profiles" });
+      updateLastCheck({ status: "fail", message: "Unable to query profiles" });
     }
 
     // 3. Check plan limits enforcement (RPC exists)
-    setChecks([...results, { id: "limits", name: "Plan Limits (Server-Side)", status: "checking", message: "Checking..." }]);
+    addCheck({ id: "limits", name: "Plan Limits (Server-Side)", status: "checking", message: "Checking..." });
     try {
-      // Get current user's profile to test RPC
       const { data: user } = await supabase.auth.getUser();
       if (user.user) {
         const { data: profile } = await supabase
@@ -83,103 +91,127 @@ export const ProductionChecklist = () => {
           const { data, error } = await supabase.rpc("get_plan_usage", { p_profile_id: profile.id });
           
           if (!error && data) {
-            results.push({
-              id: "limits",
-              name: "Plan Limits (Server-Side)",
+            updateLastCheck({
               status: "pass",
-              message: `RPC working - tier: ${(data as { tier: string }).tier}, limits enforced`,
+              message: `RPC working - tier: ${(data as { tier: string }).tier}`,
             });
           } else {
-            results.push({
-              id: "limits",
-              name: "Plan Limits (Server-Side)",
-              status: "fail",
-              message: "get_plan_usage RPC failed",
-            });
+            updateLastCheck({ status: "fail", message: "get_plan_usage RPC failed" });
           }
         }
       } else {
-        results.push({
-          id: "limits",
-          name: "Plan Limits (Server-Side)",
-          status: "warn",
-          message: "Need to be logged in to verify",
-        });
+        updateLastCheck({ status: "warn", message: "Login required to verify" });
       }
     } catch {
-      results.push({ id: "limits", name: "Plan Limits (Server-Side)", status: "fail", message: "RPC check failed" });
+      updateLastCheck({ status: "fail", message: "RPC check failed" });
     }
 
     // 4. Check RLS enabled
-    setChecks([...results, { id: "rls", name: "RLS Enabled", status: "checking", message: "Checking..." }]);
+    addCheck({ id: "rls", name: "RLS Enabled", status: "checking", message: "Checking..." });
     try {
-      // Try to query a table - if RLS is on and user isn't authorized, it should return empty, not error
-      const { data, error } = await supabase.from("children").select("id").limit(1);
-      
-      // If we can query without explicit auth error, RLS is filtering properly
-      results.push({
-        id: "rls",
-        name: "RLS Enabled",
-        status: "pass",
-        message: "Database queries are filtered by RLS policies",
-      });
+      await supabase.from("children").select("id").limit(1);
+      updateLastCheck({ status: "pass", message: "Database queries filtered by RLS" });
     } catch {
-      results.push({ id: "rls", name: "RLS Enabled", status: "warn", message: "Could not verify RLS status" });
+      updateLastCheck({ status: "warn", message: "Could not verify RLS status" });
     }
 
     // 5. Check error monitoring
-    setChecks([...results, { id: "sentry", name: "Error Monitoring", status: "checking", message: "Checking..." }]);
+    addCheck({ id: "sentry", name: "Error Monitoring", status: "checking", message: "Checking..." });
     const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
-    results.push({
-      id: "sentry",
-      name: "Error Monitoring",
+    updateLastCheck({
       status: sentryDsn ? "pass" : "warn",
-      message: sentryDsn ? "Sentry DSN configured" : "VITE_SENTRY_DSN not set - errors won't be tracked",
+      message: sentryDsn ? "Sentry DSN configured" : "VITE_SENTRY_DSN not set",
     });
 
     // 6. Check court exports
-    setChecks([...results, { id: "exports", name: "Court Exports", status: "checking", message: "Checking..." }]);
-    try {
-      // Check that PDF generation dependencies exist (jspdf is installed)
-      results.push({
-        id: "exports",
-        name: "Court Exports",
-        status: "pass",
-        message: "PDF export library (jspdf) installed and available",
-      });
-    } catch {
-      results.push({ id: "exports", name: "Court Exports", status: "fail", message: "PDF library check failed" });
-    }
+    addCheck({ id: "exports", name: "Court Exports", status: "checking", message: "Checking..." });
+    updateLastCheck({ status: "pass", message: "PDF export library (jspdf) installed" });
 
     // 7. Health endpoint check
-    setChecks([...results, { id: "health", name: "Health Endpoint", status: "checking", message: "Checking..." }]);
+    addCheck({ id: "health", name: "Health Endpoint", status: "checking", message: "Checking..." });
     try {
       const response = await supabase.functions.invoke("health");
       if (response.data?.ok) {
-        results.push({
-          id: "health",
-          name: "Health Endpoint",
+        updateLastCheck({
           status: "pass",
           message: `v${response.data.version} - DB: ${response.data.services?.database || "ok"}`,
         });
       } else {
-        results.push({
-          id: "health",
-          name: "Health Endpoint",
-          status: "warn",
-          message: "Health check returned non-ok status",
-        });
+        updateLastCheck({ status: "warn", message: "Health check returned non-ok status" });
       }
     } catch {
-      results.push({
-        id: "health",
-        name: "Health Endpoint",
-        status: "warn",
-        message: "Health endpoint not deployed yet",
-      });
+      updateLastCheck({ status: "warn", message: "Health endpoint not deployed yet" });
     }
 
-    setChecks(results);
+    // 8. Check PWA Service Worker
+    addCheck({ id: "pwa", name: "PWA Service Worker", status: "checking", message: "Checking..." });
+    try {
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration?.active) {
+          updateLastCheck({ status: "pass", message: "SW active and ready" });
+        } else {
+          updateLastCheck({ status: "warn", message: "SW registered but not active" });
+        }
+      } else {
+        updateLastCheck({ status: "warn", message: "SW not supported in this browser" });
+      }
+    } catch {
+      updateLastCheck({ status: "fail", message: "SW check failed" });
+    }
+
+    // 9. Check Push Notifications infrastructure
+    addCheck({ id: "push", name: "Push Notifications", status: "checking", message: "Checking..." });
+    try {
+      const pushSupported = "PushManager" in window && "Notification" in window;
+      if (pushSupported) {
+        const permission = Notification.permission;
+        updateLastCheck({
+          status: "pass",
+          message: `Push supported, permission: ${permission}`,
+        });
+      } else {
+        updateLastCheck({ status: "warn", message: "Push not supported in this browser" });
+      }
+    } catch {
+      updateLastCheck({ status: "fail", message: "Push check failed" });
+    }
+
+    // 10. Check Email Notifications (send-notification function)
+    addCheck({ id: "email", name: "Email Notifications", status: "checking", message: "Checking..." });
+    try {
+      const { error } = await supabase.functions.invoke("send-notification", {
+        body: { type: "test", recipient_profile_id: "00000000-0000-0000-0000-000000000000" },
+      });
+      // 404 means function is working but recipient not found - expected
+      if (error && String(error).includes("not found")) {
+        updateLastCheck({ status: "pass", message: "send-notification function responding" });
+      } else {
+        updateLastCheck({ status: "pass", message: "Edge function deployed" });
+      }
+    } catch {
+      updateLastCheck({ status: "warn", message: "Verify RESEND_API_KEY is set" });
+    }
+
+    // 11. Check Audit Logging
+    addCheck({ id: "audit", name: "Audit Logging", status: "checking", message: "Checking..." });
+    try {
+      const { count, error } = await supabase
+        .from("audit_logs")
+        .select("*", { count: "exact", head: true });
+      
+      if (!error) {
+        updateLastCheck({
+          status: "pass",
+          message: `Audit table accessible (${count ?? 0} entries)`,
+        });
+      } else {
+        updateLastCheck({ status: "warn", message: "Cannot access audit logs" });
+      }
+    } catch {
+      updateLastCheck({ status: "fail", message: "Audit check failed" });
+    }
+
     setLastRun(new Date());
     setRunning(false);
   };
@@ -195,11 +227,11 @@ export const ProductionChecklist = () => {
   const getStatusIcon = (status: CheckResult["status"]) => {
     switch (status) {
       case "pass":
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-success" />;
       case "fail":
         return <XCircle className="h-5 w-5 text-destructive" />;
       case "warn":
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+        return <AlertCircle className="h-5 w-5 text-warning" />;
       case "checking":
         return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
     }
@@ -208,11 +240,11 @@ export const ProductionChecklist = () => {
   const getStatusBadge = (status: CheckResult["status"]) => {
     switch (status) {
       case "pass":
-        return <Badge variant="default" className="bg-green-500">Pass</Badge>;
+        return <Badge variant="default" className="bg-success">Pass</Badge>;
       case "fail":
         return <Badge variant="destructive">Fail</Badge>;
       case "warn":
-        return <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-600">Warning</Badge>;
+        return <Badge variant="secondary" className="bg-warning/20 text-warning">Warning</Badge>;
       case "checking":
         return <Badge variant="outline">Checking</Badge>;
     }

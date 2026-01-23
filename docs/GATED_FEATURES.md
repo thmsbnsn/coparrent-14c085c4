@@ -407,6 +407,65 @@ New users see a guided tour of key dashboard features with dismissal persistence
 
 ---
 
+## Push Notifications
+
+### Platform Support
+
+| Platform | Browser Mode | Installed PWA | Notes |
+|----------|-------------|---------------|-------|
+| **Android Chrome** | ✅ | ✅ | Full support in both modes |
+| **iOS Safari 16.4+** | ❌ | ✅ | Must install to Home Screen |
+| **Desktop Chrome/Edge** | ✅ | ✅ | Full support |
+| **Firefox** | ✅ | ✅ | Full support |
+
+### Push Payload Privacy
+
+All push notifications follow strict privacy rules:
+- **No message content** in payload
+- **No internal identifiers** exposed
+- **Neutral, short copy only** (e.g., "New message waiting")
+- **Route link only** for deep-linking
+
+### Admin Push Testing
+
+Admins can send test push notifications via the Admin Dashboard:
+- Uses existing push pipeline
+- Rate-limited
+- Audit-logged as `TEST_PUSH_SENT`
+- Non-admins blocked server-side
+
+---
+
+## Email Notifications
+
+### Supported Notification Types
+
+| Type | Email Subject | Action URL |
+|------|---------------|------------|
+| `new_message` | "New message in CoParrent" | `/dashboard/messages` |
+| `schedule_change` | "Schedule change request" | `/dashboard/calendar` |
+| `schedule_response` | "Schedule request update" | `/dashboard/calendar` |
+| `document_upload` | "New document shared" | `/dashboard/documents` |
+| `child_update` | "Child information updated" | `/dashboard/children` |
+| `exchange_reminder` | "Upcoming custody exchange" | `/dashboard/calendar` |
+
+### Email Privacy Rules
+
+- **No sensitive content** in email body
+- **No message previews** (only "You have a new message")
+- **Generic copy** referencing notification type
+- **Clear CTA link** back to the app
+- **Unsubscribe link** to settings
+
+### Audit Logging
+
+All email sends are logged to `audit_logs` with:
+- `action`: `NOTIFICATION_EMAIL_SENT` or `NOTIFICATION_EMAIL_FAILED`
+- `entity_type`: `notification`
+- `metadata`: type, recipient_id, channel, success (no payload content)
+
+---
+
 ## Security Notes
 
 1. **Never trust client-side role checks alone** - Always enforce on server
