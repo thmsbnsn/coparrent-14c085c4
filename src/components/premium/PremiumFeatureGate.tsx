@@ -51,7 +51,7 @@ export const PremiumFeatureGate = ({
     return <>{fallback}</>;
   }
 
-  const isExpired = reason === "expired";
+  const isExpired = reason === "trial_expired";
 
   if (inline) {
     return (
