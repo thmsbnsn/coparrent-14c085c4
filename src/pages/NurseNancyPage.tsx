@@ -12,7 +12,10 @@ import {
   Search,
   Pencil,
   Share2,
-  MoreVertical
+  MoreVertical,
+  Download,
+  Printer,
+  FileText
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -52,6 +55,8 @@ import { ShareToFamilyDialog } from "@/components/nurse-nancy/ShareToFamilyDialo
 import { RenameThreadDialog } from "@/components/nurse-nancy/RenameThreadDialog";
 import { MessageSearchDialog } from "@/components/nurse-nancy/MessageSearchDialog";
 import { useNurseNancy, type NurseNancyMessage, type NurseNancyThread } from "@/hooks/useNurseNancy";
+import { generateNurseNancyPdf, openNurseNancyPrintView } from "@/lib/nurseNancyExport";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 // Simple markdown-like rendering for messages
@@ -324,12 +329,14 @@ const ThreadSidebar = ({
 
 const NurseNancyContent = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [inputValue, setInputValue] = useState("");
   const [shareMessageContent, setShareMessageContent] = useState("");
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [threadToRename, setThreadToRename] = useState<NurseNancyThread | null>(null);
+  const [exporting, setExporting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -347,6 +354,42 @@ const NurseNancyContent = () => {
     deleteThread,
     renameThread,
   } = useNurseNancy();
+
+  // Export handlers
+  const handleExportPdf = async () => {
+    if (!currentThread || messages.length === 0) return;
+    setExporting(true);
+    try {
+      await generateNurseNancyPdf(currentThread, messages);
+      toast({
+        title: "PDF Downloaded",
+        description: "Your conversation has been saved as a PDF.",
+      });
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast({
+        title: "Export Failed",
+        description: "Could not generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handlePrint = () => {
+    if (!currentThread || messages.length === 0) return;
+    try {
+      openNurseNancyPrintView(currentThread, messages);
+    } catch (error) {
+      console.error("Print error:", error);
+      toast({
+        title: "Print Failed",
+        description: error instanceof Error ? error.message : "Could not open print view.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -432,10 +475,34 @@ const NurseNancyContent = () => {
             </div>
           </div>
         </div>
-        <Badge variant="outline" className="gap-1.5 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20">
-          <AlertTriangle className="h-3 w-3" />
-          Not Medical Advice
-        </Badge>
+        <div className="flex items-center gap-2">
+          {/* Export menu - only show when thread is active */}
+          {currentThread && messages.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2" disabled={exporting}>
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportPdf} disabled={exporting}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handlePrint}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          
+          <Badge variant="outline" className="gap-1.5 text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+            <AlertTriangle className="h-3 w-3" />
+            Not Medical Advice
+          </Badge>
+        </div>
       </div>
 
       {/* Main Content */}
