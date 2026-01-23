@@ -71,6 +71,7 @@ import CreationsLibraryPage from "./pages/CreationsLibraryPage";
 import LawOfficeLogin from "./pages/LawOfficeLogin";
 import LawOfficeSignup from "./pages/LawOfficeSignup";
 import OfflinePage from "./pages/OfflinePage";
+import PWADiagnosticsPage from "./pages/PWADiagnosticsPage";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 
@@ -164,6 +165,9 @@ const App = () => (
               <Route path="/admin" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Admin"><AdminDashboard /></RouteErrorBoundary></ProtectedRoute>} />
               {/* Offline Route */}
               <Route path="/offline" element={<RouteErrorBoundary routeName="Offline"><OfflinePage /></RouteErrorBoundary>} />
+              
+              {/* PWA Diagnostics (Internal QA) */}
+              <Route path="/pwa-diagnostics" element={<RouteErrorBoundary routeName="PWA Diagnostics"><PWADiagnosticsPage /></RouteErrorBoundary>} />
               
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
