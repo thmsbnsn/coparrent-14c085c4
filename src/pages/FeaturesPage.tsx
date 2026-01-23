@@ -11,14 +11,26 @@ import {
   CheckCircle,
   ArrowRight,
   FlaskConical,
-  Sparkles,
-  Crown
+  Crown,
+  Shield,
+  Clock,
+  Zap
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+/**
+ * Features Page - System Overview
+ * 
+ * Design Intent:
+ * - Group features by USER INTENT, not engineering category
+ * - Make it obvious this is a cohesive SYSTEM, not a checklist
+ * - Clear visual hierarchy across all breakpoints
+ * - Professional, court-ready credibility
+ */
 
 // Feature screenshots
 import calendarFeature from "@/assets/features/calendar-feature.png";
@@ -30,104 +42,134 @@ import journalFeature from "@/assets/features/journal-feature.png";
 import lawLibraryFeature from "@/assets/features/law-library-feature.png";
 import professionalFeature from "@/assets/features/professional-feature.png";
 
-type FeatureTier = "free" | "premium" | "beta";
+type FeatureTier = "free" | "premium";
 
-interface FeatureSection {
+interface Feature {
+  text: string;
+  tier?: FeatureTier;
+  beta?: boolean;
+}
+
+interface FeatureGroup {
   id: string;
+  category: string;
   icon: typeof Calendar;
   title: string;
   description: string;
-  features: Array<{
-    text: string;
-    tier?: FeatureTier;
-    beta?: boolean;
-  }>;
-  gradient: string;
-  link: string;
+  features: Feature[];
   image: string;
   tier: FeatureTier;
-  status?: "stable" | "beta" | "new";
+  beta?: boolean;
 }
 
-const featureSections: FeatureSection[] = [
+// Organized by USER INTENT
+const featureGroups: FeatureGroup[] = [
+  // ORGANIZE YOUR TIME
   {
     id: "calendar",
+    category: "Organize Your Time",
     icon: Calendar,
     title: "Smart Parenting Calendar",
-    description: "Build and manage custody schedules that work for your family. Our intelligent calendar system adapts to your needs.",
+    description: "Build custody schedules that work. Visual calendars with pattern-based scheduling, exchange tracking, and change request workflows.",
     features: [
-      { text: "Visual custody schedules with color-coded parent assignments" },
-      { text: "Pattern-based scheduling (2-2-3, week-on/week-off, custom)" },
+      { text: "Visual custody schedules with parent color-coding" },
+      { text: "Pattern templates: 2-2-3, week-on/week-off, custom" },
       { text: "Schedule change requests with approval workflows" },
       { text: "Exchange check-ins and confirmations" },
       { text: "Holiday schedule overrides", tier: "premium" },
-      { text: "AI schedule suggestions", tier: "premium", beta: true },
     ],
-    gradient: "from-primary to-info",
-    link: "/calendar",
     image: calendarFeature,
     tier: "free",
-    status: "stable"
   },
   {
-    id: "messaging",
-    icon: MessageSquare,
-    title: "Secure Communication",
-    description: "Keep all co-parenting conversations in one documented, professional space. Every message is preserved for your records.",
+    id: "sports",
+    category: "Organize Your Time",
+    icon: Trophy,
+    title: "Sports & Activities Hub",
+    description: "Coordinate activities, practices, and games. Keep both parents informed about equipment, coaches, and logistics.",
     features: [
-      { text: "Timestamped messaging with delivery confirmation" },
+      { text: "Activity and event management" },
+      { text: "Coach contact information" },
+      { text: "Equipment checklists" },
+      { text: "Pickup/dropoff coordination" },
+      { text: "Event reminders", beta: true },
+    ],
+    image: professionalFeature,
+    tier: "premium",
+    beta: true,
+  },
+  // COMMUNICATE CLEARLY
+  {
+    id: "messaging",
+    category: "Communicate Clearly",
+    icon: MessageSquare,
+    title: "Documented Messaging",
+    description: "Every conversation preserved, timestamped, and exportable. Professional communication with complete records.",
+    features: [
+      { text: "Timestamped messages with delivery confirmation" },
       { text: "Read receipts for accountability" },
-      { text: "Complete communication history" },
+      { text: "Complete, searchable conversation history" },
       { text: "AI tone assistance for constructive dialogue", tier: "premium", beta: true },
       { text: "Court-ready message exports", tier: "premium" },
     ],
-    gradient: "from-warning to-destructive",
-    link: "/messages",
     image: messagingFeature,
     tier: "free",
-    status: "stable"
   },
+  // MANAGE RECORDS
   {
     id: "children",
+    category: "Manage Records",
     icon: Users,
     title: "Children Information Hub",
-    description: "Centralize all important details about your children. Both parents stay informed with shared, up-to-date information.",
+    description: "Centralize everything about your children. Medical info, school details, and emergency contacts—shared and always current.",
     features: [
       { text: "Medical information and medication tracking" },
       { text: "School schedules and contact details" },
       { text: "Emergency contacts and procedures" },
       { text: "Shared access with permission controls" },
-      { text: "Unlimited child profiles", tier: "premium" },
     ],
-    gradient: "from-accent-foreground to-success",
-    link: "/children",
     image: childrenFeature,
     tier: "free",
-    status: "stable"
   },
   {
     id: "documents",
+    category: "Manage Records",
     icon: FileText,
-    title: "Documents & Court-Ready Exports",
-    description: "Store and organize important documents securely. Generate comprehensive exports for legal proceedings.",
+    title: "Secure Document Vault",
+    description: "Store and organize important documents. Audit trails, access logging, and court-ready exports when you need them.",
     features: [
-      { text: "Secure document storage with encryption" },
-      { text: "Access logging and audit trails", tier: "premium" },
+      { text: "Encrypted document storage" },
       { text: "Category organization by type" },
-      { text: "Court-ready PDF exports with all records", tier: "premium" },
+      { text: "Access logging and audit trails", tier: "premium" },
+      { text: "Court-ready PDF exports", tier: "premium" },
       { text: "Shared access between co-parents" },
     ],
-    gradient: "from-success to-info",
-    link: "/documents",
     image: documentsFeature,
     tier: "free",
-    status: "stable"
   },
   {
+    id: "journal",
+    category: "Manage Records",
+    icon: BookOpen,
+    title: "Journal & Notes",
+    description: "Private records of observations, moods, and exchange notes. Your personal documentation for peace of mind.",
+    features: [
+      { text: "Private journal entries" },
+      { text: "Child mood tracking" },
+      { text: "Exchange-linked notes" },
+      { text: "Tag-based organization" },
+      { text: "Searchable history" },
+    ],
+    image: journalFeature,
+    tier: "free",
+  },
+  // HANDLE FINANCES
+  {
     id: "expenses",
+    category: "Handle Finances",
     icon: DollarSign,
-    title: "Expenses & Reimbursements",
-    description: "Track shared expenses and manage reimbursements fairly. Keep financial records organized and exportable.",
+    title: "Expense Tracking",
+    description: "Track shared costs and manage reimbursements fairly. Clear records of who paid what and who owes whom.",
     features: [
       { text: "Shared expense tracking by category" },
       { text: "Reimbursement request workflows" },
@@ -135,87 +177,34 @@ const featureSections: FeatureSection[] = [
       { text: "Receipt uploads and attachments" },
       { text: "Exportable expense reports", tier: "premium" },
     ],
-    gradient: "from-primary to-accent-foreground",
-    link: "/expenses",
     image: expensesFeature,
-    tier: "free",
-    status: "stable"
-  },
-  {
-    id: "sports",
-    icon: Trophy,
-    title: "Sports & Activities Hub",
-    description: "Coordinate your children's activities and events. Keep both parents informed about practices, games, and equipment.",
-    features: [
-      { text: "Activity and event management" },
-      { text: "Coach contact information" },
-      { text: "Equipment checklists" },
-      { text: "Event reminders", beta: true },
-      { text: "Pickup/dropoff coordination" },
-    ],
-    gradient: "from-info to-primary",
-    link: "/sports",
-    image: professionalFeature,
     tier: "premium",
-    status: "beta"
   },
-  {
-    id: "journal",
-    icon: BookOpen,
-    title: "Journal & Notes",
-    description: "Maintain private records of important moments and observations. Link notes to exchanges for context.",
-    features: [
-      { text: "Private journal entries for personal records" },
-      { text: "Mood tracking for children" },
-      { text: "Exchange-linked notes and observations" },
-      { text: "Tag-based organization" },
-      { text: "Searchable history" },
-    ],
-    gradient: "from-info to-primary",
-    link: "/journal",
-    image: journalFeature,
-    tier: "free",
-    status: "stable"
-  },
+  // UNDERSTAND YOUR RIGHTS
   {
     id: "law-library",
+    category: "Understand Your Rights",
     icon: Scale,
     title: "Law Library",
-    description: "Access state-specific family law resources. Educational reference materials to help you understand your rights.",
+    description: "State-specific family law resources for reference. Educational materials to help you understand custody guidelines.",
     features: [
       { text: "State-specific legal resources" },
       { text: "Custody and visitation guidelines" },
       { text: "Educational reference documents" },
       { text: "Regularly updated content" },
-      { text: "Disclaimer: For reference only, not legal advice" },
     ],
-    gradient: "from-muted-foreground to-primary",
-    link: "/law-library",
     image: lawLibraryFeature,
     tier: "free",
-    status: "stable"
   },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
+// Group features by category
+const categories = [...new Set(featureGroups.map(f => f.category))];
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
-};
-
-const TierBadge = ({ tier, status }: { tier: FeatureTier; status?: string }) => {
-  if (status === "beta") {
+const TierBadge = ({ tier, beta }: { tier: FeatureTier; beta?: boolean }) => {
+  if (beta) {
     return (
-      <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+      <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/20">
         <FlaskConical className="w-3 h-3 mr-1" />
         Beta
       </Badge>
@@ -226,16 +215,7 @@ const TierBadge = ({ tier, status }: { tier: FeatureTier; status?: string }) => 
     return (
       <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
         <Crown className="w-3 h-3 mr-1" />
-        Premium
-      </Badge>
-    );
-  }
-  
-  if (status === "new") {
-    return (
-      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-        <Sparkles className="w-3 h-3 mr-1" />
-        New
+        Power
       </Badge>
     );
   }
@@ -248,171 +228,194 @@ export default function FeaturesPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="pt-32 pb-16 lg:pt-40 lg:pb-24">
+      {/* Hero Section - Direct, Authoritative */}
+      <section className="pt-28 pb-12 lg:pt-36 lg:pb-16 bg-muted/30">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold tracking-tight mb-6"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
             >
-              Everything you need for clear, organized co-parenting
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
+              <Shield className="w-4 h-4" />
+              Complete Co-Parenting Platform
+            </motion.div>
+            
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8"
+              className="mb-5"
             >
-              From scheduling to communication to court-ready records, CoParrent keeps everything in one calm, secure place.
+              Built for clarity.<br />Designed for peace.
+            </motion.h1>
+            
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8"
+            >
+              Every feature works together to reduce conflict, document decisions, 
+              and keep your children's needs at the center of every interaction.
             </motion.p>
+            
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
+              className="flex flex-col sm:flex-row gap-3 justify-center"
             >
-              <Button asChild size="lg" className="text-base">
+              <Button asChild size="lg">
                 <Link to="/signup">Get Started Free</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="text-base">
+              <Button asChild variant="outline" size="lg">
                 <Link to="/pricing">View Pricing</Link>
               </Button>
             </motion.div>
             
             {/* Legend */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground"
+              className="mt-8 flex flex-wrap justify-center gap-6 text-sm text-muted-foreground"
             >
               <span className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                  <Crown className="w-3 h-3 mr-1" />
-                  Premium
-                </Badge>
-                Paid feature
+                <TierBadge tier="premium" />
+                <span>Power plan</span>
               </span>
               <span className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
-                  <FlaskConical className="w-3 h-3 mr-1" />
-                  Beta
-                </Badge>
-                Under development
+                <TierBadge tier="free" beta />
+                <span>In development</span>
               </span>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Feature Sections */}
-      <section className="py-16 lg:py-24">
+      {/* Feature Sections - Grouped by Intent */}
+      <section className="py-16 lg:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="space-y-24 lg:space-y-32"
-          >
-            {featureSections.map((section, index) => (
-              <motion.div
-                key={section.id}
-                variants={itemVariants}
-                className={`flex flex-col ${index % 2 === 1 ? 'lg:flex-row-reverse' : 'lg:flex-row'} gap-12 lg:gap-16 items-center`}
-              >
-                {/* Content */}
-                <div className="flex-1 max-w-xl">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div
-                      className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${section.gradient}`}
-                    >
-                      <section.icon className="w-7 h-7 text-primary-foreground" />
-                    </div>
-                    <TierBadge tier={section.tier} status={section.status} />
-                  </div>
-                  
-                  <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
-                    {section.title}
-                  </h2>
-                  
-                  <p className="text-lg text-muted-foreground mb-6">
-                    {section.description}
-                  </p>
-                  
-                  <ul className="space-y-3 mb-8">
-                    {section.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span className="text-foreground/80 flex items-center gap-2 flex-wrap">
-                          {feature.text}
-                          {feature.tier === "premium" && (
-                            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                              Premium
-                            </Badge>
-                          )}
-                          {feature.beta && (
-                            <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
-                              Beta
-                            </Badge>
-                          )}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <Button asChild variant="ghost" className="group p-0 h-auto font-medium">
-                    <Link to={section.link} className="flex items-center gap-2">
-                      Learn more
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-                </div>
+          {categories.map((category, catIndex) => {
+            const categoryFeatures = featureGroups.filter(f => f.category === category);
+            
+            return (
+              <div key={category} className="mb-20 lg:mb-28 last:mb-0">
+                {/* Category Header */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="mb-10 lg:mb-14"
+                >
+                  <span className="inline-block text-xs font-semibold text-primary uppercase tracking-widest mb-2">
+                    {category}
+                  </span>
+                  <div className="w-12 h-0.5 bg-primary/30 rounded-full" />
+                </motion.div>
 
-                {/* Visual Card with Screenshot */}
-                <div className="flex-1 w-full max-w-lg">
-                  <div className={`relative rounded-3xl bg-gradient-to-br ${section.gradient} p-[1px]`}>
-                    <div className="rounded-3xl bg-card p-4 lg:p-6">
-                      <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-muted/50">
-                        <img 
-                          src={section.image} 
-                          alt={`${section.title} screenshot`}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
+                {/* Features in Category */}
+                <div className="space-y-16 lg:space-y-24">
+                  {categoryFeatures.map((feature, index) => (
+                    <motion.div
+                      key={feature.id}
+                      initial={{ opacity: 0, y: 24 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`flex flex-col ${index % 2 === 1 ? 'lg:flex-row-reverse' : 'lg:flex-row'} gap-10 lg:gap-16 items-center`}
+                    >
+                      {/* Content */}
+                      <div className="flex-1 max-w-xl">
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10">
+                            <feature.icon className="w-6 h-6 text-primary" />
+                          </div>
+                          <TierBadge tier={feature.tier} beta={feature.beta} />
+                        </div>
+                        
+                        <h2 className="text-2xl sm:text-3xl font-display font-bold mb-3">
+                          {feature.title}
+                        </h2>
+                        
+                        <p className="text-muted-foreground mb-6 leading-relaxed">
+                          {feature.description}
+                        </p>
+                        
+                        <ul className="space-y-2.5">
+                          {feature.features.map((item, i) => (
+                            <li key={i} className="flex items-start gap-3">
+                              <CheckCircle className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
+                              <span className="text-foreground/80 flex items-center gap-2 flex-wrap">
+                                {item.text}
+                                {item.tier === "premium" && (
+                                  <Badge variant="outline" className="text-xs bg-primary/5 text-primary/80 border-primary/15">
+                                    Power
+                                  </Badge>
+                                )}
+                                {item.beta && (
+                                  <Badge variant="outline" className="text-xs bg-warning/5 text-warning/80 border-warning/15">
+                                    Beta
+                                  </Badge>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
-                  </div>
+
+                      {/* Screenshot */}
+                      <div className="flex-1 w-full max-w-lg">
+                        <div className="relative rounded-2xl overflow-hidden border border-border bg-card shadow-lg">
+                          <div className="aspect-[4/3]">
+                            <img 
+                              src={feature.image} 
+                              alt={`${feature.title} screenshot`}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
-              </motion.div>
-            ))}
-          </motion.div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 lg:py-24 bg-muted/30">
+      <section className="py-16 lg:py-20 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="max-w-3xl mx-auto text-center"
+            className="max-w-2xl mx-auto text-center"
           >
-            <h2 className="text-3xl sm:text-4xl font-display font-bold mb-6">
-              Ready to simplify your co-parenting?
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Zap className="w-5 h-5 text-white/80" />
+              <span className="text-sm font-medium text-white/80">Start in minutes</span>
+            </div>
+            <h2 className="text-white mb-4">
+              Ready to bring clarity to co-parenting?
             </h2>
-            <p className="text-lg text-muted-foreground mb-8">
-              Start free and upgrade when you're ready. No credit card required.
+            <p className="text-white/70 mb-8 text-lg">
+              Free plan includes everything you need to get started. 
+              Upgrade when you're ready.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="text-base">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button asChild size="lg" variant="secondary">
                 <Link to="/signup">Get Started Free</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="text-base">
-                <Link to="/pricing">View Pricing</Link>
+              <Button asChild size="lg" variant="ghost" className="text-white hover:bg-white/10">
+                <Link to="/pricing" className="flex items-center gap-2">
+                  View Pricing
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </Button>
             </div>
           </motion.div>
