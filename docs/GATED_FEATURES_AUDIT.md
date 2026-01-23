@@ -200,23 +200,63 @@ All AI edge functions return structured `{ error: string, code: string }` respon
 
 ---
 
+## Audit Log Completeness & Tamper Resistance
+
+**Status**: ✅ **HARDENED**
+
+The audit log system has been verified and hardened for court-defensible record-keeping:
+
+### Data Completeness
+
+| Field | Required | Description | Status |
+|-------|----------|-------------|--------|
+| `actor_user_id` | ✅ | Auth UID of actor (system = 00000000-0000-0000-0000-000000000000) | ✅ PASS |
+| `actor_role_at_action` | ✅ | Role snapshot at time of action (parent, third_party, child, admin, system) | ✅ PASS |
+| `child_id` | ⚠️ | Child record being accessed (null for non-child actions) | ✅ PASS |
+| `before` | ⚠️ | JSONB snapshot before mutation (null for INSERT/VIEW) | ✅ PASS |
+| `after` | ⚠️ | JSONB snapshot after mutation (null for DELETE/VIEW) | ✅ PASS |
+| `created_at` | ✅ | UTC timestamp (server-generated, immutable) | ✅ PASS |
+
+### Tamper Resistance
+
+| Protection | Implementation | Status |
+|------------|----------------|--------|
+| **No Client-Side INSERT** | RLS `WITH CHECK (false)` policy | ✅ PASS |
+| **No UPDATE Allowed** | RLS `USING (false) WITH CHECK (false)` policy | ✅ PASS |
+| **No DELETE Allowed** | RLS `USING (false)` policy | ✅ PASS |
+| **Writes via SECURITY DEFINER** | `log_audit_event()` and `log_audit_event_system()` RPC | ✅ PASS |
+| **Actor ID from auth.uid()** | Cannot be spoofed by client | ✅ PASS |
+
+### Third-Party Data Leakage Prevention
+
+| Risk | Mitigation | Status |
+|------|------------|--------|
+| See other family members' actions | Third-party can ONLY see their own `actor_user_id` logs | ✅ PASS |
+| Infer activity via counts | No aggregate queries allowed; filtered by actor only | ✅ PASS |
+| Infer activity via timestamps | Third-party cannot see when parents accessed data | ✅ PASS |
+
+---
+
 ## Recommendations
 
-1. **Add RoleGate to SportsPage**: Wrap content in `RoleGate` for defense-in-depth
-2. **Refactor kid-activity-generator**: Use `aiGuard` for consistent enforcement
-3. **Standardize error responses**: Ensure all edge functions return `{ error, code }`
-4. **Add integration tests**: Automated tests for each edge case scenario
+1. ~~Add RoleGate to SportsPage~~: ✅ Done - Wrapped content in `RoleGate`
+2. ~~Refactor kid-activity-generator~~: ✅ Done - Uses `aiGuard` for consistent enforcement
+3. ~~Standardize error responses~~: ✅ Done - All edge functions return `{ error, code }`
+4. **Add integration tests**: Automated tests for each edge case scenario (pending)
+5. ~~Harden audit logs~~: ✅ Done - Immutable with role snapshots
 
 ---
 
 ## Conclusion
 
-**Overall Status**: ✅ **PASSING** with minor gaps
+**Overall Status**: ✅ **PASSING** (Hardened)
 
 The gating system is comprehensive and properly layered:
 - UI gates provide immediate user feedback
 - Server gates (RLS + aiGuard) prevent bypass
 - Structured errors enable proper client handling
 - Role and plan checks are centralized in reusable functions
+- Audit logs are court-defensible with immutability guarantees
+- Third-party users cannot infer hidden data via metadata
 
-The identified gaps are minor and relate to consistency rather than security vulnerabilities—RLS policies provide the ultimate enforcement layer regardless of UI gate coverage.
+The system now meets the court-defensible standard with explicit tamper resistance and role snapshots for legal accountability.

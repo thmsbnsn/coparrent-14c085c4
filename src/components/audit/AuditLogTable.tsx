@@ -32,6 +32,8 @@ import {
   useAuditLogs,
   getActionLabel,
   getActionVariant,
+  getRoleLabel,
+  getRoleVariant,
 } from "@/hooks/useAuditLogs";
 import { resolvePersonName, resolveChildName } from "@/lib/displayResolver";
 import type { Child } from "@/hooks/useChildren";
@@ -195,8 +197,9 @@ export const AuditLogTable = ({ children = [] }: AuditLogTableProps) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Timestamp</TableHead>
+                <TableHead>Timestamp (UTC)</TableHead>
                 <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
                 <TableHead>Action</TableHead>
                 <TableHead>Child</TableHead>
                 <TableHead>Details</TableHead>
@@ -205,8 +208,8 @@ export const AuditLogTable = ({ children = [] }: AuditLogTableProps) => {
             <TableBody>
               {logs.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell className="text-sm">
-                    {format(new Date(log.created_at), "MMM d, yyyy h:mm a")}
+                  <TableCell className="text-sm font-mono">
+                    {format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss")}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
@@ -217,6 +220,11 @@ export const AuditLogTable = ({ children = [] }: AuditLogTableProps) => {
                         </p>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getRoleVariant(log.actor_role_at_action)} className="text-xs">
+                      {getRoleLabel(log.actor_role_at_action)}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge

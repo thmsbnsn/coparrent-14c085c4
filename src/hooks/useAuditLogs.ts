@@ -9,6 +9,7 @@ export interface AuditLog {
   created_at: string;
   actor_user_id: string;
   actor_profile_id: string | null;
+  actor_role_at_action: string | null; // Role snapshot at time of action
   action: string;
   entity_type: string;
   entity_id: string | null;
@@ -150,6 +151,7 @@ export const getActionLabel = (action: string): string => {
     CHILD_INSERT: "Created",
     CHILD_UPDATE: "Updated",
     CHILD_DELETE: "Deleted",
+    DATA_EXPORT: "Exported",
   };
   return labels[action] || action;
 };
@@ -165,6 +167,34 @@ export const getActionVariant = (action: string): "default" | "secondary" | "des
       return "secondary";
     case "CHILD_VIEW":
       return "outline";
+    default:
+      return "outline";
+  }
+};
+
+// Helper to get human-readable role names
+export const getRoleLabel = (role: string | null): string => {
+  if (!role) return "Unknown";
+  const labels: Record<string, string> = {
+    parent: "Parent",
+    co_parent: "Co-Parent",
+    third_party: "Third-Party",
+    child: "Child",
+    admin: "Admin",
+    system: "System",
+  };
+  return labels[role] || role;
+};
+
+// Helper to get role badge variant
+export const getRoleVariant = (role: string | null): "default" | "secondary" | "outline" => {
+  switch (role) {
+    case "admin":
+    case "system":
+      return "default";
+    case "parent":
+    case "co_parent":
+      return "secondary";
     default:
       return "outline";
   }
