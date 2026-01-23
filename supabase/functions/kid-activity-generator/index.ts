@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { aiGuard } from "../_shared/aiGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,47 +78,29 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    // Use aiGuard for auth, role, and plan enforcement
+    // Requires parent role and premium access (using "analyze" action)
+    const guardResult = await aiGuard(req, "analyze", supabaseUrl, supabaseServiceKey);
+
+    if (!guardResult.allowed) {
+      const statusCode = guardResult.statusCode || 403;
       return new Response(
-        JSON.stringify({ error: "Authorization required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: guardResult.error?.error || "Access denied",
+          code: guardResult.error?.code || "FORBIDDEN",
+        }),
+        { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Verify user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const userContext = guardResult.userContext;
+    if (!userContext) {
       return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check subscription status (premium feature)
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("subscription_status, subscription_tier, free_premium_access, trial_ends_at")
-      .eq("user_id", user.id)
-      .single();
-
-    const hasAccess = profile && (
-      profile.subscription_status === "active" ||
-      profile.free_premium_access === true ||
-      (profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date())
-    );
-
-    if (!hasAccess) {
-      return new Response(
-        JSON.stringify({ error: "Premium subscription required", code: "PREMIUM_REQUIRED" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "User context not available", code: "INTERNAL_ERROR" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -128,7 +110,7 @@ serve(async (req) => {
 
     if (!["activity", "recipe", "craft"].includes(type)) {
       return new Response(
-        JSON.stringify({ error: "Invalid type. Must be: activity, recipe, or craft" }),
+        JSON.stringify({ error: "Invalid type. Must be: activity, recipe, or craft", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -154,10 +136,13 @@ serve(async (req) => {
     // Call Lovable AI Gateway
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "AI service not configured", code: "SERVICE_UNAVAILABLE" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log(`[KID-ACTIVITY] Generating ${type} for user=${user.id}`);
+    console.log(`[KID-ACTIVITY] Generating ${type} for user=${userContext.userId}`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -191,14 +176,20 @@ serve(async (req) => {
       }
       const errorText = await response.text();
       console.error(`[KID-ACTIVITY] AI error: ${response.status} - ${errorText}`);
-      throw new Error(`AI service error: ${response.status}`);
+      return new Response(
+        JSON.stringify({ error: "AI service error", code: "AI_ERROR" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const data = await response.json();
     const aiContent = data.choices?.[0]?.message?.content;
 
     if (!aiContent) {
-      throw new Error("No response from AI");
+      return new Response(
+        JSON.stringify({ error: "No response from AI", code: "AI_EMPTY_RESPONSE" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Parse the JSON response
@@ -216,7 +207,7 @@ serve(async (req) => {
       result = { title: "Generated Content", content: aiContent };
     }
 
-    console.log(`[KID-ACTIVITY] Successfully generated ${type} for user=${user.id}`);
+    console.log(`[KID-ACTIVITY] Successfully generated ${type} for user=${userContext.userId}`);
 
     return new Response(
       JSON.stringify({ type, result }),
@@ -226,7 +217,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("[KID-ACTIVITY] Error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        code: "INTERNAL_ERROR"
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

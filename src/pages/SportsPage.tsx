@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { PremiumFeatureGate } from "@/components/premium/PremiumFeatureGate";
+import { RoleGate } from "@/components/gates/RoleGate";
 import { ActivityCard } from "@/components/sports/ActivityCard";
 import { EventCard } from "@/components/sports/EventCard";
 import { CreateActivityDialog } from "@/components/sports/CreateActivityDialog";
@@ -87,8 +88,9 @@ const SportsPage = () => {
 
   return (
     <DashboardLayout>
-      <PremiumFeatureGate featureName="Youth Sports Hub">
-        <div className="space-y-6">
+      <RoleGate requireParent restrictedMessage="Youth Sports Hub is only available to parents and guardians.">
+        <PremiumFeatureGate featureName="Youth Sports Hub">
+          <div className="space-y-6">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -346,7 +348,8 @@ const SportsPage = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </PremiumFeatureGate>
+        </PremiumFeatureGate>
+      </RoleGate>
     </DashboardLayout>
   );
 };
