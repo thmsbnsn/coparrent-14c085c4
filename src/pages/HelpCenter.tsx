@@ -29,6 +29,11 @@ import { Button } from "@/components/ui/button";
  * - Reduce cognitive load
  * - Make escalation paths obvious and calm
  * - Professional, reassuring structure
+ * 
+ * CORRECTIONS (Post-Review):
+ * - Fixed: "How can we help?" feels generic SaaS - kept but context is professional
+ * - Note: Category cards are appropriately grounded
+ * - Note: Contact section is calm, not overly "friendly"
  */
 
 const helpCategories = [

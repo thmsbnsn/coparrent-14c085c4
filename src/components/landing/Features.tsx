@@ -11,6 +11,11 @@ import { Button } from "@/components/ui/button";
  * - Make it obvious this is a cohesive system
  * - Clear visual rhythm and intentional spacing
  * - Purpose-built feel, not borrowed components
+ * 
+ * CORRECTIONS (Post-Review):
+ * - Fixed: Using hardcoded HSL colors in style props - now uses semantic tokens where possible
+ * - Fixed: Hover underline color was inline HSL - removed in favor of CSS class
+ * - Simplified: Icon backgrounds use primary color variants for consistency
  */
 
 const coreCapabilities = [
@@ -18,33 +23,41 @@ const coreCapabilities = [
     icon: Calendar,
     title: "Scheduling",
     description: "Visual custody calendars with pattern-based scheduling, exchange tracking, and change request workflows.",
-    color: "hsl(222 60% 50%)",
+    accent: "primary",
   },
   {
     icon: MessageSquare,
     title: "Communication",
     description: "Timestamped messaging with read receipts, tone assistance, and complete conversation history for records.",
-    color: "hsl(199 89% 48%)",
+    accent: "info",
   },
   {
     icon: Users,
     title: "Child Records",
     description: "Centralized medical info, school details, and emergency contacts—shared and always up to date.",
-    color: "hsl(152 60% 38%)",
+    accent: "success",
   },
   {
     icon: FileText,
     title: "Documentation",
     description: "Secure document storage with audit trails and court-ready PDF exports of all records.",
-    color: "hsl(174 50% 42%)",
+    accent: "primary",
   },
   {
     icon: DollarSign,
     title: "Expenses",
     description: "Shared expense tracking with reimbursement workflows, receipt uploads, and exportable reports.",
-    color: "hsl(38 92% 50%)",
+    accent: "warning",
   },
 ];
+
+// Map accent names to Tailwind classes for proper theming
+const accentClasses = {
+  primary: { bg: "bg-primary/10", text: "text-primary", line: "bg-primary" },
+  info: { bg: "bg-info/10", text: "text-info", line: "bg-info" },
+  success: { bg: "bg-success/10", text: "text-success", line: "bg-success" },
+  warning: { bg: "bg-warning/10", text: "text-warning", line: "bg-warning" },
+};
 
 export const Features = () => {
   return (
@@ -83,41 +96,36 @@ export const Features = () => {
 
         {/* Capabilities Grid - Structured, Cohesive */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-12">
-          {coreCapabilities.map((capability, index) => (
-            <motion.div
-              key={capability.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.08 }}
-              className="group relative p-6 lg:p-7 rounded-xl bg-card border border-border hover:border-primary/20 hover:shadow-lg transition-all duration-300"
-            >
-              {/* Icon with color accent */}
-              <div 
-                className="inline-flex items-center justify-center w-11 h-11 rounded-lg mb-5"
-                style={{ backgroundColor: `${capability.color}15` }}
+          {coreCapabilities.map((capability, index) => {
+            const classes = accentClasses[capability.accent as keyof typeof accentClasses];
+            
+            return (
+              <motion.div
+                key={capability.title}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08 }}
+                className="group relative p-6 lg:p-7 rounded-xl bg-card border border-border hover:border-primary/20 hover:shadow-lg transition-all duration-300"
               >
-                <capability.icon 
-                  className="w-5 h-5" 
-                  style={{ color: capability.color }}
-                />
-              </div>
+                {/* Icon with color accent - now uses semantic class names */}
+                <div className={`inline-flex items-center justify-center w-11 h-11 rounded-lg mb-5 ${classes.bg}`}>
+                  <capability.icon className={`w-5 h-5 ${classes.text}`} />
+                </div>
 
-              {/* Content */}
-              <h3 className="text-lg font-display font-semibold mb-2 group-hover:text-primary transition-colors">
-                {capability.title}
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {capability.description}
-              </p>
+                {/* Content */}
+                <h3 className="text-lg font-display font-semibold mb-2 group-hover:text-primary transition-colors">
+                  {capability.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {capability.description}
+                </p>
 
-              {/* Subtle hover indicator */}
-              <div 
-                className="absolute bottom-0 left-6 right-6 h-0.5 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"
-                style={{ backgroundColor: capability.color }}
-              />
-            </motion.div>
-          ))}
+                {/* Subtle hover indicator - now uses semantic class */}
+                <div className={`absolute bottom-0 left-6 right-6 h-0.5 rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left ${classes.line}`} />
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* CTA - Clear Next Step */}
