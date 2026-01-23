@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Stethoscope, Palette, Sparkles } from "lucide-react";
+import { Stethoscope, Palette, Sparkles, ClipboardList, BookOpen, Library } from "lucide-react";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,9 +12,10 @@ interface HubCardProps {
   icon: React.ElementType;
   href: string;
   comingSoon?: boolean;
+  badge?: string;
 }
 
-const HubCard = ({ title, description, icon: Icon, href, comingSoon }: HubCardProps) => {
+const HubCard = ({ title, description, icon: Icon, href, comingSoon, badge }: HubCardProps) => {
   const navigate = useNavigate();
 
   return (
@@ -40,6 +41,11 @@ const HubCard = ({ title, description, icon: Icon, href, comingSoon }: HubCardPr
                 Coming Soon
               </span>
             )}
+            {badge && !comingSoon && (
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                {badge}
+              </span>
+            )}
           </div>
           <CardTitle className="text-lg mt-3">{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
@@ -59,11 +65,13 @@ const KidsHubContent = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Kids Hub</h1>
-        <p className="text-muted-foreground">
-          AI-powered tools to help you care for and entertain your children
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Kids Hub</h1>
+          <p className="text-muted-foreground">
+            AI-powered tools to help you care for and entertain your children
+          </p>
+        </div>
       </div>
 
       {/* Feature Cards Grid */}
@@ -80,6 +88,25 @@ const KidsHubContent = () => {
           icon={Palette}
           href="/dashboard/kids-hub/coloring-pages"
         />
+        <HubCard
+          title="Activity Generator"
+          description="Create fun activities, recipes, and crafts tailored to your child's age and interests."
+          icon={BookOpen}
+          href="/dashboard/kids-hub/activities"
+        />
+        <HubCard
+          title="Chore Chart Builder"
+          description="Design and print weekly chore charts to teach responsibility and build good habits."
+          icon={ClipboardList}
+          href="/dashboard/kids-hub/chore-chart"
+        />
+        <HubCard
+          title="Creations Library"
+          description="View all your saved activities, coloring pages, and more in one organized place."
+          icon={Library}
+          href="/dashboard/kids-hub/creations"
+          badge="New"
+        />
       </div>
 
       {/* Info Section */}
@@ -90,10 +117,10 @@ const KidsHubContent = () => {
               <Sparkles className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h3 className="font-medium">More Features Coming Soon</h3>
+              <h3 className="font-medium">CoParrent Creations</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                We're working on additional AI-powered tools to help you with parenting. 
-                Check back regularly for new features!
+                All activities, coloring pages, and other creations can be saved to your Creations Library, 
+                shared with family members, and exported as beautifully branded PDFs.
               </p>
             </div>
           </div>
