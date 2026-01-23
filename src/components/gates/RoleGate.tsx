@@ -1,3 +1,14 @@
+/**
+ * RoleGate - Family-scoped role-based access control
+ * 
+ * CRITICAL: Role is per-family, NOT global.
+ * A user who is Parent in Family A and Third-party in Family B
+ * will see Parent features when Family A is active, and
+ * restricted view when Family B is active.
+ * 
+ * Permissions are derived from effective role in the ACTIVE family.
+ */
+
 import { ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserX, Users } from "lucide-react";
@@ -7,10 +18,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
 import { useSubscription } from "@/hooks/useSubscription";
 import { recordRoleDenial, getDenialContext } from "@/lib/denialTelemetry";
+import { useFamily } from "@/contexts/FamilyContext";
 
 interface RoleGateProps {
   children: ReactNode;
-  /** Require parent or guardian role (not third-party) */
+  /** Require parent or guardian role in ACTIVE family (not third-party) */
   requireParent?: boolean;
   /** Show inline message instead of full card overlay */
   inline?: boolean;
@@ -27,10 +39,11 @@ interface RoleGateProps {
 /**
  * RoleGate - Family role-based access control
  * 
- * Restricts access based on family member role:
+ * Restricts access based on family member role IN THE ACTIVE FAMILY:
  * - Parent: Full access to all features
  * - Guardian: Full access (treated as parent)
  * - Third-Party: Limited view-only access
+ * - Child: Very limited access
  * 
  * Third-party restrictions (enforced both UI + server):
  * - Cannot edit calendar/schedule
@@ -50,22 +63,23 @@ export const RoleGate = ({
   featureName = "This feature",
 }: RoleGateProps) => {
   const navigate = useNavigate();
-  const { isThirdParty, isParent, loading } = useFamilyRole();
+  const { isThirdParty, isParent, isChild, loading, activeFamilyId } = useFamilyRole();
+  const { activeFamily } = useFamily();
   const { tier } = useSubscription();
 
-  // Check if user has required role
+  // Check if user has required role IN THE ACTIVE FAMILY
   const hasAccess = requireParent ? isParent : true;
 
   // Record telemetry when access is denied
   useEffect(() => {
-    if (!loading && !hasAccess && isThirdParty) {
+    if (!loading && !hasAccess && (isThirdParty || isChild)) {
       recordRoleDenial(
         featureName,
-        "third_party",
+        isChild ? "child" : "third_party",
         tier || "free"
       );
     }
-  }, [loading, hasAccess, isThirdParty, featureName, tier]);
+  }, [loading, hasAccess, isThirdParty, isChild, featureName, tier]);
 
   // Get user-friendly context
   const context = getDenialContext("role_restricted", featureName);
@@ -103,6 +117,10 @@ export const RoleGate = ({
     );
   }
 
+  // Build context-aware message showing which family has restrictions
+  const familyName = activeFamily?.display_name || "this family";
+  const roleLabel = isChild ? "child account" : "third-party member";
+
   return (
     <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5">
       <CardContent className="p-6 flex flex-col items-center text-center gap-4">
@@ -113,11 +131,16 @@ export const RoleGate = ({
         <div className="space-y-2">
           <h3 className="font-semibold text-lg">{context.title}</h3>
           <p className="text-muted-foreground text-sm max-w-sm">
-            {isThirdParty 
-              ? context.description
+            {(isThirdParty || isChild)
+              ? `You are a ${roleLabel} in ${familyName}. ${context.description}`
               : restrictedMessage
             }
           </p>
+          {activeFamilyId && (
+            <p className="text-xs text-muted-foreground/70">
+              Switch families to access features where you have parent permissions.
+            </p>
+          )}
         </div>
 
         <Button variant="outline" onClick={() => navigate("/dashboard")}>

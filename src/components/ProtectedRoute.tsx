@@ -1,3 +1,12 @@
+/**
+ * ProtectedRoute - Authentication and role-based route protection
+ * 
+ * CRITICAL: Role enforcement is per-family, NOT global.
+ * A user's access to routes depends on their role in the ACTIVE family.
+ * 
+ * @see src/contexts/FamilyContext.tsx for role source of truth
+ */
+
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
@@ -40,9 +49,20 @@ const CHILD_ALLOWED_ROUTES = [
   "/dashboard/notifications",
 ];
 
+/**
+ * ProtectedRoute enforces authentication and per-family role-based access.
+ * 
+ * Role is determined by the user's membership in the ACTIVE family:
+ * - Parent/Guardian in active family → full access
+ * - Third-party in active family → limited routes
+ * - Child in active family → minimal routes
+ * 
+ * Switching families changes available routes immediately.
+ */
 export const ProtectedRoute = ({ children, requireParent }: ProtectedRouteProps) => {
   const { user, loading: authLoading } = useAuth();
-  const { isThirdParty, loading: roleLoading } = useFamilyRole();
+  // Role is scoped to active family via useFamilyRole
+  const { isThirdParty, isChild, loading: roleLoading, activeFamilyId } = useFamilyRole();
   const { isChildAccount, loading: childLoading } = useChildAccount();
   const location = useLocation();
 
@@ -55,7 +75,7 @@ export const ProtectedRoute = ({ children, requireParent }: ProtectedRouteProps)
   }
 
   // Child accounts get redirected to /kids for parent-only routes
-  if (isChildAccount) {
+  if (isChildAccount || isChild) {
     const currentPath = location.pathname;
     const isChildAllowed = CHILD_ALLOWED_ROUTES.some(route => 
       currentPath === route || currentPath.startsWith(route + "/")
@@ -66,13 +86,13 @@ export const ProtectedRoute = ({ children, requireParent }: ProtectedRouteProps)
     }
   }
 
-  // Check if this route requires parent role
-  if (requireParent && (isThirdParty || isChildAccount)) {
-    return <Navigate to={isChildAccount ? "/kids" : "/dashboard"} replace />;
+  // Check if this route requires parent role in ACTIVE FAMILY
+  if (requireParent && (isThirdParty || isChildAccount || isChild)) {
+    return <Navigate to={isChildAccount || isChild ? "/kids" : "/dashboard"} replace />;
   }
 
-  // For Third-Party users, check if they're trying to access restricted routes
-  if (isThirdParty && !isChildAccount) {
+  // For Third-Party users in ACTIVE FAMILY, check if they're trying to access restricted routes
+  if (isThirdParty && !isChildAccount && !isChild) {
     const currentPath = location.pathname;
     const isAllowed = THIRD_PARTY_ALLOWED_ROUTES.some(route => 
       currentPath === route || currentPath.startsWith(route + "/")

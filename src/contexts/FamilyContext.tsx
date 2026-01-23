@@ -1,11 +1,11 @@
 /**
- * FamilyContext - Single source of truth for active family selection
+ * FamilyContext - Single source of truth for active family selection & effective role
  * 
- * MULTI-FAMILY ISOLATION:
- * - One user can belong to multiple families (co-parenting contexts)
- * - All family-scoped queries MUST use activeFamilyId
- * - No component should query family-scoped tables without an active family
- * - Switching families reloads all scoped data
+ * MULTI-FAMILY ROLE ISOLATION:
+ * - One user can belong to multiple families with DIFFERENT roles
+ * - Role is a property of MEMBERSHIP, not the user globally
+ * - effective_role = role_in_active_family
+ * - All permission checks MUST use the effective role in the active family
  * 
  * @see docs/SECURITY_MODEL.md for isolation requirements
  */
@@ -13,12 +13,22 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Database } from "@/integrations/supabase/types";
+
+type MemberRole = Database["public"]["Enums"]["member_role"];
 
 export interface Family {
   id: string;
   display_name: string | null;
   created_by_user_id: string;
   created_at: string;
+}
+
+export interface FamilyMembership {
+  familyId: string;
+  role: MemberRole;
+  relationshipLabel: string | null;
+  status: string;
 }
 
 interface FamilyContextType {
@@ -38,6 +48,28 @@ interface FamilyContextType {
   loading: boolean;
   /** Refresh families list */
   refreshFamilies: () => Promise<void>;
+  
+  // =========================================
+  // EFFECTIVE ROLE IN ACTIVE FAMILY
+  // Role is per-family, NOT global
+  // =========================================
+  
+  /** User's role in the currently active family (NOT global) */
+  effectiveRole: MemberRole | null;
+  /** User's profile ID */
+  profileId: string | null;
+  /** Whether user is a parent/guardian in the ACTIVE family */
+  isParentInActiveFamily: boolean;
+  /** Whether user is a third-party in the ACTIVE family */
+  isThirdPartyInActiveFamily: boolean;
+  /** Whether user is a child account in the ACTIVE family */
+  isChildInActiveFamily: boolean;
+  /** UI-only display label (step_parent, grandparent, etc.) */
+  relationshipLabel: string | null;
+  /** All memberships the user has across families */
+  memberships: FamilyMembership[];
+  /** Loading state for role data */
+  roleLoading: boolean;
 }
 
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
@@ -49,21 +81,40 @@ export const FamilyProvider = ({ children }: { children: ReactNode }) => {
   const [activeFamilyId, setActiveFamilyIdState] = useState<string | null>(null);
   const [families, setFamilies] = useState<Family[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Role state (per-family)
+  const [effectiveRole, setEffectiveRole] = useState<MemberRole | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [relationshipLabel, setRelationshipLabel] = useState<string | null>(null);
+  const [memberships, setMemberships] = useState<FamilyMembership[]>([]);
+  const [roleLoading, setRoleLoading] = useState(true);
 
   // Fetch all families the user belongs to
   const fetchFamilies = useCallback(async () => {
     if (!user) {
       setFamilies([]);
       setActiveFamilyIdState(null);
+      setMemberships([]);
       setLoading(false);
       return;
     }
 
     try {
-      // Get families through family_members (user membership)
+      // Get user's profile ID first
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (profile) {
+        setProfileId(profile.id);
+      }
+
+      // Get families through family_members (user membership) with role info
       const { data: memberFamilies, error: memberError } = await supabase
         .from("family_members")
-        .select("family_id")
+        .select("family_id, role, relationship_label, status")
         .eq("user_id", user.id)
         .eq("status", "active")
         .not("family_id", "is", null);
@@ -72,9 +123,17 @@ export const FamilyProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error fetching family memberships:", memberError);
       }
 
+      // Build memberships array
+      const membershipsList: FamilyMembership[] = (memberFamilies || []).map(m => ({
+        familyId: m.family_id!,
+        role: m.role,
+        relationshipLabel: m.relationship_label,
+        status: m.status,
+      }));
+
       const familyIds = memberFamilies?.map(m => m.family_id).filter(Boolean) || [];
 
-      // Also include families created by this user (they're automatically a member)
+      // Also include families created by this user (they're automatically a parent)
       const { data: createdFamilies, error: createdError } = await supabase
         .from("families")
         .select("*")
@@ -83,6 +142,22 @@ export const FamilyProvider = ({ children }: { children: ReactNode }) => {
       if (createdError) {
         console.error("Error fetching created families:", createdError);
       }
+
+      // Add creator families as parent memberships if not already in list
+      if (createdFamilies) {
+        for (const f of createdFamilies) {
+          if (!membershipsList.some(m => m.familyId === f.id)) {
+            membershipsList.push({
+              familyId: f.id,
+              role: "parent",
+              relationshipLabel: null,
+              status: "active",
+            });
+          }
+        }
+      }
+
+      setMemberships(membershipsList);
 
       // Get all unique family IDs
       const allFamilyIds = [
@@ -130,6 +205,38 @@ export const FamilyProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
+  // Compute effective role when active family changes
+  useEffect(() => {
+    setRoleLoading(true);
+    
+    if (!activeFamilyId || memberships.length === 0) {
+      setEffectiveRole(null);
+      setRelationshipLabel(null);
+      setRoleLoading(false);
+      return;
+    }
+
+    // Find membership for the active family
+    const activeMembership = memberships.find(m => m.familyId === activeFamilyId);
+    
+    if (activeMembership) {
+      setEffectiveRole(activeMembership.role);
+      setRelationshipLabel(activeMembership.relationshipLabel);
+    } else {
+      // User might be family creator without explicit membership
+      const isCreator = families.find(f => f.id === activeFamilyId && f.created_by_user_id === user?.id);
+      if (isCreator) {
+        setEffectiveRole("parent");
+        setRelationshipLabel(null);
+      } else {
+        setEffectiveRole(null);
+        setRelationshipLabel(null);
+      }
+    }
+    
+    setRoleLoading(false);
+  }, [activeFamilyId, memberships, families, user?.id]);
+
   // Initial fetch and realtime subscription
   useEffect(() => {
     fetchFamilies();
@@ -143,6 +250,17 @@ export const FamilyProvider = ({ children }: { children: ReactNode }) => {
           event: "*",
           schema: "public",
           table: "families",
+        },
+        () => {
+          fetchFamilies();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "family_members",
         },
         () => {
           fetchFamilies();
@@ -215,6 +333,11 @@ export const FamilyProvider = ({ children }: { children: ReactNode }) => {
   // Compute active family object
   const activeFamily = families.find(f => f.id === activeFamilyId) || null;
 
+  // Compute role booleans from effectiveRole (NOT global)
+  const isParentInActiveFamily = effectiveRole === "parent" || effectiveRole === "guardian";
+  const isThirdPartyInActiveFamily = effectiveRole === "third_party";
+  const isChildInActiveFamily = effectiveRole === "child";
+
   return (
     <FamilyContext.Provider
       value={{
@@ -226,6 +349,16 @@ export const FamilyProvider = ({ children }: { children: ReactNode }) => {
         createFamily,
         loading,
         refreshFamilies: fetchFamilies,
+        
+        // Role in active family
+        effectiveRole,
+        profileId,
+        isParentInActiveFamily,
+        isThirdPartyInActiveFamily,
+        isChildInActiveFamily,
+        relationshipLabel,
+        memberships,
+        roleLoading,
       }}
     >
       {children}

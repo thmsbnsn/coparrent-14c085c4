@@ -1,85 +1,105 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { handleError } from "@/lib/errorMessages";
+/**
+ * useFamilyRole - Family-scoped role hook
+ * 
+ * CRITICAL: Role is a property of MEMBERSHIP, not the user globally.
+ * A user may be a parent in one family and third-party in another.
+ * 
+ * This hook uses the FamilyContext to get the effective role in the
+ * currently active family. It NEVER computes a global role.
+ * 
+ * @see src/contexts/FamilyContext.tsx for the source of truth
+ */
 
-export type FamilyRole = "parent" | "guardian" | "third_party" | null;
+import { useFamily } from "@/contexts/FamilyContext";
+import type { Database } from "@/integrations/supabase/types";
+
+type MemberRole = Database["public"]["Enums"]["member_role"];
+
+// Legacy type alias for backward compatibility
+export type FamilyRole = MemberRole | null;
 
 interface FamilyMemberInfo {
+  /** User's role in the ACTIVE family (NOT global) */
   role: FamilyRole;
+  /** User's profile ID */
   profileId: string | null;
+  /** Legacy compatibility - deprecated, use activeFamilyId instead */
   primaryParentId: string | null;
+  /** Whether user is a parent/guardian in the ACTIVE family */
   isParent: boolean;
+  /** Whether user is a third-party in the ACTIVE family */
   isThirdParty: boolean;
+  /** Whether user is a child in the ACTIVE family */
+  isChild: boolean;
+  /** UI-only label (step_parent, grandparent, etc.) - NOT for permissions */
+  relationshipLabel: string | null;
+  /** Loading state */
   loading: boolean;
+  /** Currently active family ID */
+  activeFamilyId: string | null;
 }
 
+/**
+ * Returns the user's role in the currently active family.
+ * 
+ * NEVER use this for global role assumptions. The same user can have
+ * different roles in different families:
+ * - Parent in Family A
+ * - Third-party (step-parent) in Family B
+ * 
+ * Switching families changes permissions immediately.
+ */
 export const useFamilyRole = (): FamilyMemberInfo => {
-  const { user } = useAuth();
-  const [role, setRole] = useState<FamilyRole>(null);
-  const [profileId, setProfileId] = useState<string | null>(null);
-  const [primaryParentId, setPrimaryParentId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchFamilyRole = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // First check if user is a parent/guardian (has a profile with potential co_parent_id)
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("id, co_parent_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (profile) {
-          setProfileId(profile.id);
-          
-          // Check if user is a third-party member
-          const { data: familyMember } = await supabase
-            .from("family_members")
-            .select("role, primary_parent_id")
-            .eq("user_id", user.id)
-            .eq("status", "active")
-            .maybeSingle();
-
-          if (familyMember) {
-            // User is a third-party
-            setRole(familyMember.role as FamilyRole);
-            setPrimaryParentId(familyMember.primary_parent_id);
-          } else {
-            // User is a parent/guardian
-            setRole("parent");
-            // Primary parent ID is the "lower" of the two parent IDs for consistency
-            if (profile.co_parent_id) {
-              setPrimaryParentId(
-                profile.id < profile.co_parent_id ? profile.id : profile.co_parent_id
-              );
-            } else {
-              setPrimaryParentId(profile.id);
-            }
-          }
-        }
-      } catch (error) {
-        handleError(error, { feature: 'FamilyRole', action: 'fetch' });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFamilyRole();
-  }, [user]);
+  const {
+    effectiveRole,
+    profileId,
+    isParentInActiveFamily,
+    isThirdPartyInActiveFamily,
+    isChildInActiveFamily,
+    relationshipLabel,
+    roleLoading,
+    loading,
+    activeFamilyId,
+  } = useFamily();
 
   return {
-    role,
+    role: effectiveRole,
     profileId,
-    primaryParentId,
+    primaryParentId: activeFamilyId, // Legacy compatibility - use activeFamilyId
+    isParent: isParentInActiveFamily,
+    isThirdParty: isThirdPartyInActiveFamily,
+    isChild: isChildInActiveFamily,
+    relationshipLabel,
+    loading: loading || roleLoading,
+    activeFamilyId,
+  };
+};
+
+/**
+ * Get role in a specific family (for UI comparisons)
+ * Use when you need to check a user's role in a family other than the active one.
+ */
+export const useRoleInFamily = (familyId: string | null) => {
+  const { memberships, loading, roleLoading } = useFamily();
+  
+  if (!familyId || loading || roleLoading) {
+    return {
+      role: null as FamilyRole,
+      isParent: false,
+      isThirdParty: false,
+      isChild: false,
+      loading: loading || roleLoading,
+    };
+  }
+  
+  const membership = memberships.find(m => m.familyId === familyId);
+  const role = membership?.role || null;
+  
+  return {
+    role,
     isParent: role === "parent" || role === "guardian",
     isThirdParty: role === "third_party",
-    loading,
+    isChild: role === "child",
+    loading: false,
   };
 };
