@@ -207,9 +207,23 @@ export const FamilyProvider = ({ children }: { children: ReactNode }) => {
 
   // Compute effective role when active family changes
   useEffect(() => {
+    // Don't compute role until family data is fully loaded
+    if (loading) {
+      setRoleLoading(true);
+      return;
+    }
+    
     setRoleLoading(true);
     
     if (!activeFamilyId || memberships.length === 0) {
+      // If no active family but we have families, default to first one
+      if (families.length > 0 && !activeFamilyId) {
+        setActiveFamilyIdState(families[0].id);
+        localStorage.setItem(ACTIVE_FAMILY_STORAGE_KEY, families[0].id);
+        // Role will be computed on next render when activeFamilyId updates
+        return;
+      }
+      
       setEffectiveRole(null);
       setRelationshipLabel(null);
       setRoleLoading(false);
@@ -220,22 +234,25 @@ export const FamilyProvider = ({ children }: { children: ReactNode }) => {
     const activeMembership = memberships.find(m => m.familyId === activeFamilyId);
     
     if (activeMembership) {
+      console.log("[FamilyContext] Setting effective role:", activeMembership.role, "for family:", activeFamilyId);
       setEffectiveRole(activeMembership.role);
       setRelationshipLabel(activeMembership.relationshipLabel);
     } else {
       // User might be family creator without explicit membership
       const isCreator = families.find(f => f.id === activeFamilyId && f.created_by_user_id === user?.id);
       if (isCreator) {
+        console.log("[FamilyContext] User is family creator, setting role to parent");
         setEffectiveRole("parent");
         setRelationshipLabel(null);
       } else {
+        console.log("[FamilyContext] No membership found for active family:", activeFamilyId);
         setEffectiveRole(null);
         setRelationshipLabel(null);
       }
     }
     
     setRoleLoading(false);
-  }, [activeFamilyId, memberships, families, user?.id]);
+  }, [activeFamilyId, memberships, families, user?.id, loading]);
 
   // Initial fetch and realtime subscription
   useEffect(() => {

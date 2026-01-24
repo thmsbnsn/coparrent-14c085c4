@@ -64,27 +64,33 @@ export const RoleGate = ({
 }: RoleGateProps) => {
   const navigate = useNavigate();
   const { isThirdParty, isParent, isChild, loading, activeFamilyId } = useFamilyRole();
-  const { activeFamily } = useFamily();
+  const { activeFamily, roleLoading } = useFamily();
   const { tier } = useSubscription();
 
-  // Check if user has required role IN THE ACTIVE FAMILY
-  const hasAccess = requireParent ? isParent : true;
+  // CRITICAL: Wait for BOTH family loading AND role loading to complete
+  // This prevents flash of "denied" before role is properly computed
+  const isLoading = loading || roleLoading;
 
-  // Record telemetry when access is denied
+  // Check if user has required role IN THE ACTIVE FAMILY
+  // IMPORTANT: Only check after loading is complete AND we have an active family
+  const hasAccess = requireParent ? (isParent && activeFamilyId) : true;
+
+  // Record telemetry when access is denied (only after loading is complete)
   useEffect(() => {
-    if (!loading && !hasAccess && (isThirdParty || isChild)) {
+    if (!isLoading && !hasAccess && (isThirdParty || isChild)) {
       recordRoleDenial(
         featureName,
         isChild ? "child" : "third_party",
         tier || "free"
       );
     }
-  }, [loading, hasAccess, isThirdParty, isChild, featureName, tier]);
+  }, [isLoading, hasAccess, isThirdParty, isChild, featureName, tier]);
 
   // Get user-friendly context
   const context = getDenialContext("role_restricted", featureName);
 
-  if (loading) {
+  // Show loading state while family/role data is being fetched
+  if (isLoading) {
     return inline ? (
       <Skeleton className="h-8 w-full" />
     ) : (
