@@ -117,10 +117,15 @@ export const Navbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden overflow-hidden"
+              className={cn(
+                "md:hidden overflow-hidden rounded-b-lg",
+                isLandingPage 
+                  ? "bg-slate-900/95 backdrop-blur-md" 
+                  : "bg-background/95 backdrop-blur-md"
+              )}
             >
               <div className={cn(
-                "py-4 space-y-1 border-t",
+                "py-4 space-y-1 border-t px-2",
                 isLandingPage ? "border-white/10" : "border-border"
               )}>
                 {navLinks.map((link) => (
