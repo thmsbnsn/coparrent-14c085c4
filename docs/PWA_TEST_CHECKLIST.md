@@ -1,6 +1,11 @@
 # PWA Test Checklist
 
+> **Version**: 2.0  
+> **Status**: Production  
+> **Last Updated**: 2026-01-24
+
 ## Overview
+
 This checklist documents manual QA steps for verifying PWA functionality on iOS and Android.
 All testers must complete these steps before a release is considered PWA-ready.
 
@@ -37,8 +42,7 @@ All testers must complete these steps before a release is considered PWA-ready.
 - [ ] Verify "Subscribed" badge appears
 - [ ] Navigate to /pwa-diagnostics
 - [ ] Verify Push Subscribed = Yes
-- [ ] Tap "Test Notification"
-- [ ] Verify notification appears in system tray
+- [ ] Verify notification appears in system tray when triggered
 - [ ] Tap notification → verify app opens to correct route
 
 ### iOS (PWA Mode Only)
@@ -50,8 +54,7 @@ All testers must complete these steps before a release is considered PWA-ready.
 - [ ] Verify "Subscribed" badge appears
 - [ ] Navigate to /pwa-diagnostics
 - [ ] Verify Push Subscribed = Yes
-- [ ] Tap "Test Notification"
-- [ ] Verify notification appears
+- [ ] Verify notification appears when triggered
 - [ ] Lock device → verify notification on lock screen
 - [ ] Tap notification → verify app opens correctly
 
@@ -76,7 +79,7 @@ All testers must complete these steps before a release is considered PWA-ready.
 
 ### Service Worker Updates
 - [ ] Load app
-- [ ] Make a code change (dev) or wait for new version
+- [ ] Make a code change or wait for new version
 - [ ] Refresh page
 - [ ] Verify update prompt appears
 - [ ] Tap "Refresh"
@@ -119,6 +122,18 @@ All testers must complete these steps before a release is considered PWA-ready.
 
 ---
 
+## Part F: Admin Push Testing
+
+### Admin Dashboard
+- [ ] Navigate to /admin (as admin user)
+- [ ] Go to Push tab
+- [ ] Enter test message
+- [ ] Tap "Send Test Push"
+- [ ] Verify notification arrives on device
+- [ ] Verify audit log entry created (check Audit tab)
+
+---
+
 ## Sign-Off
 
 | Platform | Tester | Date | Pass/Fail | Notes |
@@ -129,6 +144,7 @@ All testers must complete these steps before a release is considered PWA-ready.
 | iOS Safari (Browser) | | | | |
 | Desktop Chrome | | | | |
 | Desktop Safari | | | | |
+| Desktop Firefox | | | | |
 
 ---
 
@@ -141,8 +157,10 @@ The following E2E tests cover some of these scenarios:
 npx playwright test --grep "pwa"
 ```
 
-- `e2e/pwa.spec.ts` - Service worker, offline fallback
-- `e2e/route-audit.spec.ts` - All routes accessible
+Test files:
+- `tests/e2e/core-features.spec.ts` - Route accessibility
+- `tests/e2e/auth.spec.ts` - Authentication flows
+- `tests/e2e/subscription-gating.spec.ts` - Feature gating
 
 ---
 
@@ -152,3 +170,21 @@ npx playwright test --grep "pwa"
 2. **Background Sync**: Limited browser support, not fully reliable
 3. **VAPID Keys**: Must be configured in production for real push delivery
 4. **Offline Data**: Only cached views work offline; real-time features require connection
+
+---
+
+## Production Readiness Checklist
+
+Before production launch:
+
+- [ ] VAPID keys configured in secrets
+- [ ] Service worker registered and active
+- [ ] Manifest serves correctly
+- [ ] Push subscriptions persisting
+- [ ] Offline fallback page functional
+- [ ] Update prompt working
+- [ ] All platforms tested per above
+
+---
+
+_End of PWA Test Checklist_

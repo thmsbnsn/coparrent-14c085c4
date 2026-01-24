@@ -1,7 +1,8 @@
 # CoParrent Visual & Interaction Constitution
 
-> **Version**: 1.0  
+> **Version**: 2.0  
 > **Status**: ENFORCED  
+> **Last Updated**: 2026-01-24  
 > **Scope**: All UI across Dashboard, Calendar, Messaging, Expenses, Documents, Kids Hub, and future features
 
 ---
@@ -170,6 +171,9 @@ If a concept exists on desktop, it must survive on mobile.
 | Documents | Reference | Category counts + document grid | Court Export |
 | Messages | Action | Thread list + active conversation | Export history |
 | Kids Hub | Overview | Activity cards + creation library | N/A |
+| Nurse Nancy | Action | Chat interface | N/A |
+| Chore Charts | Action | Household toggle + chart view | Print/PDF export |
+| Sports Hub | Overview | Activities + events | N/A |
 | Law Library | Reference | Article list (read-only) | N/A |
 | Settings | Action | Focused configuration sections | N/A |
 | Creations Library | Overview | Folders + creation grid | PDF/Print export |
@@ -212,6 +216,43 @@ Use semantic colors consistently:
 <Badge variant="outline" className="text-red-600 border-red-600">Rejected</Badge>
 ```
 
+### Loading States
+Use consistent skeleton patterns:
+```tsx
+<Skeleton className="h-8 w-full" />  // Inline
+<Card className="border-dashed">
+  <CardContent className="p-6">
+    <Skeleton className="h-24 w-full" />
+  </CardContent>
+</Card>  // Full card
+```
+
+---
+
+## Gate Component Styling
+
+### PremiumFeatureGate (Locked State)
+```tsx
+<Card className="border-dashed border-2 border-primary/20 bg-primary/5">
+  <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+    {/* Crown/Lock icon in circle */}
+    {/* Title + description */}
+    {/* Upgrade button */}
+  </CardContent>
+</Card>
+```
+
+### RoleGate (Restricted State)
+```tsx
+<Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5">
+  <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+    {/* Users icon in circle */}
+    {/* Title + description */}
+    {/* Return to dashboard button */}
+  </CardContent>
+</Card>
+```
+
 ---
 
 ## Enforcement Checklist
@@ -225,6 +266,8 @@ Before merging any UI change:
 - [ ] Colors are semantic (no decorative gradients)
 - [ ] Court View exists where legally plausible
 - [ ] Mobile preserves all meaning from desktop
+- [ ] Gate states match component standards
+- [ ] Loading states use consistent skeleton patterns
 
 ---
 

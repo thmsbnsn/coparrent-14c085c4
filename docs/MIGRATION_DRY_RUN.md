@@ -1,5 +1,9 @@
 # Migration Dry-Run System
 
+> **Version**: 2.0  
+> **Status**: Production  
+> **Last Updated**: 2026-01-24
+
 This document describes the **Data Migration Dry-Run & Idempotency Hardening** system for CoParrent, designed to ensure safe production migrations with zero risk of silent data corruption.
 
 ---
@@ -24,11 +28,14 @@ The following tables are validated as they are critical to user access, gating, 
 | `profiles` | User identity, subscription state | Required columns, orphaned rows, subscription mismatches |
 | `children` | Child records | Orphaned children (no parent link) |
 | `parent_children` | Parent-child junction | Broken foreign keys, duplicate entries |
-| `family_members` | Role-based access (third-party) | Missing profile references, duplicates |
+| `family_members` | Role-based access | Missing profile references, duplicates |
+| `families` | Family units | Required for multi-family support |
 | `invitations` | Co-parent/third-party invites | Orphaned invitations, expired pending |
 | `custody_schedules` | Custody patterns | Invalid parent references |
-| `audit_logs` | Immutable audit trail | RLS enabled |
+| `audit_logs` | Immutable audit trail | RLS enabled, no direct writes |
 | `user_roles` | Admin/moderator roles | RLS enabled |
+| `chore_lists` | Chore configurations | Family ID references |
+| `chores` | Individual chores | Chore list references |
 
 ---
 
@@ -72,6 +79,7 @@ The system explicitly validates and handles:
 | Invitations created pre-migration | Check for expired pending invitations | Update status to 'expired' |
 | Users with missing profiles | Check for profiles with NULL user_id | Delete or link to auth user |
 | Subscription/trial mismatches | Check for tier set but no active subscription | Grant free_access or downgrade |
+| Orphaned family members | Check for broken profile_id references | Remove or recreate |
 
 ---
 
@@ -163,6 +171,17 @@ This system integrates with the existing Production Checklist in the Admin Dashb
 
 ---
 
+## Multi-Family Considerations
+
+With multi-family support, additional validations include:
+
+- Family members have valid `family_id` references
+- Users have at least one family membership
+- Role is correctly set per family (not global)
+- Children are associated with a family
+
+---
+
 ## Related Documentation
 
 - `docs/SECURITY_MODEL.md` - Security architecture
@@ -171,4 +190,4 @@ This system integrates with the existing Production Checklist in the Admin Dashb
 
 ---
 
-_Last Updated: 2026-01-23_
+_End of Migration Dry-Run Documentation_
