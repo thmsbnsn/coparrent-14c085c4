@@ -180,15 +180,15 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
             return null;
           }
 
-          // Locked items (plan-gated) - show but disabled
+          // Locked items (plan-gated) - show but disabled with CTA tooltip
           if (isPlanLocked) {
             return (
-              <Tooltip key={item.href}>
+              <Tooltip key={item.href} delayDuration={100}>
                 <TooltipTrigger asChild>
                   <div
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-not-allowed",
-                      "text-sidebar-foreground/40 opacity-60"
+                      "text-sidebar-foreground/40 opacity-60 hover:opacity-80"
                     )}
                   >
                     <div className="relative">
@@ -207,10 +207,39 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
                     )}
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="right">
-                  <div className="flex items-center gap-2">
-                    <Crown className="h-4 w-4 text-primary" />
-                    <span>Upgrade to Power to unlock {item.label}</span>
+                <TooltipContent 
+                  side="right" 
+                  className="p-0 overflow-hidden w-64"
+                  sideOffset={8}
+                >
+                  <div className="bg-card border border-border rounded-lg shadow-lg">
+                    <div className="p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Crown className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-foreground">Unlock {item.label}</p>
+                          <p className="text-xs text-muted-foreground">Available on Power plan</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Upgrade to Power for $5/month to access {item.label.toLowerCase()} and all premium features.
+                      </p>
+                    </div>
+                    <div className="border-t border-border p-2 bg-muted/30">
+                      <Button 
+                        size="sm" 
+                        className="w-full h-8 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate("/pricing");
+                        }}
+                      >
+                        <Crown className="w-3 h-3 mr-1.5" />
+                        Upgrade to Power
+                      </Button>
+                    </div>
                   </div>
                 </TooltipContent>
               </Tooltip>
