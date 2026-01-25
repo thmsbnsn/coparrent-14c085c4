@@ -17,12 +17,15 @@ import {
   Scale,
   Trophy,
   Baby,
+  Lock,
+  Crown,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFamilyRole } from "@/hooks/useFamilyRole";
+import { useFamilySubscription } from "@/hooks/useFamilySubscription";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
@@ -30,22 +33,35 @@ import { TrialBadge } from "@/components/dashboard/TrialBadge";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { OnboardingOverlay } from "@/components/onboarding/OnboardingOverlay";
 import { FamilySwitcher } from "@/components/family/FamilySwitcher";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   userRole?: "parent" | "lawoffice";
 }
 
+interface NavItem {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+  thirdPartyAllowed: boolean;
+  id: string;
+  /** Requires Power plan */
+  requiresPower?: boolean;
+  /** Short label for the plan badge */
+  planBadge?: string;
+}
+
 // Full navigation for parents/guardians
-const parentNavItems = [
+const parentNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true, id: "nav-dashboard" },
   { icon: Calendar, label: "Parenting Calendar", href: "/dashboard/calendar", thirdPartyAllowed: false, id: "nav-calendar" },
   { icon: Users, label: "Child Info", href: "/dashboard/children", thirdPartyAllowed: false, id: "nav-children" },
-  { icon: Trophy, label: "Sports Hub", href: "/dashboard/sports", thirdPartyAllowed: false, id: "nav-sports" },
-  { icon: Baby, label: "Kids Hub", href: "/dashboard/kids-hub", thirdPartyAllowed: false, id: "nav-kids-hub" },
+  { icon: Trophy, label: "Sports Hub", href: "/dashboard/sports", thirdPartyAllowed: false, id: "nav-sports", requiresPower: true, planBadge: "Power" },
+  { icon: Baby, label: "Kids Hub", href: "/dashboard/kids-hub", thirdPartyAllowed: false, id: "nav-kids-hub", requiresPower: true, planBadge: "Power" },
   { icon: MessageSquare, label: "Messaging Hub", href: "/dashboard/messages", thirdPartyAllowed: true, id: "nav-messages" },
   { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false, id: "nav-documents" },
-  { icon: DollarSign, label: "Expenses", href: "/dashboard/expenses", thirdPartyAllowed: false, id: "nav-expenses" },
+  { icon: DollarSign, label: "Expenses", href: "/dashboard/expenses", thirdPartyAllowed: false, id: "nav-expenses", requiresPower: true, planBadge: "Power" },
   { icon: BookHeart, label: "Journal", href: "/dashboard/journal", thirdPartyAllowed: true, id: "nav-journal" },
   { icon: Scale, label: "Law Library", href: "/dashboard/law-library", thirdPartyAllowed: true, id: "nav-law-library" },
   { icon: BookOpen, label: "Blog", href: "/dashboard/blog", thirdPartyAllowed: true, id: "nav-blog" },
@@ -75,13 +91,28 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const { isThirdParty } = useFamilyRole();
+  const { hasFamilyPremiumAccess, loading: subscriptionLoading } = useFamilySubscription();
   const { toast } = useToast();
 
   // Filter nav items based on user role
   const allNavItems = userRole === "lawoffice" ? lawOfficeNavItems : parentNavItems;
-  const navItems = isThirdParty 
-    ? allNavItems.filter(item => item.thirdPartyAllowed) 
-    : allNavItems;
+  
+  // Split items into accessible and locked categories
+  const accessibleItems = allNavItems.filter(item => {
+    if (isThirdParty && !item.thirdPartyAllowed) return false;
+    return true;
+  });
+  
+  // Determine which items are locked due to plan
+  const getItemAccessState = (item: NavItem) => {
+    if (isThirdParty && !item.thirdPartyAllowed) {
+      return { accessible: false, reason: "role" as const };
+    }
+    if (item.requiresPower && !hasFamilyPremiumAccess && !subscriptionLoading) {
+      return { accessible: false, reason: "plan" as const };
+    }
+    return { accessible: true, reason: null };
+  };
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -137,8 +168,56 @@ export const DashboardLayout = ({ children, userRole = "parent" }: DashboardLayo
 
       {/* Navigation - Scrollable with custom scrollbar */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto sidebar-scroll">
-        {navItems.map((item) => {
+        {allNavItems.map((item) => {
           const isActive = location.pathname === item.href;
+          const accessState = getItemAccessState(item);
+          const isLocked = !accessState.accessible;
+          const isRoleLocked = accessState.reason === "role";
+          const isPlanLocked = accessState.reason === "plan";
+
+          // Hide role-locked items entirely for third-party
+          if (isRoleLocked) {
+            return null;
+          }
+
+          // Locked items (plan-gated) - show but disabled
+          if (isPlanLocked) {
+            return (
+              <Tooltip key={item.href}>
+                <TooltipTrigger asChild>
+                  <div
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-not-allowed",
+                      "text-sidebar-foreground/40 opacity-60"
+                    )}
+                  >
+                    <div className="relative">
+                      <item.icon className="w-5 h-5 flex-shrink-0" />
+                      <Lock className="w-3 h-3 absolute -bottom-1 -right-1 text-muted-foreground" />
+                    </div>
+                    {!sidebarCollapsed && (
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-sm font-medium truncate">{item.label}</span>
+                        {item.planBadge && (
+                          <span className="text-[10px] bg-primary/10 text-primary/70 px-1.5 py-0.5 rounded-full shrink-0">
+                            {item.planBadge}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <div className="flex items-center gap-2">
+                    <Crown className="h-4 w-4 text-primary" />
+                    <span>Upgrade to Power to unlock {item.label}</span>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          // Normal accessible items
           return (
             <Link
               key={item.href}

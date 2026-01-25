@@ -118,7 +118,7 @@ export const RoleGate = ({
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
         <UserX className="h-4 w-4" />
-        <span>{context.title}</span>
+        <span>This feature is not available for your account type.</span>
       </div>
     );
   }
@@ -135,10 +135,10 @@ export const RoleGate = ({
         </div>
         
         <div className="space-y-2">
-          <h3 className="font-semibold text-lg">{context.title}</h3>
+          <h3 className="font-semibold text-lg">Feature Not Available</h3>
           <p className="text-muted-foreground text-sm max-w-sm">
             {(isThirdParty || isChild)
-              ? `You are a ${roleLabel} in ${familyName}. ${context.description}`
+              ? `This feature is not available for your account type. You are a ${roleLabel} in ${familyName}.`
               : restrictedMessage
             }
           </p>
@@ -150,7 +150,7 @@ export const RoleGate = ({
         </div>
 
         <Button variant="outline" onClick={() => navigate("/dashboard")}>
-          {context.action.label}
+          Return to Dashboard
         </Button>
       </CardContent>
     </Card>
