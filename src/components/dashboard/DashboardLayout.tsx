@@ -53,12 +53,15 @@ interface NavItem {
 }
 
 // Full navigation for parents/guardians
+// NOTE: thirdPartyAllowed controls ROLE-based visibility
+// Kids Hub is subscription-gated but accessible to ALL roles (including third-party)
 const parentNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", thirdPartyAllowed: true, id: "nav-dashboard" },
   { icon: Calendar, label: "Parenting Calendar", href: "/dashboard/calendar", thirdPartyAllowed: false, id: "nav-calendar" },
   { icon: Users, label: "Child Info", href: "/dashboard/children", thirdPartyAllowed: false, id: "nav-children" },
   { icon: Trophy, label: "Sports Hub", href: "/dashboard/sports", thirdPartyAllowed: false, id: "nav-sports", requiresPower: true, planBadge: "Power" },
-  { icon: Baby, label: "Kids Hub", href: "/dashboard/kids-hub", thirdPartyAllowed: false, id: "nav-kids-hub", requiresPower: true, planBadge: "Power" },
+  // Kids Hub: Available to ALL family members (subscription-only gating)
+  { icon: Baby, label: "Kids Hub", href: "/dashboard/kids-hub", thirdPartyAllowed: true, id: "nav-kids-hub", requiresPower: true, planBadge: "Power" },
   { icon: MessageSquare, label: "Messaging Hub", href: "/dashboard/messages", thirdPartyAllowed: true, id: "nav-messages" },
   { icon: FileText, label: "Documents", href: "/dashboard/documents", thirdPartyAllowed: false, id: "nav-documents" },
   { icon: DollarSign, label: "Expenses", href: "/dashboard/expenses", thirdPartyAllowed: false, id: "nav-expenses", requiresPower: true, planBadge: "Power" },

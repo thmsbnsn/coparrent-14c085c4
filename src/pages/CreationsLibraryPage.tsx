@@ -18,7 +18,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { RoleGate } from "@/components/gates/RoleGate";
+import { PremiumFeatureGate } from "@/components/premium/PremiumFeatureGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -732,9 +732,12 @@ const CreationListItem = ({ creation, onOpen, onShare, onMove, onDelete, getType
 
 const CreationsLibraryPage = () => {
   return (
-    <RoleGate requireParent>
-      <CreationsLibraryContent />
-    </RoleGate>
+    <DashboardLayout>
+      {/* All family members can access creations if family has Power subscription */}
+      <PremiumFeatureGate featureName="Creations Library">
+        <CreationsLibraryContent />
+      </PremiumFeatureGate>
+    </DashboardLayout>
   );
 };
 

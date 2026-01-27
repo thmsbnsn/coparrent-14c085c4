@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Types for AI Guard
-export type FamilyRole = "parent" | "guardian" | "third_party" | null;
+export type FamilyRole = "parent" | "guardian" | "third_party" | "child" | null;
 export type PlanTier = "free" | "trial" | "power" | "admin_access";
 export type AiAction = 
   | "quick-check" 
@@ -17,6 +17,8 @@ export interface UserContext {
   isParent: boolean;
   planTier: PlanTier;
   hasPremiumAccess: boolean;
+  /** Whether access comes from family subscription (vs personal) */
+  isFamilyEntitlement: boolean;
 }
 
 interface GuardResult {
@@ -40,13 +42,18 @@ const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   admin_access: { maxCallsPerDay: 200, maxInputChars: 3000, maxTokens: 2000 },
 };
 
-// Action allowlist by role and plan
-const ACTION_ALLOWLIST: Record<AiAction, { requiresParent: boolean; requiresPremium: boolean }> = {
-  "quick-check": { requiresParent: false, requiresPremium: false },
-  "analyze": { requiresParent: true, requiresPremium: true },
-  "rephrase": { requiresParent: true, requiresPremium: true },
-  "draft": { requiresParent: true, requiresPremium: true },
-  "schedule-suggest": { requiresParent: true, requiresPremium: true },
+/**
+ * AI TOOL ACCESS POLICY:
+ * - All family members (parents, guardians, third-party, children) can use AI tools
+ * - Requirement: ANY member of the family must have a Power subscription
+ * - This enables grandparents, babysitters, and children to use Nurse Nancy, etc.
+ */
+const ACTION_ALLOWLIST: Record<AiAction, { requiresPremium: boolean }> = {
+  "quick-check": { requiresPremium: false },
+  "analyze": { requiresPremium: true },
+  "rephrase": { requiresPremium: true },
+  "draft": { requiresPremium: true },
+  "schedule-suggest": { requiresPremium: true },
 };
 
 /**
@@ -79,7 +86,7 @@ async function getUserFamilyRole(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   userId: string
-): Promise<{ profileId: string | null; role: FamilyRole; isParent: boolean }> {
+): Promise<{ profileId: string | null; role: FamilyRole; isParent: boolean; familyId: string | null }> {
   try {
     // Get user's profile
     const { data: profile } = await supabase
@@ -89,32 +96,46 @@ async function getUserFamilyRole(
       .maybeSingle();
 
     if (!profile) {
-      return { profileId: null, role: null, isParent: false };
+      return { profileId: null, role: null, isParent: false, familyId: null };
     }
 
-    // Check if user is a third-party member
+    // Check if user is a family member (third-party, child, etc.)
     const { data: familyMember } = await supabase
       .from("family_members")
-      .select("role")
+      .select("role, family_id")
       .eq("user_id", userId)
       .eq("status", "active")
       .maybeSingle();
 
     if (familyMember) {
-      // User is a third-party
       const role = familyMember.role as FamilyRole;
       return { 
         profileId: profile.id, 
         role, 
-        isParent: role === "guardian" 
+        isParent: role === "parent" || role === "guardian",
+        familyId: familyMember.family_id,
       };
     }
 
+    // Check for family via parent relationship
+    const { data: parentFamily } = await supabase
+      .from("family_members")
+      .select("family_id")
+      .eq("profile_id", profile.id)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
     // User is a parent/guardian
-    return { profileId: profile.id, role: "parent", isParent: true };
+    return { 
+      profileId: profile.id, 
+      role: "parent", 
+      isParent: true,
+      familyId: parentFamily?.family_id || null,
+    };
   } catch (error) {
     console.error("Error fetching family role:", error);
-    return { profileId: null, role: null, isParent: false };
+    return { profileId: null, role: null, isParent: false, familyId: null };
   }
 }
 
@@ -132,14 +153,9 @@ function normalizeTier(tier: string | null): PlanTier {
 }
 
 /**
- * Determines user's subscription plan tier
- * 
- * INVARIANTS ENFORCED (Server-side, never trust client):
- * 1. Trial users ≠ Premium users (tracked via planTier)
- * 2. Expired trial = Free immediately (real-time check)
- * 3. Stripe webhook is source of truth (reads profile fields set by webhook)
+ * Checks if user personally has premium access
  */
-async function getUserPlanTier(
+async function getUserPersonalPlanTier(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   userId: string
@@ -155,12 +171,12 @@ async function getUserPlanTier(
       return { planTier: "free", hasPremiumAccess: false };
     }
 
-    // INVARIANT: Admin free access (highest priority)
+    // Admin free access (highest priority)
     if (profile.free_premium_access === true) {
       return { planTier: "admin_access", hasPremiumAccess: true };
     }
 
-    // INVARIANT: Active paid subscription
+    // Active paid subscription
     if (profile.subscription_status === "active") {
       const tier = normalizeTier(profile.subscription_tier);
       if (tier === "power") {
@@ -168,36 +184,97 @@ async function getUserPlanTier(
       }
     }
     
-    // INVARIANT: Past due (grace period - still has access)
+    // Past due (grace period - still has access)
     if (profile.subscription_status === "past_due") {
       return { planTier: "power", hasPremiumAccess: true };
     }
 
-    // INVARIANT: Trial - MUST check expiration in real-time!
-    // Never trust cached status alone - validate trial_ends_at
+    // Trial check - real-time expiration validation
     if (profile.trial_ends_at) {
       const trialEnd = new Date(profile.trial_ends_at);
       const now = new Date();
       
       if (trialEnd > now) {
-        // Trial still active
         return { planTier: "trial", hasPremiumAccess: true };
       }
-      
-      // INVARIANT 2: Expired trial = Free IMMEDIATELY (no grace)
-      // Log for debugging race conditions
-      console.log("[aiGuard] Trial expired, denying access", {
-        userId,
-        trialEnd: profile.trial_ends_at,
-        now: now.toISOString(),
-      });
     }
 
     return { planTier: "free", hasPremiumAccess: false };
   } catch (error) {
-    console.error("Error fetching plan tier:", error);
-    // FAIL CLOSED: on error, deny access
+    console.error("Error fetching personal plan tier:", error);
     return { planTier: "free", hasPremiumAccess: false };
+  }
+}
+
+/**
+ * FAMILY-LEVEL ENTITLEMENT CHECK
+ * 
+ * If any member of the family has Power access, ALL members get access.
+ * This enables co-parents, grandparents, babysitters, and children to use AI tools.
+ */
+async function getFamilyEntitlement(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  familyId: string | null
+): Promise<{ hasFamilyPremiumAccess: boolean; familyTier: PlanTier }> {
+  if (!familyId) {
+    return { hasFamilyPremiumAccess: false, familyTier: "free" };
+  }
+
+  try {
+    // Get all family members' profiles
+    const { data: familyMembers } = await supabase
+      .from("family_members")
+      .select(`
+        profile_id,
+        profiles!inner (
+          id,
+          subscription_tier,
+          subscription_status,
+          free_premium_access,
+          trial_ends_at
+        )
+      `)
+      .eq("family_id", familyId)
+      .eq("status", "active");
+
+    if (!familyMembers || familyMembers.length === 0) {
+      return { hasFamilyPremiumAccess: false, familyTier: "free" };
+    }
+
+    const now = new Date();
+
+    // Check if ANY family member has premium access
+    for (const member of familyMembers) {
+      const profile = member.profiles;
+      if (!profile) continue;
+
+      // Free premium access (admin granted)
+      if (profile.free_premium_access === true) {
+        return { hasFamilyPremiumAccess: true, familyTier: "power" };
+      }
+
+      // Active subscription
+      if (profile.subscription_status === "active" || profile.subscription_status === "past_due") {
+        const tier = normalizeTier(profile.subscription_tier);
+        if (tier === "power") {
+          return { hasFamilyPremiumAccess: true, familyTier: "power" };
+        }
+      }
+
+      // Active trial
+      if (profile.trial_ends_at) {
+        const trialEnd = new Date(profile.trial_ends_at);
+        if (trialEnd > now) {
+          return { hasFamilyPremiumAccess: true, familyTier: "trial" };
+        }
+      }
+    }
+
+    return { hasFamilyPremiumAccess: false, familyTier: "free" };
+  } catch (error) {
+    console.error("Error checking family entitlement:", error);
+    return { hasFamilyPremiumAccess: false, familyTier: "free" };
   }
 }
 
@@ -225,6 +302,11 @@ async function isUserAdmin(
 
 /**
  * Main AI Guard function - validates auth, role, plan, and action permissions
+ * 
+ * ACCESS POLICY FOR AI TOOLS:
+ * - ANY family member can use AI tools (parents, guardians, third-party, children)
+ * - Requirement: At least ONE family member must have Power subscription
+ * - This shares the benefit across the entire family
  */
 export async function aiGuard(
   req: Request,
@@ -249,25 +331,33 @@ export async function aiGuard(
     };
   }
 
-  // 2. Get user's family role
-  const { profileId, role, isParent } = await getUserFamilyRole(supabase, user.id);
+  // 2. Get user's family role and family ID
+  const { profileId, role, isParent, familyId } = await getUserFamilyRole(supabase, user.id);
 
-  // 3. Get user's plan tier
-  const { planTier, hasPremiumAccess } = await getUserPlanTier(supabase, user.id);
+  // 3. Get user's personal plan tier
+  const { planTier: personalTier, hasPremiumAccess: hasPersonalAccess } = await getUserPersonalPlanTier(supabase, user.id);
 
-  // 4. Check if user is admin (admins bypass restrictions)
+  // 4. Get family-level entitlement (if any family member has premium)
+  const { hasFamilyPremiumAccess, familyTier } = await getFamilyEntitlement(supabase, familyId);
+
+  // 5. Check if user is admin (admins bypass restrictions)
   const isAdmin = await isUserAdmin(supabase, user.id);
+
+  // Determine effective access: personal OR family entitlement
+  const hasPremiumAccess = hasPersonalAccess || hasFamilyPremiumAccess || isAdmin;
+  const effectiveTier = isAdmin ? "admin_access" : (hasPersonalAccess ? personalTier : familyTier);
 
   const userContext: UserContext = {
     userId: user.id,
     profileId,
     role,
     isParent: isParent || isAdmin,
-    planTier: isAdmin ? "admin_access" : planTier,
-    hasPremiumAccess: hasPremiumAccess || isAdmin,
+    planTier: effectiveTier,
+    hasPremiumAccess,
+    isFamilyEntitlement: !hasPersonalAccess && hasFamilyPremiumAccess,
   };
 
-  // 5. Check action allowlist
+  // 6. Check action allowlist
   const actionConfig = ACTION_ALLOWLIST[action];
   
   if (!actionConfig) {
@@ -283,19 +373,7 @@ export async function aiGuard(
     return { allowed: true, userContext };
   }
 
-  // Check parent requirement
-  if (actionConfig.requiresParent && !isParent) {
-    return {
-      allowed: false,
-      error: { 
-        error: "This action requires parent or guardian role", 
-        code: "ROLE_REQUIRED" 
-      },
-      statusCode: 403,
-    };
-  }
-
-  // Check premium requirement
+  // Check premium requirement (personal OR family entitlement satisfies this)
   if (actionConfig.requiresPremium && !hasPremiumAccess) {
     return {
       allowed: false,
