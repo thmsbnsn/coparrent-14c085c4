@@ -59,21 +59,21 @@ Sharing is:
 
 | Action | Parent (Owner) | Co-Parent | Third-Party | Child |
 |--------|---------------|-----------|-------------|-------|
-| Create Activities | ✅ | ✅ | ❌ | ❌ |
-| Create Coloring Pages | ✅ | ✅ | ❌ | ❌ |
+| **AI Tools (Nurse Nancy, Activity Generator, Coloring Pages)** | ✅* | ✅* | ✅* | ✅* |
 | View Private Creations | ✅ | ❌ | ❌ | ❌ |
-| View Shared Creations | ✅ | ✅ | ❌ | ❌ |
+| View Shared Creations | ✅ | ✅ | ✅ | ✅ |
 | Edit Creations | ✅ | ❌ | ❌ | ❌ |
-| Export / Print Shared | ✅ | ✅ | ❌ | ❌ |
+| Export / Print Shared | ✅ | ✅ | ✅ | ✅ |
 | Manage Sharing | ✅ | ❌ | ❌ | ❌ |
 | Edit Calendar | ✅ | ✅ | ❌ | ❌ |
 | View Calendar | ✅ | ✅ | ✅ | ✅ |
-| Send Messages | ✅ | ✅ | ✅ | ⚠️* |
+| Send Messages | ✅ | ✅ | ✅ | ⚠️** |
 | Manage Documents | ✅ | ✅ | ❌ | ❌ |
 | Manage Expenses | ✅ | ✅ | ❌ | ❌ |
 | Access Settings | ✅ | ✅ | ❌ | ❌ |
 
-*Child messaging requires parent-enabled permissions
+*AI Tools require Power plan - if ANY family member has Power, ALL family members can access
+**Child messaging requires parent-enabled permissions
 
 ---
 

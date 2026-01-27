@@ -133,13 +133,10 @@ const KidsHubContent = () => {
 const KidsHubPage = () => {
   return (
     <DashboardLayout>
-      {/* Role gate: block third-party and child accounts */}
-      <RoleGate requireParent restrictedMessage="Kids Hub is only available to parents and guardians.">
-        {/* Premium gate: require Power plan */}
-        <PremiumFeatureGate featureName="Kids Hub">
-          <KidsHubContent />
-        </PremiumFeatureGate>
-      </RoleGate>
+      {/* All family members can access AI tools if family has Power subscription */}
+      <PremiumFeatureGate featureName="Kids Hub">
+        <KidsHubContent />
+      </PremiumFeatureGate>
     </DashboardLayout>
   );
 };

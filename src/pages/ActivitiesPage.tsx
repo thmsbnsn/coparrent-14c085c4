@@ -685,11 +685,10 @@ const ActivitiesContent = () => {
 const ActivitiesPage = () => {
   return (
     <DashboardLayout>
-      <RoleGate requireParent restrictedMessage="Activity Generator is only available to parents and guardians.">
-        <PremiumFeatureGate featureName="Activity Generator">
-          <ActivitiesContent />
-        </PremiumFeatureGate>
-      </RoleGate>
+      {/* All family members can access AI tools if family has Power subscription */}
+      <PremiumFeatureGate featureName="Activity Generator">
+        <ActivitiesContent />
+      </PremiumFeatureGate>
     </DashboardLayout>
   );
 };

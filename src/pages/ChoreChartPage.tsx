@@ -326,11 +326,10 @@ const ChoreChartContent = () => {
 const ChoreChartPage = () => {
   return (
     <DashboardLayout>
-      <RoleGate requireParent restrictedMessage="Chore Chart is only available to parents and guardians.">
-        <PremiumFeatureGate featureName="Chore Chart">
-          <ChoreChartContent />
-        </PremiumFeatureGate>
-      </RoleGate>
+      {/* All family members can access AI tools if family has Power subscription */}
+      <PremiumFeatureGate featureName="Chore Chart">
+        <ChoreChartContent />
+      </PremiumFeatureGate>
     </DashboardLayout>
   );
 };

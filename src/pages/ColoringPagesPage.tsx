@@ -434,13 +434,10 @@ const ColoringPagesContent = () => {
 const ColoringPagesPage = () => {
   return (
     <DashboardLayout>
-      {/* Role gate: block third-party and child accounts */}
-      <RoleGate requireParent restrictedMessage="Coloring Page Creator is only available to parents and guardians.">
-        {/* Premium gate: require Power plan */}
-        <PremiumFeatureGate featureName="Coloring Page Creator">
-          <ColoringPagesContent />
-        </PremiumFeatureGate>
-      </RoleGate>
+      {/* All family members can access AI tools if family has Power subscription */}
+      <PremiumFeatureGate featureName="Coloring Page Creator">
+        <ColoringPagesContent />
+      </PremiumFeatureGate>
     </DashboardLayout>
   );
 };

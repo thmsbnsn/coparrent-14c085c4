@@ -681,11 +681,10 @@ const NurseNancyContent = () => {
 const NurseNancyPage = () => {
   return (
     <DashboardLayout>
-      <RoleGate requireParent restrictedMessage="Nurse Nancy is only available to parents and guardians.">
-        <PremiumFeatureGate featureName="Nurse Nancy">
-          <NurseNancyContent />
-        </PremiumFeatureGate>
-      </RoleGate>
+      {/* All family members can access AI tools if family has Power subscription */}
+      <PremiumFeatureGate featureName="Nurse Nancy">
+        <NurseNancyContent />
+      </PremiumFeatureGate>
     </DashboardLayout>
   );
 };
