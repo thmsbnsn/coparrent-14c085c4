@@ -93,15 +93,22 @@ export const PROTECTED_ROUTES_PARENT_ONLY = [
   "/dashboard/expenses",
   "/dashboard/sports",
   "/dashboard/gifts",
+  "/dashboard/kid-center",
+  "/dashboard/audit",
+  "/admin",
+] as const;
+
+/**
+ * Routes accessible to ALL authenticated family members if family has Power subscription
+ * Third-party and child accounts CAN access these (family-level subscription check)
+ */
+export const FAMILY_SUBSCRIPTION_ROUTES = [
   "/dashboard/kids-hub",
   "/dashboard/kids-hub/nurse-nancy",
   "/dashboard/kids-hub/coloring-pages",
   "/dashboard/kids-hub/chore-chart",
   "/dashboard/kids-hub/activities",
   "/dashboard/kids-hub/creations",
-  "/dashboard/kid-center",
-  "/dashboard/audit",
-  "/admin",
 ] as const;
 
 /**
@@ -125,6 +132,13 @@ export const THIRD_PARTY_ALLOWED_ROUTES = [
   "/dashboard/notifications",
   "/dashboard/law-library",
   "/onboarding",
+  // Kids Hub is accessible to all family members if family has Power subscription
+  "/dashboard/kids-hub",
+  "/dashboard/kids-hub/nurse-nancy",
+  "/dashboard/kids-hub/coloring-pages",
+  "/dashboard/kids-hub/chore-chart",
+  "/dashboard/kids-hub/activities",
+  "/dashboard/kids-hub/creations",
 ] as const;
 
 /**
@@ -137,8 +151,8 @@ export const THIRD_PARTY_DENIED_ROUTES = [
   "/dashboard/expenses",
   "/dashboard/settings",
   "/dashboard/audit",
-  "/dashboard/kids-hub",
   "/admin",
+  // Note: Kids Hub is NOT in this list - access is controlled by family subscription, not role
 ] as const;
 
 // =============================================================================
@@ -221,6 +235,7 @@ export function getAllStaticRoutes(): string[] {
     ...AUTH_ROUTES,
     ...PROTECTED_ROUTES_ALL,
     ...PROTECTED_ROUTES_PARENT_ONLY,
+    ...FAMILY_SUBSCRIPTION_ROUTES,
     ...CHILD_ROUTES,
   ];
 }
