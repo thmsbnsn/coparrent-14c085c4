@@ -152,13 +152,13 @@ const App = () => (
               <Route path="/dashboard/sports" element={<ProtectedRoute><RouteErrorBoundary routeName="Sports"><SportsPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/gifts" element={<ProtectedRoute><RouteErrorBoundary routeName="Gifts"><GiftsPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/kid-center" element={<ProtectedRoute><RouteErrorBoundary routeName="Kid Center"><KidCenterPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/kids-hub" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Kids Hub"><KidsHubPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/kids-hub/nurse-nancy" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Nurse Nancy"><NurseNancyPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/kids-hub/coloring-pages" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Coloring Pages"><ColoringPagesPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/kids-hub/chore-chart" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Chore Chart"><ChoreChartPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/kids-hub/activities" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Activities"><ActivitiesPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/kids-hub/creations" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Creations Library"><CreationsLibraryPage /></RouteErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/kids-hub/*" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Kids Hub"><KidsHubPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub" element={<ProtectedRoute><RouteErrorBoundary routeName="Kids Hub"><KidsHubPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/nurse-nancy" element={<ProtectedRoute><RouteErrorBoundary routeName="Nurse Nancy"><NurseNancyPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/coloring-pages" element={<ProtectedRoute><RouteErrorBoundary routeName="Coloring Pages"><ColoringPagesPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/chore-chart" element={<ProtectedRoute><RouteErrorBoundary routeName="Chore Chart"><ChoreChartPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/activities" element={<ProtectedRoute><RouteErrorBoundary routeName="Activities"><ActivitiesPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/creations" element={<ProtectedRoute><RouteErrorBoundary routeName="Creations Library"><CreationsLibraryPage /></RouteErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/kids-hub/*" element={<ProtectedRoute><RouteErrorBoundary routeName="Kids Hub"><KidsHubPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/audit" element={<ProtectedRoute requireParent><RouteErrorBoundary routeName="Audit Log"><AuditLogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog"><BlogPage /></RouteErrorBoundary></ProtectedRoute>} />
               <Route path="/dashboard/blog/:slug" element={<ProtectedRoute><RouteErrorBoundary routeName="Blog Post"><BlogPostPage /></RouteErrorBoundary></ProtectedRoute>} />

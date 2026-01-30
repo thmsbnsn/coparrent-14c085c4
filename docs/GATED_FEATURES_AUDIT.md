@@ -52,12 +52,12 @@ This document provides a comprehensive audit of all gated features, verifying:
 | **Coloring Page Creator** | ✅ `ColoringPagesPage.tsx` | ✅ `aiGuard` in edge function | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
 | **Activity Generator** | ✅ `ActivitiesPage.tsx` | ✅ `aiGuard` in edge function | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
 | **Chore Charts** | ✅ `ChoreChartPage.tsx` | ✅ RLS on `chore_lists` | ✅ RLS rejects | ✅ PASS |
-| **Kids Hub** | ✅ `KidsHubPage.tsx` | ✅ Nested feature gates | ✅ UI blocks | ✅ PASS |
+| **Kids Hub** | ✅ `KidsHubPage.tsx` | ✅ `aiGuard` (family-level) | ✅ UI blocks | ✅ PASS |
 | **AI Message Rephrase** | ✅ `MessageToneAssistant.tsx` | ✅ `aiGuard` | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
 | **AI Message Draft** | ✅ `MessageToneAssistant.tsx` | ✅ `aiGuard` | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
 | **AI Schedule Suggest** | ✅ `CalendarWizard.tsx` | ✅ `aiGuard` | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
 
----
+> **Note:** AI Tools access is granted to ALL family roles (parent, third-party, child) if ANY member of the family has a Power subscription.
 
 ## Role-Restricted Features (Parent/Guardian Only)
 
