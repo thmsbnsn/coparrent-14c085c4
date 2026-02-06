@@ -1,8 +1,8 @@
 # Security Model
 
-> **Version**: 2.0  
+> **Version**: 2.1  
 > **Status**: Production  
-> **Last Updated**: 2026-01-24
+> **Last Updated**: 2026-02-06
 
 This document defines the **security architecture, enforcement layers, and trust boundaries** of CoParrent.
 
@@ -32,6 +32,7 @@ All sensitive decisions are enforced **server-side**.
 - Authentication alone does **not** grant access to data or features
 - Two-factor authentication (TOTP) is supported with recovery codes
 - Device trust tracking with login notifications
+- hCaptcha protection on auth forms prevents bot abuse
 
 Authentication answers *who you are*.  
 Authorization answers *what you are allowed to do*.
@@ -50,6 +51,13 @@ Recovery codes are:
 - One-time use with timestamp tracking
 - Auto-expire after 1 year
 - Count tracked in `user_2fa_settings.recovery_codes_remaining`
+
+### Password Security
+
+- Password input components use show/hide toggle
+- Password values are never exposed in logs or DOM
+- Auth pages clear password fields on error
+- Secure logger redacts sensitive data patterns (JWTs, UUIDs)
 
 ---
 
@@ -97,6 +105,7 @@ CoParrent supports multiple roles with **strict capability separation**:
 - A user can be Parent in Family A and Third-Party in Family B
 - Switching families changes available permissions immediately
 - All role checks use `useFamilyRole()` which reads from active family context
+- RLS policies use PostgreSQL helper functions (`is_parent_in_family`, `can_write_in_family`, `can_read_in_family`)
 
 ### Role Enforcement Functions
 
@@ -155,6 +164,13 @@ Subscription tiers are enforced **server-side**, never trusted to the client.
 | RPC Functions | Check `profiles.subscription_tier` |
 | RLS Policies | Some features blocked at database level |
 
+### Family-Wide Subscription Access
+
+AI tools use **family-level subscription checks**:
+- If any family member has Power, all family members can access AI features
+- `aiGuard` queries `family_members` table to check if any member has an active subscription
+- This enables third-party and child accounts to use AI tools without individual subscriptions
+
 ### Subscription Invariants
 
 | Invariant | Description |
@@ -174,10 +190,11 @@ AI-powered features follow strict safety boundaries:
 
 - AI outputs are **non-diagnostic and non-authoritative**
 - No medical, legal, or treatment advice is provided
-- Emergency scenarios defer immediately to local emergency services
+- Emergency scenarios defer immediately to local emergency services (911)
 - AI prompts and system instructions are locked server-side
-- User input is sanitized and validated
-- Requests are rate-limited per user
+- User input is sanitized and validated via Zod schemas
+- Requests are rate-limited per user per day
+- All AI responses include safety disclaimers
 
 ### AI Rate Limits
 
@@ -243,6 +260,7 @@ All email sends are logged to `audit_logs` with:
 | Edge Functions | `functionRateLimit` for abuse prevention |
 | Auth Forms | hCaptcha for bot protection |
 | Invitations | Plan-based limits on third-party invites |
+| Webhooks | Idempotency keys prevent duplicate processing |
 
 ---
 
@@ -255,6 +273,7 @@ All email sends are logged to `audit_logs` with:
 - No public buckets
 - No anonymous access
 - File URLs are scoped and revocable
+- File names use `crypto.randomUUID()` (not Math.random)
 
 Exported documents never expose internal identifiers.
 
@@ -284,6 +303,26 @@ Exported documents never expose internal identifiers.
 | **Actor ID from auth.uid()** | Cannot be spoofed by client |
 
 Logs are designed for **auditability and court-defensibility**.
+
+---
+
+## Input Validation
+
+- All Edge Functions validate input using Zod schemas
+- CSS injection protection via sanitization functions
+- DOMPurify used for HTML content sanitization
+- Database CHECK constraints enforce field length limits
+- Sensitive tokens use sessionStorage (not localStorage)
+
+---
+
+## Error Handling & Information Leakage Prevention
+
+- All error codes are centralized in `src/lib/errorMessages.ts`
+- Technical error details are sanitized before display
+- No UUIDs, table names, or stack traces exposed to users
+- Error messages are calm, neutral, and non-technical
+- `SecurityBoundary` component catches violations and prevents data leakage
 
 ---
 
@@ -344,6 +383,7 @@ This security model is enforced by executable tests in:
 - `docs/GATED_FEATURES.md` — Feature access and enforcement rules  
 - `docs/GATED_FEATURES_AUDIT.md` — Audit verification status
 - `docs/DESIGN_CONSTITUTION.md` — Visual design rules
+- `docs/INVESTOR_HANDOFF.md` — Investor-facing project overview
 
 ---
 

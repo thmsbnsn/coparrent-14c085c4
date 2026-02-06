@@ -17,6 +17,7 @@
 - [3rd Party Connections](#-3rd-party-connections)
 - [AI Assistant](#-ai-assistant)
 - [Features & Components](#-features--components)
+- [Help Center](#-help-center)
 - [Application Wire Tree](#-application-wire-tree)
 - [Database Schema](#-database-schema)
 - [Getting Started](#-getting-started)
@@ -32,8 +33,11 @@ CoParrent helps co-parents:
 - **Share children's information** including medical records, school details, and emergency contacts
 - **Store and share documents** with access logging for legal purposes
 - **Manage schedule changes** with formal request/approval workflows
+- **Track shared expenses** with split percentages, receipt uploads, and court-ready reports
 - **Invite third-party members** (step-parents, grandparents, babysitters) via email invitation
 - **Access AI-powered tools** including Nurse Nancy, Activity Generator, and Coloring Page Creator
+- **Manage youth sports & activities** with events, directions, and equipment checklists
+- **Create and track chore charts** across multiple households
 
 The application is designed with a **calm, professional, court-friendly aesthetic** using navy blue and sage green as primary colors to reduce stress during what can be a difficult time.
 
@@ -74,9 +78,9 @@ This model applies to messages, documents, and all Kids Hub creations.
 **Current Phase:** Production  
 **Environment:** Lovable Cloud  
 **Stripe Mode:** Live  
-**Last Verified Build:** 2026-01-24  
+**Last Verified Build:** 2026-02-06  
 **Verified By:** Lovable  
-**Last README Update:** 2026-01-24
+**Last README Update:** 2026-02-06
 
 > **Note:** The `Last Verified Build` and `Verified By` fields must be updated whenever a behavioral or architectural change is made.
 
@@ -101,6 +105,8 @@ This model applies to messages, documents, and all Kids Hub creations.
 | **Child Accounts** | ✅ Complete | Limited access with parental controls |
 | **Subscription Billing** | ✅ Complete | Stripe integration, Free/Power tiers |
 | **Audit Logging** | ✅ Complete | Immutable, court-defensible logs |
+| **Help Center** | ✅ Complete | 14 help articles with disclaimers |
+| **Legal Compliance** | ✅ Complete | Privacy Policy, Terms, Cookie Consent, GDPR Export |
 
 ---
 
@@ -113,13 +119,14 @@ CoParrent uses a simplified two-tier subscription model:
 | **Free** | $0 | 4 | 4 | Calendar, Messages, Child Info, Documents, Kids Hub*, Law Library, Blog |
 | **Power** | $5/month | 6 | 6 | Everything in Free + Expenses, Court Exports, Sports Hub, Full AI Access |
 
-*Kids Hub in Free tier has limited AI usage
+*Kids Hub in Free tier has limited AI usage (10 requests/day)
 
 **Key Points:**
 - Legacy tiers (Premium, MVP) automatically map to Power tier
 - Plan limits enforced server-side via PostgreSQL RPCs
 - All tier checks use `normalizeTier()` for legacy compatibility
 - `src/lib/planLimits.ts` is the single source of truth
+- **Family-wide access**: If ANY family member has Power, ALL family members can use AI tools
 
 ---
 
@@ -162,6 +169,8 @@ The following guarantees are enforced by design:
 - Private data is never auto-shared
 - Deletions respect defined retention rules
 - Audit logs are **immutable** with role snapshots
+- AI tools include safety disclaimers and emergency deferral
+- All error messages are sanitized (no internal IDs exposed)
 
 ---
 
@@ -173,6 +182,7 @@ To avoid misuse or misinterpretation:
 - CoParrent is **not** a medical advice platform
 - CoParrent is **not** an emergency communication system
 - CoParrent is **not** a surveillance or monitoring tool
+- CoParrent does **not** make automated decisions about custody or care
 
 For exact access rules and plan enforcement, see **`docs/GATED_FEATURES.md`**.
 For security architecture, see **`docs/SECURITY_MODEL.md`**.
@@ -199,6 +209,7 @@ For security architecture, see **`docs/SECURITY_MODEL.md`**.
 | **Recharts** | ^2.15.4 | Charts & Data Visualization |
 | **Lucide React** | ^0.462.0 | Icon Library |
 | **jsPDF** | ^4.0.0 | PDF Generation |
+| **DOMPurify** | ^3.3.1 | XSS Protection |
 
 ### Backend (Lovable Cloud)
 
@@ -293,9 +304,40 @@ CoParrent integrates AI-powered features to help co-parents communicate professi
 
 - AI outputs are **non-diagnostic and non-authoritative**
 - No medical, legal, or treatment advice
-- Emergency scenarios defer to local emergency services
-- User input is sanitized and validated
-- Requests are rate-limited per user
+- Emergency scenarios defer to local emergency services (911)
+- User input is sanitized and validated via Zod schemas
+- Requests are rate-limited per user per day
+- All AI functions include safety disclaimers in responses
+- Family-wide access: if any family member subscribes, all can use AI tools
+
+---
+
+## 📖 Help Center
+
+CoParrent includes a comprehensive Help Center with 14 fully authored help articles:
+
+| Article | Path | Content |
+|---------|------|---------|
+| Getting Started | `/help/getting-started` | Account setup, first steps, overview |
+| Scheduling | `/help/scheduling` | Calendar setup, custody patterns |
+| Schedule Patterns | `/help/schedule-patterns` | Pattern types (alternating, 2-2-3, etc.) |
+| Schedule Change Requests | `/help/schedule-change-requests` | Request workflow, approval process |
+| Messaging | `/help/messaging` | Channels, DMs, tone assist, court view |
+| Documents | `/help/documents` | Upload, categories, access logging |
+| Document Exports | `/help/document-exports` | Court-ready PDF exports |
+| Expenses | `/help/expenses` | Tracking, splitting, receipts, reports |
+| Invitations | `/help/invitations` | Co-parent & third-party invite flows |
+| Privacy & Data | `/help/privacy` | Data ownership, sharing model, GDPR |
+| Security | `/help/security` | 2FA, recovery codes, device trust |
+| Account & Settings | `/help/account` | Profile, preferences, notifications |
+| Trial Ending | `/help/trial-ending` | Trial expiration, upgrade path |
+| Contact Support | `/help/contact` | Support form, emergency resources |
+
+All help articles include:
+- Visual card-based layouts with icons and callouts
+- Step-by-step guides with numbered instructions
+- Safety and legal disclaimers where appropriate
+- Links to related help topics
 
 ---
 
@@ -316,16 +358,18 @@ CoParrent integrates AI-powered features to help co-parents communicate professi
 | **Chore Charts** | `ChoreChartPage`, `ChoreChartView` | Multi-household chore management |
 | **Gift Lists** | `GiftsPage`, `GiftListCard` | Per-child wishlists with claiming |
 | **Law Library** | `UnifiedLawLibraryPage` | State-grouped legal resources |
+| **Help Center** | `HelpCenter`, `HelpArticleLayout` | 14 production-ready help articles |
 
 ### Gate Components
 
 | Component | Purpose |
 |-----------|---------|
 | `ProtectedRoute` | Route-level auth + role enforcement |
-| `PremiumFeatureGate` | Blocks non-Power plan users |
+| `PremiumFeatureGate` | Blocks non-Power plan users (family-level check) |
 | `RoleGate` | Blocks third-party/child accounts |
 | `AdminGate` | Blocks non-admin users |
 | `ChildAccountGate` | Enforces child restrictions |
+| `SecurityBoundary` | Error boundary for security violations |
 
 ### Custom Hooks
 
@@ -334,15 +378,17 @@ CoParrent integrates AI-powered features to help co-parents communicate professi
 | `useAuth` | Authentication state | Active |
 | `useFamilyRole` | Family role detection (per-family) | Active |
 | `usePermissions` | Unified permission flags | Active |
+| `useSecurityContext` | Security assertions and violation checks | Active |
+| `usePremiumAccess` | Premium feature access with real-time trial check | Active |
 | `useMessagingHub` | Primary messaging hook | Active |
 | `useUnreadMessages` | Unread count tracking | Active |
 | `useChildren` | Children data CRUD | Active |
 | `useDocuments` | Document management | Active |
 | `useExpenses` | Expense tracking | Active |
 | `useSubscription` | Stripe subscription status | Active |
-| `usePremiumAccess` | Premium feature access checks | Active |
 | `usePushNotifications` | Browser push notifications | Active |
 | `useChoreCharts` | Chore chart management | Active |
+| `useFamilySubscription` | Family-wide subscription check | Active |
 
 ---
 
@@ -377,6 +423,7 @@ CoParrent integrates AI-powered features to help co-parents communicate professi
 | `push_subscriptions` | Push notification endpoints |
 | `user_2fa_settings` | Two-factor auth settings |
 | `user_recovery_codes` | 2FA recovery codes (hashed) |
+| `child_permissions` | Parent-controlled child access |
 
 ---
 
@@ -417,6 +464,7 @@ npx playwright test --grep "subscription"
 | `docs/DESIGN_CONSTITUTION.md` | Visual and interaction design rules |
 | `docs/PWA_TEST_CHECKLIST.md` | Manual QA for PWA functionality |
 | `docs/MIGRATION_DRY_RUN.md` | Data migration validation system |
+| `docs/INVESTOR_HANDOFF.md` | Investor-facing project overview |
 
 ---
 
@@ -443,6 +491,12 @@ These rules should be preserved unless explicitly revised:
 - No destructive action without confirmation and audit logging
 - Role is per-family, not global
 
+### Security
+- All gate checks are duplicated server-side
+- UI gates improve UX but are not trusted as security boundaries
+- Error responses are sanitized to prevent information leakage
+- Bypass attempts are logged and auditable
+
 ---
 
 ## Explicit Non-Goals
@@ -454,6 +508,8 @@ The following are explicitly out of scope:
 - Direct communication with courts
 - Financial arbitration or forced payment handling
 - Native mobile apps beyond PWA
+- Background monitoring or surveillance
+- Automated custody or care decisions
 
 ---
 

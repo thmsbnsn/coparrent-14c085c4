@@ -1,8 +1,8 @@
 # Gated Features Documentation
 
-> **Version**: 2.0  
+> **Version**: 2.1  
 > **Status**: Production  
-> **Last Updated**: 2026-01-24
+> **Last Updated**: 2026-02-06
 
 This document lists all premium, role-gated, and admin-restricted features in CoParrent,
 along with where each gate is enforced (UI component + server-side).
@@ -36,6 +36,14 @@ CoParrent uses a two-tier subscription model:
 *Kids Hub in Free tier has limited AI usage (10 requests/day)
 
 **Plan Configuration:** `src/lib/planLimits.ts`
+
+### Family-Wide AI Access
+
+**CRITICAL**: AI tool access is determined at the **family level**, not per-user.
+
+- If ANY member of a family has a Power subscription, ALL family members (parents, co-parents, third-party, children) can access AI tools
+- This is enforced both in the UI (`PremiumFeatureGate` with `useFamilySubscription`) and server-side (`aiGuard` checks family membership)
+- Third-party and child accounts inherit AI access from any subscribing family member
 
 ---
 
@@ -97,10 +105,10 @@ Features requiring Power subscription, trial, or free_access grant.
 | Expenses Tracking | `ExpensesPage.tsx` | RLS `is_parent_or_guardian()` | Power-only |
 | Court Exports | `CourtExportDialog.tsx` | RLS on export data | Power-only |
 | Sports & Events Hub | `SportsPage.tsx` | RLS on `child_activities` | Power-only |
-| Kids Hub (Full AI) | `KidsHubPage.tsx` | `aiGuard` in edge functions | Power-only |
-| Nurse Nancy | `NurseNancyPage.tsx` | `aiGuard` + rate limits | Power-only |
-| Coloring Page Creator | `ColoringPagesPage.tsx` | `aiGuard` + rate limits | Power-only |
-| Activity Generator | `ActivitiesPage.tsx` | `aiGuard` + rate limits | Power-only |
+| Kids Hub (Full AI) | `KidsHubPage.tsx` | `aiGuard` in edge functions | Power-only (family-level) |
+| Nurse Nancy | `NurseNancyPage.tsx` | `aiGuard` + rate limits | Power-only (family-level) |
+| Coloring Page Creator | `ColoringPagesPage.tsx` | `aiGuard` + rate limits | Power-only (family-level) |
+| Activity Generator | `ActivitiesPage.tsx` | `aiGuard` + rate limits | Power-only (family-level) |
 | Chore Charts | `ChoreChartPage.tsx` | RLS on `chore_lists` | Power-only |
 | AI Message Rephrase | `MessageToneAssistant.tsx` | `aiGuard` | Power-only |
 | AI Message Draft | `MessageToneAssistant.tsx` | `aiGuard` | Power-only |
@@ -133,6 +141,10 @@ Features restricted from Third-Party members.
 - `/dashboard/blog` - Blog
 - `/dashboard/notifications` - Notifications
 - `/dashboard/gifts` - Gift lists (view only)
+- `/dashboard/kids-hub` - Kids Hub (if family has Power plan)
+- `/dashboard/kids-hub/nurse-nancy` - Nurse Nancy (if family has Power plan)
+- `/dashboard/kids-hub/coloring-pages` - Coloring Pages (if family has Power plan)
+- `/dashboard/kids-hub/activities` - Activities (if family has Power plan)
 
 ---
 
@@ -169,9 +181,9 @@ Features restricted to users with `admin` role in `user_roles` table.
 
 ## AI Feature Permissions Matrix
 
-| Action | Auth Required | Parent/Admin Required | Premium Required | Rate Limited |
-|--------|---------------|----------------------|------------------|--------------|
-| `quick-check` | ✅ | ❌ | ❌ | ❌ |
+| Action | Auth Required | Premium Required | Rate Limited | Family-Level Access |
+|--------|---------------|------------------|--------------|---------------------|
+| `quick-check` | ✅ | ❌ | ❌ | N/A |
 | `analyze` | ✅ | ✅ | ✅ | ✅ |
 | `rephrase` | ✅ | ✅ | ✅ | ✅ |
 | `draft` | ✅ | ✅ | ✅ | ✅ |
@@ -197,7 +209,7 @@ Features restricted to users with `admin` role in `user_roles` table.
 All AI edge functions use the shared `aiGuard` module which:
 1. Validates JWT token from Authorization header
 2. Fetches user profile and determines family role
-3. Checks subscription/trial status via profile
+3. Checks subscription/trial status via profile **and family membership**
 4. Enforces action allowlist based on role + plan
 5. Returns structured `{ error, code }` on rejection
 
@@ -307,9 +319,10 @@ AI-powered tools in CoParrent are intentionally constrained:
 
 - Provide **general, educational support only**
 - Do **not** provide medical, legal, or diagnostic advice
-- Always defer emergencies to **local emergency services**
+- Always defer emergencies to **local emergency services (911)**
 - Enforce **rate limits** and safety rules server-side
 - Preserve user privacy (no sensitive data logging)
+- Include **safety disclaimers** on all AI-generated content
 
 ---
 
@@ -334,11 +347,22 @@ The following limitations are **by design**, not omissions:
 
 ---
 
+## Help Center
+
+The Help Center (`/help`) provides 14 production-ready help articles covering all platform features. Each article includes:
+- Visual card-based layouts with icons
+- Step-by-step guides
+- Safety and legal disclaimers where appropriate
+- Cross-links to related topics
+
+---
+
 ## Cross-Reference
 
 - Security architecture: **`docs/SECURITY_MODEL.md`**
 - Design principles: **`docs/DESIGN_CONSTITUTION.md`**
 - Audit verification: **`docs/GATED_FEATURES_AUDIT.md`**
+- Investor overview: **`docs/INVESTOR_HANDOFF.md`**
 
 ---
 

@@ -1,8 +1,8 @@
 # Migration Dry-Run System
 
-> **Version**: 2.0  
+> **Version**: 2.1  
 > **Status**: Production  
-> **Last Updated**: 2026-01-24
+> **Last Updated**: 2026-02-06
 
 This document describes the **Data Migration Dry-Run & Idempotency Hardening** system for CoParrent, designed to ensure safe production migrations with zero risk of silent data corruption.
 
@@ -186,6 +186,7 @@ With multi-family support, additional validations include:
 
 - `docs/SECURITY_MODEL.md` - Security architecture
 - `docs/GATED_FEATURES.md` - Feature access rules
+- `docs/INVESTOR_HANDOFF.md` - Investor-facing project overview
 - `README.md` - Project overview and design principles
 
 ---

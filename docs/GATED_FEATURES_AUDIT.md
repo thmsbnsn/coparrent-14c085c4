@@ -1,6 +1,6 @@
 # Gated Features Audit
 
-> **Audit Date**: 2026-01-24  
+> **Audit Date**: 2026-02-06  
 > **Status**: ✅ Complete — Production Ready  
 > **Auditor**: System
 
@@ -16,6 +16,7 @@ These invariants are enforced in `src/lib/subscriptionInvariants.ts` and all ser
 | **Expired Trial = Free Immediately** | No grace period; real-time check on every access | `isTrialExpired()`, `aiGuard.getUserPlanTier()` |
 | **Stripe Webhook = Source of Truth** | Profile subscription fields written only by webhooks | `stripe-webhook/index.ts`, `check-subscription/index.ts` |
 | **Server Never Trusts Client Tier** | All edge functions re-validate from database | `aiGuard()`, `check-subscription()` |
+| **Family-Wide AI Access** | Any family member's Power sub grants AI to all | `aiGuard` family membership query |
 
 ---
 
@@ -26,6 +27,7 @@ This document provides a comprehensive audit of all gated features, verifying:
 2. ✅ Server enforcement exists (RLS or aiGuard)
 3. ✅ Failure returns structured `{ error, code }`
 4. ✅ Role is per-family, not global
+5. ✅ AI tools accessible to all family roles when any member has Power
 
 ---
 
@@ -33,11 +35,12 @@ This document provides a comprehensive audit of all gated features, verifying:
 
 | Gate Component | Location | Purpose |
 |----------------|----------|---------|
-| `PremiumFeatureGate` | `src/components/premium/PremiumFeatureGate.tsx` | Blocks non-Power plan users |
+| `PremiumFeatureGate` | `src/components/premium/PremiumFeatureGate.tsx` | Blocks non-Power plan users (family-level check) |
 | `RoleGate` | `src/components/gates/RoleGate.tsx` | Blocks third-party/child accounts |
 | `AdminGate` | `src/components/gates/AdminGate.tsx` | Blocks non-admin users |
 | `ChildAccountGate` | `src/components/gates/ChildAccountGate.tsx` | Enforces child restrictions |
 | `ProtectedRoute` | `src/components/ProtectedRoute.tsx` | Route-level enforcement |
+| `SecurityBoundary` | `src/components/gates/SecurityBoundary.tsx` | Error boundary for violations |
 
 ---
 
@@ -48,16 +51,16 @@ This document provides a comprehensive audit of all gated features, verifying:
 | **Expense Tracking** | ✅ `ExpensesPage.tsx` | ✅ RLS `is_parent_or_guardian()` | ✅ RLS rejects | ✅ PASS |
 | **Court Exports** | ✅ `CourtExportDialog.tsx` | ✅ RLS on export data | ✅ Client-side gate | ✅ PASS |
 | **Sports & Events Hub** | ✅ `SportsPage.tsx` | ✅ RLS on `child_activities` | ✅ RLS rejects | ✅ PASS |
-| **Nurse Nancy AI** | ✅ `NurseNancyPage.tsx` | ✅ `aiGuard` in edge function | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
-| **Coloring Page Creator** | ✅ `ColoringPagesPage.tsx` | ✅ `aiGuard` in edge function | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
-| **Activity Generator** | ✅ `ActivitiesPage.tsx` | ✅ `aiGuard` in edge function | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
+| **Nurse Nancy AI** | ✅ `NurseNancyPage.tsx` | ✅ `aiGuard` (family-level) | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
+| **Coloring Page Creator** | ✅ `ColoringPagesPage.tsx` | ✅ `aiGuard` (family-level) | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
+| **Activity Generator** | ✅ `ActivitiesPage.tsx` | ✅ `aiGuard` (family-level) | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
 | **Chore Charts** | ✅ `ChoreChartPage.tsx` | ✅ RLS on `chore_lists` | ✅ RLS rejects | ✅ PASS |
 | **Kids Hub** | ✅ `KidsHubPage.tsx` | ✅ `aiGuard` (family-level) | ✅ UI blocks | ✅ PASS |
 | **AI Message Rephrase** | ✅ `MessageToneAssistant.tsx` | ✅ `aiGuard` | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
 | **AI Message Draft** | ✅ `MessageToneAssistant.tsx` | ✅ `aiGuard` | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
 | **AI Schedule Suggest** | ✅ `CalendarWizard.tsx` | ✅ `aiGuard` | ✅ `{ code: "PREMIUM_REQUIRED" }` | ✅ PASS |
 
-> **Note:** AI Tools access is granted to ALL family roles (parent, third-party, child) if ANY member of the family has a Power subscription.
+> **Note:** AI Tools access is granted to ALL family roles (parent, third-party, child) if ANY member of the family has a Power subscription. This is enforced at both the UI level (`useFamilySubscription`) and server level (`aiGuard` family membership query).
 
 ## Role-Restricted Features (Parent/Guardian Only)
 
@@ -134,6 +137,21 @@ All error codes are centralized in `src/lib/errorMessages.ts` with strict saniti
 
 ---
 
+## Help Center Audit
+
+**Status**: ✅ **COMPLETE**
+
+| Check | Status |
+|-------|--------|
+| All 14 help articles authored | ✅ PASS |
+| No placeholder content remaining | ✅ PASS |
+| Safety disclaimers present where needed | ✅ PASS |
+| Legal disclaimers on relevant pages | ✅ PASS |
+| Visual consistency across articles | ✅ PASS |
+| Cross-links between related topics | ✅ PASS |
+
+---
+
 ## AI Edge Function Error Responses
 
 All AI edge functions return structured `{ error: string, code: string }` responses:
@@ -143,8 +161,7 @@ All AI edge functions return structured `{ error: string, code: string }` respon
 | Missing auth header | 401 | `UNAUTHORIZED` |
 | Invalid/expired token | 401 | `UNAUTHORIZED` |
 | Unknown action | 400 | `INVALID_ACTION` |
-| Third-party/child role | 403 | `ROLE_REQUIRED` |
-| Free plan user | 403 | `PREMIUM_REQUIRED` |
+| No family Power sub | 403 | `PREMIUM_REQUIRED` |
 | Input too long | 400 | `INPUT_TOO_LONG` |
 | Rate limit exceeded | 429 | `RATE_LIMIT` |
 
@@ -163,6 +180,7 @@ All AI edge functions return structured `{ error: string, code: string }` respon
 | **No DELETE Allowed** | RLS policy | ✅ PASS |
 | **Writes via SECURITY DEFINER** | `log_audit_event()` RPC | ✅ PASS |
 | **Actor ID from auth.uid()** | Cannot be spoofed | ✅ PASS |
+| **Role snapshot at action time** | `actor_role_at_action` column | ✅ PASS |
 
 ### Third-Party Data Leakage Prevention
 
@@ -198,6 +216,8 @@ The gating system is comprehensive and properly layered:
 - Role and plan checks are centralized in reusable functions
 - Audit logs are court-defensible with immutability guarantees
 - Role is per-family with proper loading state handling
+- Family-wide AI access is enforced at both UI and server levels
+- Help Center is complete with all 14 articles and proper disclaimers
 
 All identified gaps from previous audits have been resolved.
 
