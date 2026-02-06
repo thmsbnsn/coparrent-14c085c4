@@ -1,9 +1,9 @@
 # CoParrent Visual & Interaction Constitution
 
-> **Version**: 2.0  
+> **Version**: 2.1  
 > **Status**: ENFORCED  
-> **Last Updated**: 2026-01-24  
-> **Scope**: All UI across Dashboard, Calendar, Messaging, Expenses, Documents, Kids Hub, and future features
+> **Last Updated**: 2026-02-06  
+> **Scope**: All UI across Dashboard, Calendar, Messaging, Expenses, Documents, Kids Hub, Help Center, and future features
 
 ---
 
@@ -100,6 +100,7 @@ If two elements represent the same concept, they must:
 - Status indicators
 - Badges
 - Action buttons
+- Help article layouts
 
 **Violation**: Near-duplicates. If `ExpenseCard` and `DocumentCard` have similar purpose, they must share a common ancestor component or identical visual patterns.
 
@@ -177,6 +178,8 @@ If a concept exists on desktop, it must survive on mobile.
 | Law Library | Reference | Article list (read-only) | N/A |
 | Settings | Action | Focused configuration sections | N/A |
 | Creations Library | Overview | Folders + creation grid | PDF/Print export |
+| Help Center | Reference | Topic card grid | N/A |
+| Help Articles | Reference | Card-based content with callouts | N/A |
 
 ---
 
@@ -198,6 +201,16 @@ All summary cards must use:
   {children}
 </div>
 ```
+
+### Help Article Cards
+Help articles use a consistent card system with variants:
+```tsx
+<HelpCard variant="primary" icon={<Shield />} title="Security">
+  Content here
+</HelpCard>
+```
+
+Variants: `default`, `primary`, `warning`, `tip`, `numbered`
 
 ### Ownership Distinction
 ```tsx
@@ -225,6 +238,36 @@ Use consistent skeleton patterns:
     <Skeleton className="h-24 w-full" />
   </CardContent>
 </Card>  // Full card
+```
+
+---
+
+## Disclaimer & Safety Patterns
+
+### Safety Disclaimers
+Used on pages with health/medical/legal information:
+```tsx
+<HelpDisclaimer
+  title="Important Safety Notice"
+  variant="warning"
+  icon={<AlertTriangle />}
+>
+  This information is for general guidance only and is not a substitute
+  for professional medical or legal advice.
+</HelpDisclaimer>
+```
+
+### Legal Disclaimers
+Used on pages with court-facing or legal content:
+```tsx
+<HelpDisclaimer
+  title="Legal Notice"
+  variant="default"
+  icon={<Scale />}
+>
+  CoParrent is not a law firm and does not provide legal advice.
+  Consult a qualified attorney for legal guidance.
+</HelpDisclaimer>
 ```
 
 ---
@@ -268,6 +311,7 @@ Before merging any UI change:
 - [ ] Mobile preserves all meaning from desktop
 - [ ] Gate states match component standards
 - [ ] Loading states use consistent skeleton patterns
+- [ ] Safety/legal disclaimers present where appropriate
 
 ---
 

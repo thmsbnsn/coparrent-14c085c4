@@ -1,8 +1,8 @@
 # PWA Test Checklist
 
-> **Version**: 2.0  
+> **Version**: 2.1  
 > **Status**: Production  
-> **Last Updated**: 2026-01-24
+> **Last Updated**: 2026-02-06
 
 ## Overview
 
@@ -111,6 +111,9 @@ All testers must complete these steps before a release is considered PWA-ready.
 
 ### Help Center
 - [ ] Navigate to /help
+- [ ] Verify all 14 help topic cards are visible
+- [ ] Verify each topic opens its full article
+- [ ] Verify safety disclaimers present on health/legal articles
 - [ ] Verify "Contact Support" section is visible
 - [ ] Navigate to /help/contact
 - [ ] Fill out and submit form
@@ -184,6 +187,16 @@ Before production launch:
 - [ ] Offline fallback page functional
 - [ ] Update prompt working
 - [ ] All platforms tested per above
+- [ ] Help Center verified (all 14 articles accessible)
+
+---
+
+## Related Documentation
+
+- `docs/SECURITY_MODEL.md` - Security architecture
+- `docs/GATED_FEATURES.md` - Feature access rules
+- `docs/INVESTOR_HANDOFF.md` - Investor-facing project overview
+- `README.md` - Project overview
 
 ---
 
