@@ -25,8 +25,8 @@ Purpose: park review findings while we complete environment/deployment setup.
 
 - [ ] Add missing Supabase project secrets (currently only: `RESEND_API_KEY`, `SUPABASE_*`):
 - [ ] Add missing edge-function secrets in new project:
-  - `STRIPE_SECRET_KEY`
-  - `STRIPE_WEBHOOK_SECRET`
+  - [x] `STRIPE_SECRET_KEY`
+  - [x] `STRIPE_WEBHOOK_SECRET`
   - `OPENROUTER_API_KEY`
   - `LOVABLE_API_KEY`
   - [x] `SCHEDULER_SECRET` (configured on 2026-02-09)

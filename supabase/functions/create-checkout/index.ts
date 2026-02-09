@@ -15,7 +15,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 const DEFAULT_VALID_PRICE_IDS = [
-  "price_1SsHAdHH6NsbcWgZb3ghZzFc", // Live Power $5/mo
+  "price_1Sz2IZHpttmwwVs1H4deOgQe", // Live Power $5/mo
   "price_1SqCiwHH6NsbcWgZB7TfWnhQ", // Legacy live price
   "price_1ShhNiHH6NsbcWgZd5TaJRr3", // Legacy test price
 ];

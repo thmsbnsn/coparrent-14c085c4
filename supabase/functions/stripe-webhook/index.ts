@@ -45,6 +45,7 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 };
 
 const DEFAULT_PRODUCT_IDS = [
+  "prod_TwwA5VNxPgt62D",
   "prod_Tpx49PIJ26wzPc",
   "prod_TnoLYRDnjKqtA8",
   "prod_TnoLKasOQOvLwL",

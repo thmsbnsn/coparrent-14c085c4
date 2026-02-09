@@ -16,8 +16,8 @@ const LIVE_MODE_TIERS = {
     name: "Power",
     price: "$5",
     period: "per month",
-    priceId: ENV_LIVE_POWER_PRICE_ID || "price_1SsHAdHH6NsbcWgZb3ghZzFc",
-    productId: ENV_LIVE_POWER_PRODUCT_ID || "prod_Tpx49PIJ26wzPc",
+    priceId: ENV_LIVE_POWER_PRICE_ID || "price_1Sz2IZHpttmwwVs1H4deOgQe",
+    productId: ENV_LIVE_POWER_PRODUCT_ID || "prod_TwwA5VNxPgt62D",
   },
 };
 
