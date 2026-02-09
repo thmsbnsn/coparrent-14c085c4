@@ -45,7 +45,10 @@ Purpose: park review findings while we complete environment/deployment setup.
   - `supabase/functions/sports-event-reminders/index.ts`
   - `supabase/config.toml` (`notify-third-party-added` now `verify_jwt = true`)
 - [x] Add scheduler/webhook-only guard (secret header + idempotency/rate-limit) for reminder jobs.
-- [ ] Update any external cron/scheduler caller(s) to send `x-scheduler-secret` header.
+- [ ] Configure Supabase Scheduled Functions (cron) to call:
+  - `exchange-reminders`
+  - `sports-event-reminders`
+  - include `x-scheduler-secret` header (matches Supabase secret `SCHEDULER_SECRET`).
 
 ## Medium (Do Next)
 
