@@ -10,11 +10,11 @@ const corsHeaders = {
 // Rate limit: 20 coloring pages per day per user
 const COLORING_PAGE_DAILY_LIMIT = 20;
 
-// Difficulty settings for system prompts
+// Difficulty settings - enhanced for creative, high-quality output
 const DIFFICULTY_PROMPTS: Record<string, string> = {
-  simple: "Create a very simple coloring page suitable for ages 3-5. Use thick, bold outlines with minimal detail. Large, simple shapes that are easy for young children to color within the lines. No complex patterns or small details.",
-  medium: "Create a medium-complexity coloring page suitable for ages 5-8. Use clear outlines with moderate detail. Include some patterns and textures but keep elements distinct and colorable.",
-  detailed: "Create a detailed coloring page suitable for ages 8 and up. Include intricate patterns, fine details, and complex designs. Can include mandalas, zentangle patterns, or highly detailed scenes.",
+  simple: "Create a very simple coloring page suitable for ages 3-5. Use thick, bold outlines (4-6pt stroke weight) with minimal detail. Large, simple shapes that are easy for young children to color. Friendly, approachable character designs with a few simple background elements.",
+  medium: "Create a medium-complexity coloring page suitable for ages 5-8. Use clear outlines (2-4pt stroke weight) with moderate detail. Include patterns, textures, and decorative elements. Add expressive character faces and interesting backgrounds. Use varied line weights for depth.",
+  detailed: "Create a highly detailed coloring page suitable for ages 8 and up. Include intricate patterns, fine line work, zentangle-inspired fills, and layered compositions. Use varied stroke weights. Create visual depth with foreground, midground, and background layers.",
 };
 
 interface GenerateRequest {
@@ -198,20 +198,22 @@ serve(async (req) => {
     // Safe log - only metadata
     console.log(`[COLORING-PAGE] Generating user=${userId.slice(0, 8)}... difficulty=${difficulty} remaining=${rateLimit.remaining}`);
 
-    // Build the image generation prompt
+    // Build the image generation prompt with enhanced creativity
     const difficultyPrompt = DIFFICULTY_PROMPTS[difficulty];
     const fullPrompt = `${difficultyPrompt}
 
 Subject: ${prompt}
 
 Style requirements:
-- Black and white line art only (no grayscale, no colors, no shading)
+- Black and white line art only (no grayscale, no colors, no shading, no fills)
 - High contrast with pure white background
-- Clean, crisp outlines suitable for printing
-- Designed as a printable coloring page
-- No text or watermarks
-- Centered composition with good margins
-- Professional coloring book quality`;
+- Clean, crisp, professional outlines suitable for printing
+- Premium printable coloring page quality with artistic flair
+- No text, watermarks, or signatures
+- Centered composition with balanced margins
+- Characters should be expressive and full of personality
+- Vary line weight: thicker outlines for main subjects, thinner for details
+- All enclosed areas must be large enough to color with crayons or markers`;
 
     // Call Lovable AI Gateway for image generation
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
