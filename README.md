@@ -208,7 +208,7 @@ For security architecture, see **`docs/SECURITY_MODEL.md`**.
 | **date-fns** | ^3.6.0 | Date Utilities |
 | **Recharts** | ^2.15.4 | Charts & Data Visualization |
 | **Lucide React** | ^0.462.0 | Icon Library |
-| **jsPDF** | ^4.0.0 | PDF Generation |
+| **jsPDF** | ^4.1.0 | PDF Generation |
 | **DOMPurify** | ^3.3.1 | XSS Protection |
 
 ### Backend (Lovable Cloud)
@@ -439,7 +439,9 @@ npm run dev
 Required environment variables (auto-configured by Lovable Cloud):
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_SUPABASE_PROJECT_ID`
+- `VITE_STRIPE_PUBLISHABLE_KEY`
+
+See `.env.example` for the full list (including optional Stripe Power tier IDs).
 
 ### Running Tests
 

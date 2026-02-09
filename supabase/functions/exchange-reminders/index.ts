@@ -2,8 +2,16 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { strictCors, getCorsHeaders } from "../_shared/cors.ts";
+import { createRateLimitResponse } from "../_shared/functionRateLimit.ts";
+import {
+  buildInvocationKey,
+  checkSchedulerRateLimit,
+  claimInvocation,
+  isSchedulerAuthorized,
+} from "../_shared/schedulerSecurity.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
+const resend = new Resend(resendApiKey);
 
 interface UpcomingExchange {
   schedule_id: string;
@@ -16,12 +24,40 @@ interface UpcomingExchange {
   pattern: string;
 }
 
+interface CustodyScheduleRow {
+  id: string;
+  parent_a_id: string;
+  parent_b_id: string;
+  start_date: string;
+  exchange_time: string | null;
+  exchange_location: string | null;
+  child_ids: string[] | null;
+  pattern: string;
+}
+
+interface ParentProfile {
+  id: string;
+  email: string | null;
+  full_name: string;
+  notification_preferences: Record<string, boolean> | null;
+}
+
+type SupabaseClient = ReturnType<typeof createClient>;
+
 // Reminder intervals in minutes with preference keys
 const REMINDER_INTERVALS = [
   { minutes: 1440, label: "24 hours", prefKey: "exchange_reminder_24h" },
   { minutes: 120, label: "2 hours", prefKey: "exchange_reminder_2h" },
   { minutes: 30, label: "30 minutes", prefKey: "exchange_reminder_30min" },
 ];
+
+const escapeHtml = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 
 const getEmailHtml = (
   recipientName: string,
@@ -75,15 +111,15 @@ const getEmailHtml = (
   `;
 
   const childList = childNames.length > 0 
-    ? childNames.join(", ") 
+    ? childNames.map((name) => escapeHtml(name)).join(", ")
     : "your children";
 
   const timeDisplay = exchangeTime 
-    ? `at ${exchangeTime}` 
+    ? `at ${escapeHtml(exchangeTime)}`
     : "";
 
   const locationDisplay = location 
-    ? `<p style="margin: 8px 0; color: #333;"><strong>📍 Location:</strong> ${location}</p>` 
+    ? `<p style="margin: 8px 0; color: #333;"><strong>📍 Location:</strong> ${escapeHtml(location)}</p>`
     : "";
 
   return `
@@ -99,7 +135,7 @@ const getEmailHtml = (
         <p style="margin: 10px 0 0; opacity: 0.9;">CoParrent</p>
       </div>
       <div style="${contentStyles}">
-        <p style="color: #333; font-size: 16px;">Hi ${recipientName || "there"},</p>
+        <p style="color: #333; font-size: 16px;">Hi ${escapeHtml(recipientName || "there")},</p>
         <p style="color: #333; line-height: 1.6;">
           This is a gentle reminder that you have a custody exchange coming up in <strong>${reminderLabel}</strong>.
         </p>
@@ -117,14 +153,14 @@ const getEmailHtml = (
           helps everyone, especially the kids. 💚
         </p>
         
-        <a href="https://coparrent.lovable.app/dashboard/calendar" style="${buttonStyles}">
+        <a href="https://coparrent.com/dashboard/calendar" style="${buttonStyles}">
           View Calendar
         </a>
       </div>
       <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
         <p>You're receiving this because you have exchange reminders enabled.</p>
         <p>
-          <a href="https://coparrent.lovable.app/dashboard/settings" style="color: #1e3a5f;">
+          <a href="https://coparrent.com/dashboard/settings" style="color: #1e3a5f;">
             Manage notification preferences
           </a>
         </p>
@@ -141,11 +177,62 @@ const handler = async (req: Request): Promise<Response> => {
   
   const corsHeaders = getCorsHeaders(req);
 
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return new Response(
+      JSON.stringify({ error: "Server configuration error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  if (!isSchedulerAuthorized(req)) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized scheduler request" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const throttle = await checkSchedulerRateLimit(
+    supabaseUrl,
+    supabaseServiceKey,
+    "exchange-reminders",
+  );
+  if (!throttle.allowed) {
+    return createRateLimitResponse(throttle, corsHeaders);
+  }
+
+  const invocationKey = buildInvocationKey(req, "exchange-reminders");
+  const claim = await claimInvocation(
+    supabaseUrl,
+    supabaseServiceKey,
+    "exchange-reminders",
+    invocationKey,
+  );
+  if (claim.error) {
+    console.error("Failed to record invocation:", claim.error);
+    return new Response(
+      JSON.stringify({ error: "Unable to validate invocation idempotency" }),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+  if (claim.duplicate) {
+    return new Response(
+      JSON.stringify({ success: true, skipped: true, reason: "duplicate_invocation" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
   console.log("Exchange reminders function triggered at:", new Date().toISOString());
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const now = new Date();
@@ -245,7 +332,7 @@ interface ExchangeDate {
 }
 
 function calculateUpcomingExchanges(
-  schedule: any,
+  schedule: CustodyScheduleRow,
   now: Date
 ): ExchangeDate[] {
   const exchanges: ExchangeDate[] = [];
@@ -315,7 +402,7 @@ function calculateUpcomingExchanges(
   return exchanges;
 }
 
-async function getChildNames(supabase: any, childIds: string[]): Promise<string[]> {
+async function getChildNames(supabase: SupabaseClient, childIds: string[]): Promise<string[]> {
   if (!childIds || childIds.length === 0) return [];
 
   const { data: children, error } = await supabase
@@ -328,11 +415,11 @@ async function getChildNames(supabase: any, childIds: string[]): Promise<string[
     return [];
   }
 
-  return children?.map((c: any) => c.name) || [];
+  return children?.map((c: { name: string }) => c.name) || [];
 }
 
 async function sendExchangeReminder(
-  supabase: any,
+  supabase: SupabaseClient,
   parentProfileId: string,
   exchangeDate: string,
   exchangeTime: string | null,
@@ -354,23 +441,24 @@ async function sendExchangeReminder(
       return { success: false, sent: false };
     }
 
-    const preferences = profile.notification_preferences as Record<string, boolean> | null;
+    const typedProfile = profile as ParentProfile;
+    const preferences = typedProfile.notification_preferences;
 
     // Check if notifications are enabled globally
     if (preferences && !preferences.enabled) {
-      console.log(`All notifications disabled for ${profile.email}`);
+      console.log(`All notifications disabled for ${typedProfile.email}`);
       return { success: true, sent: false };
     }
 
     // Check if exchange reminders are enabled
     if (preferences && !preferences.upcoming_exchanges) {
-      console.log(`Exchange reminders disabled for ${profile.email}`);
+      console.log(`Exchange reminders disabled for ${typedProfile.email}`);
       return { success: true, sent: false };
     }
 
     // Check specific interval preference
     if (preferences && preferences[reminderPrefKey] === false) {
-      console.log(`${reminderPrefKey} reminder disabled for ${profile.email}`);
+      console.log(`${reminderPrefKey} reminder disabled for ${typedProfile.email}`);
       return { success: true, sent: false };
     }
 
@@ -391,10 +479,10 @@ async function sendExchangeReminder(
     }
 
     // Send email
-    if (profile.email) {
+    if (typedProfile.email && resendApiKey) {
       try {
         const html = getEmailHtml(
-          profile.full_name,
+          typedProfile.full_name,
           exchangeDate,
           exchangeTime,
           location,
@@ -404,7 +492,7 @@ async function sendExchangeReminder(
 
         const { error: emailError } = await resend.emails.send({
           from: "CoParrent <notifications@resend.dev>",
-          to: [profile.email],
+          to: [typedProfile.email],
           subject: `🔔 Custody Exchange in ${reminderLabel}`,
           html,
         });
@@ -412,11 +500,13 @@ async function sendExchangeReminder(
         if (emailError) {
           console.error("Error sending email:", emailError);
         } else {
-          console.log(`Exchange reminder email sent to ${profile.email}`);
+          console.log(`Exchange reminder email sent to ${typedProfile.email}`);
         }
       } catch (emailErr) {
         console.error("Email exception:", emailErr);
       }
+    } else if (typedProfile.email && !resendApiKey) {
+      console.warn("RESEND_API_KEY missing; skipped exchange reminder email");
     }
 
     return { success: true, sent: true };

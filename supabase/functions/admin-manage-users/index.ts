@@ -8,6 +8,28 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[ADMIN-MANAGE-USERS] ${step}${detailsStr}`);
 };
 
+type AccessAudience = "friend" | "family" | "promoter" | "partner" | "custom";
+
+const VALID_AUDIENCES: AccessAudience[] = ["friend", "family", "promoter", "partner", "custom"];
+
+const normalizeAccessCode = (value: string) =>
+  value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, "");
+
+const generateAccessCode = () => {
+  const seed = crypto.randomUUID().replace(/-/g, "").toUpperCase();
+  return `CP-${seed.slice(0, 6)}-${seed.slice(6, 12)}`;
+};
+
+const toHex = (buffer: ArrayBuffer): string =>
+  Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+const sha256Hex = async (value: string) => {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return toHex(digest);
+};
+
 serve(async (req) => {
   // Strict CORS validation
   const corsResponse = strictCors(req);
@@ -70,6 +92,149 @@ serve(async (req) => {
     const method = req.method;
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
+
+    // List access pass codes
+    if (action === "list-access-codes") {
+      const { data: codes, error: listError } = await supabaseClient
+        .from("access_pass_codes")
+        .select("id, code_preview, label, audience_tag, access_reason, grant_tier, max_redemptions, redeemed_count, active, expires_at, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (listError) {
+        logStep("Error listing access codes", { error: listError.message });
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch access codes" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
+
+      return new Response(JSON.stringify({ codes: codes || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Create new access pass code
+    if (method === "POST" && action === "create-access-code") {
+      const body = await req.json();
+      const audience = String(body.audience_tag || "custom") as AccessAudience;
+      const label = String(body.label || "").trim();
+      const accessReason = String(body.access_reason || "").trim();
+      const maxRedemptionsRaw = Number(body.max_redemptions || 1);
+      const expiresAtRaw = body.expires_at ? String(body.expires_at) : null;
+
+      if (!VALID_AUDIENCES.includes(audience)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid audience tag" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+
+      if (!label || label.length > 120) {
+        return new Response(
+          JSON.stringify({ error: "Label is required (max 120 chars)" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+
+      if (!accessReason || accessReason.length > 255) {
+        return new Response(
+          JSON.stringify({ error: "Access reason is required (max 255 chars)" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+
+      if (!Number.isFinite(maxRedemptionsRaw) || maxRedemptionsRaw < 1 || maxRedemptionsRaw > 10000) {
+        return new Response(
+          JSON.stringify({ error: "max_redemptions must be between 1 and 10000" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+
+      let expiresAt: string | null = null;
+      if (expiresAtRaw) {
+        const parsed = new Date(expiresAtRaw);
+        if (Number.isNaN(parsed.getTime())) {
+          return new Response(
+            JSON.stringify({ error: "Invalid expires_at timestamp" }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+          );
+        }
+        expiresAt = parsed.toISOString();
+      }
+
+      const rawCode = normalizeAccessCode(generateAccessCode());
+      const codeHash = await sha256Hex(rawCode);
+      const codePreview = `${rawCode.slice(0, 5)}...${rawCode.slice(-4)}`;
+
+      const { data: inserted, error: insertError } = await supabaseClient
+        .from("access_pass_codes")
+        .insert({
+          code_hash: codeHash,
+          code_preview: codePreview,
+          label,
+          audience_tag: audience,
+          access_reason: accessReason,
+          grant_tier: "power",
+          max_redemptions: Math.floor(maxRedemptionsRaw),
+          redeemed_count: 0,
+          active: true,
+          expires_at: expiresAt,
+          created_by: user.id,
+        })
+        .select("id, code_preview, label, audience_tag, access_reason, grant_tier, max_redemptions, redeemed_count, active, expires_at, created_at")
+        .single();
+
+      if (insertError) {
+        logStep("Error creating access code", { error: insertError.message });
+        return new Response(
+          JSON.stringify({ error: "Failed to create access code" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        code: rawCode,
+        record: inserted,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Activate/deactivate an access pass code
+    if (method === "POST" && action === "toggle-access-code") {
+      const body = await req.json();
+      const codeId = String(body.id || "").trim();
+      const active = Boolean(body.active);
+
+      if (!codeId) {
+        return new Response(
+          JSON.stringify({ error: "Code ID is required" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+
+      const { error: toggleError } = await supabaseClient
+        .from("access_pass_codes")
+        .update({ active })
+        .eq("id", codeId);
+
+      if (toggleError) {
+        logStep("Error toggling access code", { error: toggleError.message });
+        return new Response(
+          JSON.stringify({ error: "Failed to update code status" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     // List all users with their subscription status (supports GET and POST)
     if (action === "list") {

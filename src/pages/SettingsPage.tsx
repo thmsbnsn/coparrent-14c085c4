@@ -8,7 +8,7 @@
  * LAW 4: All setting sections use consistent card/form patterns
  * LAW 7: Tab navigation adapts to mobile with preserved functionality
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { User, Bell, Shield, LogOut, Users, BellOff, Baby } from "lucide-react";
 import { useSearchParams, Link } from "react-router-dom";
@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { CoParentInvite } from "@/components/settings/CoParentInvite";
 import { TrialStatus } from "@/components/settings/TrialStatus";
+import { AccessCodeRedeemer } from "@/components/settings/AccessCodeRedeemer";
 import { ThirdPartyManager } from "@/components/settings/ThirdPartyManager";
 import { PreferencesSettings } from "@/components/settings/PreferencesSettings";
 import { ChildAccountControls } from "@/components/settings/ChildAccountControls";
@@ -97,13 +98,7 @@ const SettingsPage = () => {
     }
   }, [searchParams, toast, checkSubscription]);
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -145,7 +140,13 @@ const SettingsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user, fetchData]);
 
   const handleSaveProfile = async () => {
     if (!profile) return;
@@ -240,6 +241,20 @@ const SettingsPage = () => {
             trialStartedAt={profile?.trial_started_at || null}
             trialEndsAt={profile?.trial_ends_at || null}
             subscriptionStatus={profile?.subscription_status || null}
+          />
+        </motion.div>
+
+        {/* Access Code Redemption */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.11 }}
+        >
+          <AccessCodeRedeemer
+            onRedeemed={() => {
+              checkSubscription();
+              fetchData();
+            }}
           />
         </motion.div>
 

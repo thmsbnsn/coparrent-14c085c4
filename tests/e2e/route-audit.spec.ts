@@ -245,19 +245,22 @@ test.describe("Help Center - No Dead Ends", () => {
   test("Help Center landing page has working category links", async ({ page }) => {
     await page.goto("/help", { waitUntil: "networkidle" });
     
-    // Get all category links
-    const categoryLinks = await page.locator("a[href^='/help/'], a[href='/court-records']").all();
-    
-    expect(categoryLinks.length, "Help Center should have category links").toBeGreaterThan(0);
+    // IMPORTANT: Collect hrefs up-front. Locators become stale once we navigate away.
+    const categoryHrefs = await page.$$eval(
+      "a[href^='/help/'], a[href='/court-records']",
+      (elements) =>
+        elements
+          .map((el) => el.getAttribute("href"))
+          .filter((href): href is string => Boolean(href)),
+    );
+
+    expect(categoryHrefs.length, "Help Center should have category links").toBeGreaterThan(0);
     
     // Check each category link resolves
-    for (const link of categoryLinks) {
-      const href = await link.getAttribute("href");
-      if (href) {
-        await page.goto(href, { waitUntil: "networkidle" });
-        const is404 = await isNotFoundPage(page);
-        expect(is404, `Help link ${href} should not be 404`).toBe(false);
-      }
+    for (const href of [...new Set(categoryHrefs)]) {
+      await page.goto(href, { waitUntil: "networkidle" });
+      const is404 = await isNotFoundPage(page);
+      expect(is404, `Help link ${href} should not be 404`).toBe(false);
     }
   });
   
@@ -301,19 +304,25 @@ test.describe("Click-through Navigation Audit", () => {
     await page.goto("/", { waitUntil: "networkidle" });
     
     // Find all buttons that look like navigation CTAs
-    const ctaButtons = await page.locator("a[href]:not([href^='mailto:']):not([href^='#']):not([href^='http'])").all();
+    // IMPORTANT: Collect hrefs up-front. Locators become stale once we navigate away.
+    const ctaHrefs = await page.$$eval(
+      "a[href]:not([href^='mailto:']):not([href^='#']):not([href^='http'])",
+      (elements) =>
+        elements
+          .map((el) => el.getAttribute("href"))
+          .filter((href): href is string => Boolean(href)),
+    );
     
     const visitedRoutes = new Set<string>();
     
-    for (const button of ctaButtons.slice(0, 10)) { // Limit to prevent long test times
-      const href = await button.getAttribute("href");
-      if (href && !visitedRoutes.has(href)) {
-        visitedRoutes.add(href);
-        await page.goto(href, { waitUntil: "networkidle" });
-        
-        const is404 = await isNotFoundPage(page);
-        expect(is404, `CTA link ${href} should not lead to 404`).toBe(false);
-      }
+    for (const href of [...new Set(ctaHrefs)].slice(0, 10)) { // Limit to prevent long test times
+      if (visitedRoutes.has(href)) continue;
+
+      visitedRoutes.add(href);
+      await page.goto(href, { waitUntil: "networkidle" });
+      
+      const is404 = await isNotFoundPage(page);
+      expect(is404, `CTA link ${href} should not lead to 404`).toBe(false);
     }
   });
   

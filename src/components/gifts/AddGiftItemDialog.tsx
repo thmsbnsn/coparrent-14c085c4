@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Gift, Link, Plus } from "lucide-react";
 import {
   Dialog,
@@ -25,6 +25,15 @@ interface AddGiftItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isParent: boolean;
+  mode?: "create" | "edit";
+  initialData?: {
+    title: string;
+    category?: string | null;
+    suggested_age_range?: string | null;
+    notes?: string | null;
+    parent_only_notes?: string | null;
+    link?: string | null;
+  };
   onSubmit: (data: {
     title: string;
     category?: string;
@@ -32,13 +41,15 @@ interface AddGiftItemDialogProps {
     notes?: string;
     parent_only_notes?: string;
     link?: string;
-  }) => Promise<any>;
+  }) => Promise<unknown>;
 }
 
 export const AddGiftItemDialog = ({
   open,
   onOpenChange,
   isParent,
+  mode = "create",
+  initialData,
   onSubmit,
 }: AddGiftItemDialogProps) => {
   const [title, setTitle] = useState("");
@@ -48,6 +59,22 @@ export const AddGiftItemDialog = ({
   const [parentNotes, setParentNotes] = useState("");
   const [link, setLink] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (mode === "edit" && initialData) {
+      setTitle(initialData.title || "");
+      setCategory(initialData.category || "other");
+      setAgeRange(initialData.suggested_age_range || "");
+      setNotes(initialData.notes || "");
+      setParentNotes(initialData.parent_only_notes || "");
+      setLink(initialData.link || "");
+      return;
+    }
+
+    resetForm();
+  }, [open, mode, initialData]);
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
@@ -84,10 +111,12 @@ export const AddGiftItemDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gift className="w-5 h-5 text-primary" />
-            Add Gift Idea
+            {mode === "edit" ? "Edit Gift Idea" : "Add Gift Idea"}
           </DialogTitle>
           <DialogDescription>
-            Add a gift to this list for coordination.
+            {mode === "edit"
+              ? "Update this gift's details."
+              : "Add a gift to this list for coordination."}
           </DialogDescription>
         </DialogHeader>
 
@@ -180,7 +209,7 @@ export const AddGiftItemDialog = ({
           </Button>
           <Button onClick={handleSubmit} disabled={loading || !title.trim()}>
             <Plus className="w-4 h-4 mr-2" />
-            Add Gift
+            {mode === "edit" ? "Save Changes" : "Add Gift"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,9 +1,14 @@
 // Stripe product and price configuration
 // These price IDs and product IDs must match your Stripe dashboard
-// NOTE: When switching between test/live mode, update these IDs accordingly
+// NOTE: Prefer setting VITE_STRIPE_* env vars to avoid hardcoded ID drift.
 
 // Plan structure: Free (default) + Power ($5/month)
 // Power includes: Expenses Tracking, Court Exports, Sports & Events Hub
+
+const ENV_LIVE_POWER_PRICE_ID = import.meta.env.VITE_STRIPE_POWER_PRICE_ID as string | undefined;
+const ENV_LIVE_POWER_PRODUCT_ID = import.meta.env.VITE_STRIPE_POWER_PRODUCT_ID as string | undefined;
+const ENV_TEST_POWER_PRICE_ID = import.meta.env.VITE_STRIPE_TEST_POWER_PRICE_ID as string | undefined;
+const ENV_TEST_POWER_PRODUCT_ID = import.meta.env.VITE_STRIPE_TEST_POWER_PRODUCT_ID as string | undefined;
 
 // Live mode IDs (CoParrent account - acct_1Sg5Y5HH6NsbcWgZ)
 const LIVE_MODE_TIERS = {
@@ -11,21 +16,19 @@ const LIVE_MODE_TIERS = {
     name: "Power",
     price: "$5",
     period: "per month",
-    priceId: "price_1SsHAdHH6NsbcWgZb3ghZzFc",
-    productId: "prod_Tpx49PIJ26wzPc",
+    priceId: ENV_LIVE_POWER_PRICE_ID || "price_1SsHAdHH6NsbcWgZb3ghZzFc",
+    productId: ENV_LIVE_POWER_PRODUCT_ID || "prod_Tpx49PIJ26wzPc",
   },
 };
 
 // Test mode IDs (sandbox) - same account, different environment
-// Note: Need to create test mode Power product when switching to test
 const TEST_MODE_TIERS = {
   power: {
     name: "Power",
     price: "$5",
     period: "per month",
-    // Using old premium price as placeholder - update when test product created
-    priceId: "price_1ShhNiHH6NsbcWgZd5TaJRr3",
-    productId: "prod_Tf1Qq9jGVEyUOM",
+    priceId: ENV_TEST_POWER_PRICE_ID || "price_1ShhNiHH6NsbcWgZd5TaJRr3",
+    productId: ENV_TEST_POWER_PRODUCT_ID || "prod_Tf1Qq9jGVEyUOM",
   },
 };
 

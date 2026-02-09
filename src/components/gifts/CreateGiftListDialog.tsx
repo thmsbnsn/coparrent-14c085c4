@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Gift, Calendar, Plus } from "lucide-react";
 import {
@@ -31,19 +31,29 @@ interface CreateGiftListDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: Child[];
+  mode?: "create" | "edit";
+  initialData?: {
+    child_id: string;
+    occasion_type: string;
+    custom_occasion_name?: string | null;
+    event_date?: string | null;
+    allow_multiple_claims?: boolean | null;
+  };
   onSubmit: (data: {
     child_id: string;
     occasion_type: string;
     custom_occasion_name?: string;
     event_date?: string;
     allow_multiple_claims?: boolean;
-  }) => Promise<any>;
+  }) => Promise<unknown>;
 }
 
 export const CreateGiftListDialog = ({
   open,
   onOpenChange,
   children,
+  mode = "create",
+  initialData,
   onSubmit,
 }: CreateGiftListDialogProps) => {
   const [childId, setChildId] = useState("");
@@ -52,6 +62,21 @@ export const CreateGiftListDialog = ({
   const [eventDate, setEventDate] = useState("");
   const [allowMultiple, setAllowMultiple] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (mode === "edit" && initialData) {
+      setChildId(initialData.child_id || "");
+      setOccasionType(initialData.occasion_type || "birthday");
+      setCustomName(initialData.custom_occasion_name || "");
+      setEventDate(initialData.event_date || "");
+      setAllowMultiple(Boolean(initialData.allow_multiple_claims));
+      return;
+    }
+
+    resetForm();
+  }, [open, mode, initialData]);
 
   const handleSubmit = async () => {
     if (!childId || !occasionType) return;
@@ -87,10 +112,12 @@ export const CreateGiftListDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gift className="w-5 h-5 text-primary" />
-            Create Gift List
+            {mode === "edit" ? "Edit Gift List" : "Create Gift List"}
           </DialogTitle>
           <DialogDescription>
-            Create a gift list for a child to coordinate presents.
+            {mode === "edit"
+              ? "Update this list's details."
+              : "Create a gift list for a child to coordinate presents."}
           </DialogDescription>
         </DialogHeader>
 
@@ -180,7 +207,7 @@ export const CreateGiftListDialog = ({
             disabled={loading || !childId || (occasionType === "custom" && !customName.trim())}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Create List
+            {mode === "edit" ? "Save Changes" : "Create List"}
           </Button>
         </DialogFooter>
       </DialogContent>

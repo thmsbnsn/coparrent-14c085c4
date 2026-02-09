@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gift, Plus, ArrowLeft, Sparkles } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -9,7 +9,7 @@ import { GiftListCard } from "@/components/gifts/GiftListCard";
 import { GiftItemCard } from "@/components/gifts/GiftItemCard";
 import { CreateGiftListDialog } from "@/components/gifts/CreateGiftListDialog";
 import { AddGiftItemDialog } from "@/components/gifts/AddGiftItemDialog";
-import { useGiftLists, useGiftItems, GiftList } from "@/hooks/useGiftLists";
+import { useGiftLists, useGiftItems, GiftList, GiftItem } from "@/hooks/useGiftLists";
 import { useChildren } from "@/hooks/useChildren";
 import {
   AlertDialog,
@@ -30,12 +30,17 @@ const GiftsPage = () => {
     isParent, 
     profileId,
     createGiftList, 
+    updateGiftList,
     deleteGiftList 
   } = useGiftLists();
   
   const [selectedList, setSelectedList] = useState<GiftList | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditListDialog, setShowEditListDialog] = useState(false);
   const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+  const [showEditItemDialog, setShowEditItemDialog] = useState(false);
+  const [listToEdit, setListToEdit] = useState<GiftList | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<GiftItem | null>(null);
   const [listToDelete, setListToDelete] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
@@ -46,11 +51,20 @@ const GiftsPage = () => {
     isParent: isParentForItems,
     profileId: profileIdForItems,
     addItem,
+    updateItem,
     claimItem,
     unclaimItem,
     markPurchased,
     deleteItem,
   } = useGiftItems(selectedList?.id || "");
+
+  useEffect(() => {
+    if (!selectedList) return;
+    const refreshed = giftLists.find((list) => list.id === selectedList.id);
+    if (refreshed) {
+      setSelectedList(refreshed);
+    }
+  }, [giftLists, selectedList]);
 
   const handleDeleteList = async () => {
     if (listToDelete) {
@@ -67,6 +81,66 @@ const GiftsPage = () => {
       await deleteItem(itemToDelete);
       setItemToDelete(null);
     }
+  };
+
+  const handleEditList = (list: GiftList) => {
+    setListToEdit(list);
+    setShowEditListDialog(true);
+  };
+
+  const handleUpdateList = async (data: {
+    child_id: string;
+    occasion_type: string;
+    custom_occasion_name?: string;
+    event_date?: string;
+    allow_multiple_claims?: boolean;
+  }) => {
+    if (!listToEdit) return false;
+
+    const success = await updateGiftList(listToEdit.id, {
+      child_id: data.child_id,
+      occasion_type: data.occasion_type,
+      custom_occasion_name: data.custom_occasion_name ?? null,
+      event_date: data.event_date ?? null,
+      allow_multiple_claims: data.allow_multiple_claims ?? false,
+    });
+
+    if (success) {
+      setShowEditListDialog(false);
+      setListToEdit(null);
+    }
+    return success;
+  };
+
+  const handleEditItem = (item: GiftItem) => {
+    setItemToEdit(item);
+    setShowEditItemDialog(true);
+  };
+
+  const handleUpdateItem = async (data: {
+    title: string;
+    category?: string;
+    suggested_age_range?: string;
+    notes?: string;
+    parent_only_notes?: string;
+    link?: string;
+  }) => {
+    if (!itemToEdit) return false;
+
+    const success = await updateItem(itemToEdit.id, {
+      title: data.title,
+      category: data.category ?? "other",
+      suggested_age_range: data.suggested_age_range ?? null,
+      notes: data.notes ?? null,
+      parent_only_notes: data.parent_only_notes ?? null,
+      link: data.link ?? null,
+    });
+
+    if (success) {
+      setShowEditItemDialog(false);
+      setItemToEdit(null);
+    }
+    return success;
   };
 
   if (loading) {
@@ -164,7 +238,7 @@ const GiftsPage = () => {
                       list={list}
                       isParent={isParent}
                       onClick={() => setSelectedList(list)}
-                      onEdit={() => {/* TODO: Edit dialog */}}
+                      onEdit={() => handleEditList(list)}
                       onDelete={() => setListToDelete(list.id)}
                     />
                   ))}
@@ -215,7 +289,7 @@ const GiftsPage = () => {
                       onClaim={() => claimItem(item.id)}
                       onUnclaim={() => unclaimItem(item.id)}
                       onMarkPurchased={(purchased) => markPurchased(item.id, purchased)}
-                      onEdit={() => {/* TODO: Edit dialog */}}
+                      onEdit={() => handleEditItem(item)}
                       onDelete={() => setItemToDelete(item.id)}
                     />
                   ))}
@@ -234,12 +308,38 @@ const GiftsPage = () => {
         onSubmit={createGiftList}
       />
 
+      {/* Edit Gift List Dialog */}
+      <CreateGiftListDialog
+        open={showEditListDialog}
+        onOpenChange={(open) => {
+          setShowEditListDialog(open);
+          if (!open) setListToEdit(null);
+        }}
+        mode="edit"
+        initialData={listToEdit}
+        children={children}
+        onSubmit={handleUpdateList}
+      />
+
       {/* Add Gift Item Dialog */}
       <AddGiftItemDialog
         open={showAddItemDialog}
         onOpenChange={setShowAddItemDialog}
         isParent={isParent}
         onSubmit={addItem}
+      />
+
+      {/* Edit Gift Item Dialog */}
+      <AddGiftItemDialog
+        open={showEditItemDialog}
+        onOpenChange={(open) => {
+          setShowEditItemDialog(open);
+          if (!open) setItemToEdit(null);
+        }}
+        mode="edit"
+        initialData={itemToEdit}
+        isParent={isParent}
+        onSubmit={handleUpdateItem}
       />
 
       {/* Delete List Confirmation */}

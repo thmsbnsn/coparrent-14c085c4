@@ -32,6 +32,14 @@ const SHAPE_CHARS: Record<CompletionStyle, string> = {
   heart: "♡",
 };
 
+const escapeHtml = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
 export const generateChoreChartPDF = ({
   choreList,
   chores,
@@ -177,6 +185,8 @@ export const openChoreChartPrint = ({
     : children;
 
   const weekDates = DAYS.map((_, i) => addDays(weekStart, i));
+  const safeHouseholdLabel = escapeHtml(choreList.household_label || "Weekly Chore Chart");
+  const safeWeekOf = escapeHtml(format(weekStart, "MMMM d, yyyy"));
 
   // Generate child sections
   const childSections = childrenToExport
@@ -190,7 +200,7 @@ export const openChoreChartPrint = ({
         .map(
           (chore) => `
           <tr>
-            <td class="chore-name">${chore.title}</td>
+            <td class="chore-name">${escapeHtml(chore.title)}</td>
             ${chore.days_active
               .map(
                 (active) =>
@@ -204,12 +214,12 @@ export const openChoreChartPrint = ({
 
       return `
         <div class="chart-section">
-          <h2>For: ${child.name}</h2>
+          <h2>For: ${escapeHtml(child.name)}</h2>
           <table>
             <thead>
               <tr>
                 <th>Chore</th>
-                ${weekDates.map((d, i) => `<th>${DAYS[i]}<br><small>${format(d, "M/d")}</small></th>`).join("")}
+                ${weekDates.map((d, i) => `<th>${escapeHtml(DAYS[i])}<br><small>${escapeHtml(format(d, "M/d"))}</small></th>`).join("")}
               </tr>
             </thead>
             <tbody>
@@ -225,7 +235,7 @@ export const openChoreChartPrint = ({
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${choreList.household_label || "Chore Chart"}</title>
+      <title>${safeHouseholdLabel}</title>
       <style>
         @page { size: letter landscape; margin: 0.75in; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -251,10 +261,10 @@ export const openChoreChartPrint = ({
     </head>
     <body>
       <div class="header">CoParrent Creations</div>
-      <div class="title">${choreList.household_label || "Weekly Chore Chart"}</div>
-      <div class="subtitle">Week of ${format(weekStart, "MMMM d, yyyy")}</div>
+      <div class="title">${safeHouseholdLabel}</div>
+      <div class="subtitle">Week of ${safeWeekOf}</div>
       ${childSections}
-      <div class="footer">coparrent.lovable.app • ${format(new Date(), "MMMM d, yyyy")}</div>
+      <div class="footer">CoParrent • ${escapeHtml(format(new Date(), "MMMM d, yyyy"))}</div>
       <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); };</script>
     </body>
     </html>

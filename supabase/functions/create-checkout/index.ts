@@ -14,15 +14,25 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Valid price IDs for Power plan ($5/month)
-const VALID_PRICE_IDS = [
-  // New Power product (Live mode)
-  "price_1SsHAdHH6NsbcWgZb3ghZzFc", // Power $5/mo
-  // Legacy price IDs (still valid for existing links, map to Power)
-  "price_1SqCiwHH6NsbcWgZB7TfWnhQ", // Old Premium $5/mo
-  // Test mode
-  "price_1ShhNiHH6NsbcWgZd5TaJRr3", // Test Premium (used as Power in test)
+const DEFAULT_VALID_PRICE_IDS = [
+  "price_1SsHAdHH6NsbcWgZb3ghZzFc", // Live Power $5/mo
+  "price_1SqCiwHH6NsbcWgZB7TfWnhQ", // Legacy live price
+  "price_1ShhNiHH6NsbcWgZd5TaJRr3", // Legacy test price
 ];
+
+const getValidPriceIds = (): string[] => {
+  const configured = [
+    Deno.env.get("STRIPE_POWER_PRICE_ID"),
+    Deno.env.get("STRIPE_TEST_POWER_PRICE_ID"),
+  ].filter((value): value is string => Boolean(value?.trim()));
+
+  const extra = (Deno.env.get("STRIPE_ALLOWED_PRICE_IDS") ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return [...new Set([...configured, ...extra, ...DEFAULT_VALID_PRICE_IDS])];
+};
 
 serve(async (req) => {
   // Strict CORS validation
@@ -102,7 +112,8 @@ serve(async (req) => {
     logStep("Price ID received", { priceId });
 
     // Verify price ID is valid
-    if (!VALID_PRICE_IDS.includes(priceId)) {
+    const validPriceIds = getValidPriceIds();
+    if (!validPriceIds.includes(priceId)) {
       logStep("ERROR: Invalid price ID", { priceId });
       return new Response(
         JSON.stringify({ 

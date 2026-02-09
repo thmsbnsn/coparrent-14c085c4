@@ -16,6 +16,14 @@ const MUTED_TEXT: [number, number, number] = [100, 100, 100];
 const USER_BG: [number, number, number] = [33, 176, 254];
 const ASSISTANT_BG: [number, number, number] = [245, 245, 245];
 
+const escapeHtml = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
 /**
  * Generate a PDF export of a Nurse Nancy conversation
  */
@@ -169,20 +177,25 @@ export function openNurseNancyPrintView(
     throw new Error('Popup blocked. Please allow popups to print.');
   }
 
+  const safeThreadTitle = escapeHtml(thread.title);
+  const exportedAt = format(new Date(), 'MMMM d, yyyy h:mm a');
+  const safeExportedAt = escapeHtml(exportedAt);
+
   const messagesHtml = messages
     .filter(m => m.role !== 'system')
     .map(m => {
       const isUser = m.role === 'user';
       const timestamp = format(new Date(m.created_at), 'h:mm a');
-      const content = m.content
+      const content = escapeHtml(m.content)
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
         .replace(/\n/g, '<br>');
+      const safeTimestamp = escapeHtml(timestamp);
       
       return `
         <div class="message ${isUser ? 'user' : 'assistant'}">
           <div class="meta">
             <span class="sender">${isUser ? 'You' : 'Nurse Nancy'}</span>
-            <span class="time">${timestamp}</span>
+            <span class="time">${safeTimestamp}</span>
           </div>
           <div class="content">${content}</div>
         </div>
@@ -194,7 +207,7 @@ export function openNurseNancyPrintView(
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Nurse Nancy - ${thread.title}</title>
+      <title>Nurse Nancy - ${safeThreadTitle}</title>
       <style>
         @page { size: letter portrait; margin: 0.75in; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -218,15 +231,15 @@ export function openNurseNancyPrintView(
     </head>
     <body>
       <div class="header">CoParrent Creations</div>
-      <div class="title">Nurse Nancy - ${thread.title}</div>
-      <div class="timestamp">Exported: ${format(new Date(), 'MMMM d, yyyy h:mm a')}</div>
+      <div class="title">Nurse Nancy - ${safeThreadTitle}</div>
+      <div class="timestamp">Exported: ${safeExportedAt}</div>
       <div class="disclaimer">
         ⚠️ This conversation is for educational reference only. Nurse Nancy does not provide medical advice, diagnosis, or treatment. For emergencies, call 911.
       </div>
       <div class="messages">
         ${messagesHtml}
       </div>
-      <div class="footer">coparrent.lovable.app • ${format(new Date(), 'MMMM d, yyyy')}</div>
+      <div class="footer">CoParrent • ${escapeHtml(format(new Date(), 'MMMM d, yyyy'))}</div>
       <script>
         window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); };
       </script>

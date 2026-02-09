@@ -200,35 +200,38 @@ export function openActivityPrintView(activity: GeneratedActivity): void {
     throw new Error('Popup blocked. Please allow popups to print.');
   }
 
+  const safeTitle = escapeHtml(activity.title);
+  const safeAgeRange = escapeHtml(activity.age_range);
+
   const factsHtml = [
     activity.duration_minutes && `<span>⏱ ${activity.duration_minutes} min</span>`,
-    activity.indoor_outdoor && `<span>📍 ${capitalize(activity.indoor_outdoor)}</span>`,
-    activity.energy_level && `<span>⚡ ${capitalize(activity.energy_level)} energy</span>`,
-    activity.mess_level && `<span>🎨 ${capitalize(activity.mess_level)} mess</span>`,
-    activity.supervision_level && `<span>👀 ${capitalize(activity.supervision_level)} supervision</span>`,
+    activity.indoor_outdoor && `<span>📍 ${escapeHtml(capitalize(activity.indoor_outdoor))}</span>`,
+    activity.energy_level && `<span>⚡ ${escapeHtml(capitalize(activity.energy_level))} energy</span>`,
+    activity.mess_level && `<span>🎨 ${escapeHtml(capitalize(activity.mess_level))} mess</span>`,
+    activity.supervision_level && `<span>👀 ${escapeHtml(capitalize(activity.supervision_level))} supervision</span>`,
   ].filter(Boolean).join(' • ');
 
   const materialsHtml = activity.materials?.length 
-    ? `<section><h2>Materials</h2><ul>${activity.materials.map(m => `<li>${m}</li>`).join('')}</ul></section>` 
+    ? `<section><h2>Materials</h2><ul>${activity.materials.map((m) => `<li>${escapeHtml(m)}</li>`).join('')}</ul></section>`
     : '';
 
   const stepsHtml = activity.steps?.length 
-    ? `<section><h2>Steps</h2><ol>${activity.steps.map(s => `<li>${s}</li>`).join('')}</ol></section>` 
+    ? `<section><h2>Steps</h2><ol>${activity.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ol></section>`
     : '';
 
   const variationsHtml = (activity.variations?.easier || activity.variations?.harder)
     ? `<section><h2>Variations</h2>
-        ${activity.variations.easier ? `<p><strong>Easier:</strong> ${activity.variations.easier}</p>` : ''}
-        ${activity.variations.harder ? `<p><strong>Harder:</strong> ${activity.variations.harder}</p>` : ''}
+        ${activity.variations.easier ? `<p><strong>Easier:</strong> ${escapeHtml(activity.variations.easier)}</p>` : ''}
+        ${activity.variations.harder ? `<p><strong>Harder:</strong> ${escapeHtml(activity.variations.harder)}</p>` : ''}
        </section>`
     : '';
 
   const goalsHtml = activity.learning_goals?.length 
-    ? `<section><h2>Learning Goals</h2><ul>${activity.learning_goals.map(g => `<li>${g}</li>`).join('')}</ul></section>` 
+    ? `<section><h2>Learning Goals</h2><ul>${activity.learning_goals.map((g) => `<li>${escapeHtml(g)}</li>`).join('')}</ul></section>`
     : '';
 
   const safetyHtml = activity.safety_notes 
-    ? `<section class="safety"><h2>⚠️ Safety Notes</h2><p>${activity.safety_notes}</p></section>` 
+    ? `<section class="safety"><h2>⚠️ Safety Notes</h2><p>${escapeHtml(activity.safety_notes)}</p></section>`
     : '';
 
   /**
@@ -241,7 +244,7 @@ export function openActivityPrintView(activity: GeneratedActivity): void {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${activity.title} - CoParrent Creations</title>
+      <title>${safeTitle} - CoParrent Creations</title>
       <style>
         /*
          * PRINT-FIRST CSS - BRAND-CLEAN
@@ -295,8 +298,8 @@ export function openActivityPrintView(activity: GeneratedActivity): void {
       <!-- ONLY header text allowed -->
       <div class="header">CoParrent Creations</div>
       
-      <div class="title">${activity.title}</div>
-      <div class="age">Ages ${activity.age_range}</div>
+      <div class="title">${safeTitle}</div>
+      <div class="age">Ages ${safeAgeRange}</div>
       <div class="facts">${factsHtml}</div>
       ${materialsHtml}
       ${stepsHtml}
@@ -338,4 +341,13 @@ function addSection(doc: jsPDF, title: string, y: number, margin: number, pageWi
 
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }

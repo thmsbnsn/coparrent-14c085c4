@@ -44,29 +44,34 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
-// All products map to Power tier (the only paid tier)
-// Includes legacy products for migration safety
-const PRODUCT_TIERS: Record<string, string> = {
-  // New Power product (Live mode)
-  "prod_Tpx49PIJ26wzPc": "Power",
-  // Legacy Live mode products (display as Power for migration)
-  "prod_TnoLYRDnjKqtA8": "Power", // Old Premium
-  "prod_TnoLKasOQOvLwL": "Power", // Old MVP
-  // Legacy Test mode products
-  "prod_Tf1Qq9jGVEyUOM": "Power", // Old Premium (test)
-  "prod_Tf1QUUhL8Tx1Ks": "Power", // Old MVP (test)
+const DEFAULT_PRODUCT_IDS = [
+  "prod_Tpx49PIJ26wzPc",
+  "prod_TnoLYRDnjKqtA8",
+  "prod_TnoLKasOQOvLwL",
+  "prod_Tf1Qq9jGVEyUOM",
+  "prod_Tf1QUUhL8Tx1Ks",
+];
+
+const getPowerProductIds = (): string[] => {
+  const configured = [
+    Deno.env.get("STRIPE_POWER_PRODUCT_ID"),
+    Deno.env.get("STRIPE_TEST_POWER_PRODUCT_ID"),
+  ].filter((value): value is string => Boolean(value?.trim()));
+
+  const legacy = (Deno.env.get("STRIPE_LEGACY_PRODUCT_IDS") ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return [...new Set([...configured, ...legacy, ...DEFAULT_PRODUCT_IDS])];
 };
 
-// Database tier values (normalized to "power")
-const TIER_DB_VALUES: Record<string, string> = {
-  // New Power product
-  "prod_Tpx49PIJ26wzPc": "power",
-  // Legacy products (all map to power)
-  "prod_TnoLYRDnjKqtA8": "power",
-  "prod_TnoLKasOQOvLwL": "power",
-  "prod_Tf1Qq9jGVEyUOM": "power",
-  "prod_Tf1QUUhL8Tx1Ks": "power",
+const getProductDisplayName = (productId: string): string => {
+  const powerProductIds = getPowerProductIds();
+  return powerProductIds.includes(productId) ? "Power" : "Power";
 };
+
+const getProductDbTier = (_productId: string): string => "power";
 
 type EmailType = "welcome" | "update" | "support" | "cancel";
 
@@ -151,8 +156,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       session.subscription as string
     );
     const productId = subscription.items.data[0]?.price?.product as string;
-    const tier = TIER_DB_VALUES[productId] || "power";
-    const tierName = PRODUCT_TIERS[productId] || "Power";
+    const tier = getProductDbTier(productId);
+    const tierName = getProductDisplayName(productId);
     
     await updateProfileSubscription(customerEmail, "active", tier);
 
@@ -203,8 +208,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   }
 
   const productId = subscription.items.data[0]?.price?.product as string;
-  const tier = TIER_DB_VALUES[productId] || "power";
-  const tierName = PRODUCT_TIERS[productId] || "Power";
+  const tier = getProductDbTier(productId);
+  const tierName = getProductDisplayName(productId);
   
   let status = subscription.status;
   let shouldSendEmail = false;

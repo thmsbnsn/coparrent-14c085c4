@@ -5,13 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale, ClipboardCheck, Database, Activity, Bell } from "lucide-react";
+import { Search, Shield, ArrowLeft, RefreshCw, Loader2, Users, Scale, ClipboardCheck, Database, Activity, Bell, Ticket, Copy, Power, EyeOff, Eye } from "lucide-react";
 import { resolveDisplayValue } from "@/lib/displayResolver";
 import {
   AlertDialog,
@@ -43,6 +44,20 @@ interface UserProfile {
   stripe_subscription_end?: string | null;
 }
 
+interface AccessPassCode {
+  id: string;
+  code_preview: string;
+  label: string;
+  audience_tag: "friend" | "family" | "promoter" | "partner" | "custom";
+  access_reason: string;
+  grant_tier: "power";
+  max_redemptions: number;
+  redeemed_count: number;
+  active: boolean;
+  expires_at: string | null;
+  created_at: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -60,6 +75,18 @@ const AdminDashboard = () => {
   }>({ open: false, user: null, newValue: false });
   const [editingReason, setEditingReason] = useState<{ id: string; value: string } | null>(null);
   const [activeTab, setActiveTab] = useState("users");
+  const [accessCodes, setAccessCodes] = useState<AccessPassCode[]>([]);
+  const [codesLoading, setCodesLoading] = useState(false);
+  const [creatingCode, setCreatingCode] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [showGeneratedCode, setShowGeneratedCode] = useState(false);
+  const [codeForm, setCodeForm] = useState({
+    label: "",
+    audience_tag: "promoter" as AccessPassCode["audience_tag"],
+    access_reason: "Promotional complimentary access",
+    max_redemptions: "1",
+    expires_in_days: "",
+  });
 
   // Check if user is admin using secure server-side RPC
   useEffect(() => {
@@ -123,6 +150,155 @@ const AdminDashboard = () => {
     }
   }, [isAdmin, fetchUsers]);
 
+  const fetchAccessCodes = useCallback(async () => {
+    if (!isAdmin) return;
+    setCodesLoading(true);
+    try {
+      const response = await supabase.functions.invoke("admin-manage-users?action=list-access-codes", {
+        method: "POST",
+        body: {},
+      });
+
+      if (response.error) throw response.error;
+      setAccessCodes(response.data?.codes || []);
+    } catch (error) {
+      console.error("Error fetching access codes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch access codes",
+        variant: "destructive",
+      });
+    } finally {
+      setCodesLoading(false);
+    }
+  }, [isAdmin, toast]);
+
+  useEffect(() => {
+    if (activeTab === "access-codes" && isAdmin) {
+      fetchAccessCodes();
+    }
+  }, [activeTab, isAdmin, fetchAccessCodes]);
+
+  const createAccessCode = async () => {
+    if (!codeForm.label.trim()) {
+      toast({
+        title: "Label required",
+        description: "Please add a label for this code batch.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const maxRedemptions = Number(codeForm.max_redemptions);
+    if (!Number.isFinite(maxRedemptions) || maxRedemptions < 1) {
+      toast({
+        title: "Invalid redemption limit",
+        description: "Max redemptions must be at least 1.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCreatingCode(true);
+    try {
+      let expiresAt: string | null = null;
+      const expiresInDays = Number(codeForm.expires_in_days);
+      if (Number.isFinite(expiresInDays) && expiresInDays > 0) {
+        const date = new Date();
+        date.setDate(date.getDate() + expiresInDays);
+        expiresAt = date.toISOString();
+      }
+
+      const response = await supabase.functions.invoke("admin-manage-users?action=create-access-code", {
+        method: "POST",
+        body: {
+          label: codeForm.label.trim(),
+          audience_tag: codeForm.audience_tag,
+          access_reason: codeForm.access_reason.trim() || "Complimentary access",
+          max_redemptions: maxRedemptions,
+          expires_at: expiresAt,
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      const createdCode = response.data?.code as string | undefined;
+      if (!createdCode) {
+        throw new Error("Code generation failed");
+      }
+
+      setGeneratedCode(createdCode);
+      setShowGeneratedCode(true);
+      setCodeForm((prev) => ({
+        ...prev,
+        label: "",
+        max_redemptions: "1",
+        expires_in_days: "",
+      }));
+      await fetchAccessCodes();
+      toast({
+        title: "Access code created",
+        description: "Share this code with friends, family, or promoters.",
+      });
+    } catch (error) {
+      console.error("Error creating access code:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create access code",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingCode(false);
+    }
+  };
+
+  const toggleAccessCode = async (codeId: string, nextActive: boolean) => {
+    try {
+      const response = await supabase.functions.invoke("admin-manage-users?action=toggle-access-code", {
+        method: "POST",
+        body: {
+          id: codeId,
+          active: nextActive,
+        },
+      });
+
+      if (response.error) throw response.error;
+      setAccessCodes((prev) =>
+        prev.map((row) => (row.id === codeId ? { ...row, active: nextActive } : row))
+      );
+      toast({
+        title: nextActive ? "Code activated" : "Code deactivated",
+        description: nextActive
+          ? "This code can now be redeemed."
+          : "This code can no longer be redeemed.",
+      });
+    } catch (error) {
+      console.error("Error toggling access code:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update code status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const copyGeneratedCode = async () => {
+    if (!generatedCode) return;
+    try {
+      await navigator.clipboard.writeText(generatedCode);
+      toast({
+        title: "Copied",
+        description: "Access code copied to clipboard.",
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Please copy the code manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Update user access
   const updateUserAccess = async (profile: UserProfile, freeAccess: boolean, reason?: string) => {
     setUpdating(profile.id);
@@ -149,11 +325,12 @@ const AdminDashboard = () => {
         title: "Success",
         description: `${freeAccess ? "Granted" : "Revoked"} premium access for ${profile.email}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating access:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update user access";
       toast({
         title: "Error",
-        description: "Failed to update user access",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -274,6 +451,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="push" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
               Push
+            </TabsTrigger>
+            <TabsTrigger value="access-codes" className="flex items-center gap-2">
+              <Ticket className="h-4 w-4" />
+              Access Codes
             </TabsTrigger>
           </TabsList>
 
@@ -422,6 +603,202 @@ const AdminDashboard = () => {
 
           <TabsContent value="push">
             <AdminPushTester />
+          </TabsContent>
+
+          <TabsContent value="access-codes">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Complimentary Access Codes</CardTitle>
+                    <CardDescription>
+                      Create redeemable codes for friends, family, promoters, and partners.
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" onClick={fetchAccessCodes} disabled={codesLoading}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${codesLoading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="code-label">Label</Label>
+                    <Input
+                      id="code-label"
+                      placeholder="e.g., Promoter Campaign Q1"
+                      value={codeForm.label}
+                      onChange={(e) => setCodeForm((prev) => ({ ...prev, label: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="code-audience">Audience</Label>
+                    <select
+                      id="code-audience"
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                      value={codeForm.audience_tag}
+                      onChange={(e) =>
+                        setCodeForm((prev) => ({
+                          ...prev,
+                          audience_tag: e.target.value as AccessPassCode["audience_tag"],
+                        }))
+                      }
+                    >
+                      <option value="friend">Friend</option>
+                      <option value="family">Family</option>
+                      <option value="promoter">Promoter</option>
+                      <option value="partner">Partner</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="code-redemptions">Max Redemptions</Label>
+                    <Input
+                      id="code-redemptions"
+                      type="number"
+                      min={1}
+                      max={10000}
+                      value={codeForm.max_redemptions}
+                      onChange={(e) => setCodeForm((prev) => ({ ...prev, max_redemptions: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="code-expiry">Expires In Days (optional)</Label>
+                    <Input
+                      id="code-expiry"
+                      type="number"
+                      min={1}
+                      value={codeForm.expires_in_days}
+                      onChange={(e) => setCodeForm((prev) => ({ ...prev, expires_in_days: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="code-reason">Access Reason</Label>
+                  <Input
+                    id="code-reason"
+                    placeholder="e.g., Promoter lifetime partnership"
+                    value={codeForm.access_reason}
+                    onChange={(e) => setCodeForm((prev) => ({ ...prev, access_reason: e.target.value }))}
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={createAccessCode} disabled={creatingCode}>
+                    {creatingCode ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating
+                      </>
+                    ) : (
+                      <>
+                        <Power className="h-4 w-4 mr-2" />
+                        Create Access Code
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {generatedCode && (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-primary">New Access Code</p>
+                        <p className="text-xs text-muted-foreground">
+                          Copy this now. For security, only the preview is stored.
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={copyGeneratedCode}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                    </div>
+                    <div className="mt-3 rounded bg-background px-3 py-2 font-mono text-sm break-all">
+                      {showGeneratedCode ? generatedCode : "••••••••••••"}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => setShowGeneratedCode((prev) => !prev)}
+                    >
+                      {showGeneratedCode ? (
+                        <>
+                          <EyeOff className="h-4 w-4 mr-2" />
+                          Hide
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Show
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {codesLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <LoadingSpinner size="lg" />
+                  </div>
+                ) : accessCodes.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No access codes created yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Code Preview</TableHead>
+                          <TableHead>Label</TableHead>
+                          <TableHead>Audience</TableHead>
+                          <TableHead>Usage</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Expires</TableHead>
+                          <TableHead>Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {accessCodes.map((code) => (
+                          <TableRow key={code.id}>
+                            <TableCell className="font-mono text-xs">{code.code_preview}</TableCell>
+                            <TableCell>{code.label}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{code.audience_tag}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {code.redeemed_count} / {code.max_redemptions}
+                            </TableCell>
+                            <TableCell>
+                              {code.active ? (
+                                <Badge className="bg-success">Active</Badge>
+                              ) : (
+                                <Badge variant="secondary">Inactive</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {code.expires_at ? new Date(code.expires_at).toLocaleDateString() : "Never"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleAccessCode(code.id, !code.active)}
+                              >
+                                {code.active ? "Deactivate" : "Activate"}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

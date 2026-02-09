@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle, Loader2, UserPlus } from "lucide-react";
@@ -36,15 +36,7 @@ const AcceptInvite = () => {
   const token = searchParams.get("token");
   const typeParam = searchParams.get("type");
 
-  useEffect(() => {
-    if (token) {
-      checkInvitation();
-    } else {
-      setStatus("invalid");
-    }
-  }, [token]);
-
-  const checkInvitation = async () => {
+  const checkInvitation = useCallback(async () => {
     try {
       // Use secure RPC function instead of direct table query
       const { data, error } = await supabase.rpc("get_invitation_by_token", {
@@ -76,7 +68,15 @@ const AcceptInvite = () => {
       console.error("Error checking invitation:", error);
       setStatus("invalid");
     }
-  };
+  }, [token, typeParam]);
+
+  useEffect(() => {
+    if (token) {
+      checkInvitation();
+    } else {
+      setStatus("invalid");
+    }
+  }, [token, checkInvitation]);
 
   const handleAcceptInvitation = async () => {
     if (!user) {
@@ -94,7 +94,7 @@ const AcceptInvite = () => {
         // Get user's profile
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("id")
+          .select("id, full_name")
           .eq("user_id", user.id)
           .single();
 
@@ -166,9 +166,9 @@ const AcceptInvite = () => {
         try {
           await supabase.functions.invoke("notify-third-party-added", {
             body: {
-              primary_parent_id: primaryParentId,
-              new_member_name: profile.id, // Will fetch name in function
-              new_member_email: user.email,
+              primaryParentId,
+              thirdPartyName: profile.full_name || user.email?.split("@")[0] || "Family member",
+              thirdPartyEmail: user.email || "",
             },
           });
         } catch (notifyError) {
@@ -221,11 +221,12 @@ const AcceptInvite = () => {
 
         navigate("/dashboard");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Please try again.";
       console.error("Error accepting invitation:", error);
       toast({
         title: "Failed to accept invitation",
-        description: error.message || "Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

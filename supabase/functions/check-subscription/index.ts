@@ -8,17 +8,27 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Product ID to tier mapping - maps to "power" (the only paid tier)
-// Includes legacy products for migration safety
-const PRODUCT_TIERS: Record<string, string> = {
-  // New Power product (Live mode)
-  "prod_Tpx49PIJ26wzPc": "power",
-  // Legacy Live mode products (map to power for migration)
-  "prod_TnoLYRDnjKqtA8": "power", // Old Premium
-  "prod_TnoLKasOQOvLwL": "power", // Old MVP
-  // Legacy Test mode products (map to power for migration)
-  "prod_Tf1Qq9jGVEyUOM": "power", // Old Premium (test)
-  "prod_Tf1QUUhL8Tx1Ks": "power", // Old MVP (test)
+const DEFAULT_PRODUCT_IDS = [
+  "prod_Tpx49PIJ26wzPc",
+  "prod_TnoLYRDnjKqtA8",
+  "prod_TnoLKasOQOvLwL",
+  "prod_Tf1Qq9jGVEyUOM",
+  "prod_Tf1QUUhL8Tx1Ks",
+];
+
+const getProductTierMapping = (): Record<string, string> => {
+  const configured = [
+    Deno.env.get("STRIPE_POWER_PRODUCT_ID"),
+    Deno.env.get("STRIPE_TEST_POWER_PRODUCT_ID"),
+  ].filter((value): value is string => Boolean(value?.trim()));
+
+  const extraLegacy = (Deno.env.get("STRIPE_LEGACY_PRODUCT_IDS") ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const productIds = [...new Set([...configured, ...extraLegacy, ...DEFAULT_PRODUCT_IDS])];
+  return Object.fromEntries(productIds.map((productId) => [productId, "power"]));
 };
 
 // Map Stripe subscription status to our internal status
@@ -64,6 +74,7 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
+    const PRODUCT_TIERS = getProductTierMapping();
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) {

@@ -1,4 +1,4 @@
-project_id = "znxiydmycxcjkflihfxn"
+project_id = "jnxtskcpwzuxyxjzqrkv"
 
 [functions.send-coparent-invite]
 verify_jwt = true
@@ -7,7 +7,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.notify-third-party-added]
-verify_jwt = false
+verify_jwt = true
 
 [functions.create-checkout]
 verify_jwt = true
@@ -61,4 +61,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.manage-recovery-codes]
+verify_jwt = true
+
+[functions.redeem-access-code]
 verify_jwt = true

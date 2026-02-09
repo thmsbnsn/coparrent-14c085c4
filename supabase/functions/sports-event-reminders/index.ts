@@ -1,13 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { strictCors, getCorsHeaders } from "../_shared/cors.ts";
+import { createRateLimitResponse } from "../_shared/functionRateLimit.ts";
+import {
+  buildInvocationKey,
+  checkSchedulerRateLimit,
+  claimInvocation,
+  isSchedulerAuthorized,
+} from "../_shared/schedulerSecurity.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const resendApiKey = Deno.env.get("RESEND_API_KEY") ?? "";
+const resend = new Resend(resendApiKey);
 
 // Estimated travel time based on distance (simplified calculation)
 const AVERAGE_SPEED_MPH = 30; // Average urban driving speed
@@ -20,6 +24,14 @@ const REMINDER_INTERVALS = [
   { minutes: 60, label: "1 hour", prefKey: "sports_reminder_1h" },
 ];
 
+const escapeHtml = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
 interface SportsEvent {
   id: string;
   title: string;
@@ -30,7 +42,7 @@ interface SportsEvent {
   location_name: string | null;
   location_address: string | null;
   venue_notes: string | null;
-  equipment_needed: any[];
+  equipment_needed: EquipmentItem[];
   dropoff_parent_id: string | null;
   pickup_parent_id: string | null;
   activity_id: string;
@@ -44,6 +56,29 @@ interface ActivityInfo {
   child_name: string;
   primary_parent_id: string;
 }
+
+interface EquipmentItem {
+  name: string;
+  required?: boolean;
+}
+
+interface ChildActivityRow {
+  id: string;
+  name: string;
+  sport_type: string;
+  child_id: string;
+  primary_parent_id: string;
+  children: { id: string; name: string } | null;
+}
+
+interface ParentProfile {
+  id: string;
+  email: string | null;
+  full_name: string;
+  notification_preferences: Record<string, boolean> | null;
+}
+
+type SupabaseClient = ReturnType<typeof createClient>;
 
 const getEmailHtml = (
   recipientName: string,
@@ -113,12 +148,14 @@ const getEmailHtml = (
     margin-top: 20px;
   `;
 
-  const locationDisplay = event.location_name 
-    ? `<p style="margin: 8px 0; color: #333;"><strong>📍 Location:</strong> ${event.location_name}${event.location_address ? ` - ${event.location_address}` : ''}</p>` 
+  const locationDisplay = event.location_name
+    ? `<p style="margin: 8px 0; color: #333;"><strong>📍 Location:</strong> ${escapeHtml(event.location_name)}${
+        event.location_address ? ` - ${escapeHtml(event.location_address)}` : ""
+      }</p>`
     : "";
 
   const responsibilityDisplay = responsibility
-    ? `<p style="margin: 8px 0; color: #333;"><strong>🚗 Your responsibility:</strong> ${responsibility}</p>`
+    ? `<p style="margin: 8px 0; color: #333;"><strong>🚗 Your responsibility:</strong> ${escapeHtml(responsibility)}</p>`
     : "";
 
   const leaveByDisplay = leaveByTime
@@ -129,14 +166,14 @@ const getEmailHtml = (
     : "";
 
   const venueNotesDisplay = event.venue_notes
-    ? `<p style="margin: 8px 0; color: #666; font-size: 14px;"><strong>📝 Venue notes:</strong> ${event.venue_notes}</p>`
+    ? `<p style="margin: 8px 0; color: #666; font-size: 14px;"><strong>📝 Venue notes:</strong> ${escapeHtml(event.venue_notes)}</p>`
     : "";
 
   const equipmentDisplay = equipment.length > 0
     ? `<div style="${equipmentBoxStyles}">
         <p style="margin: 0 0 10px; color: #333; font-weight: 600;">🎒 Equipment needed:</p>
         <ul style="margin: 0; padding-left: 20px; color: #555;">
-          ${equipment.map(item => `<li>${item}</li>`).join('')}
+          ${equipment.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
         </ul>
       </div>`
     : "";
@@ -163,17 +200,17 @@ const getEmailHtml = (
         <p style="margin: 10px 0 0; opacity: 0.9;">CoParrent</p>
       </div>
       <div style="${contentStyles}">
-        <p style="color: #333; font-size: 16px;">Hi ${recipientName || "there"},</p>
+        <p style="color: #333; font-size: 16px;">Hi ${escapeHtml(recipientName || "there")},</p>
         <p style="color: #333; line-height: 1.6;">
-          This is a reminder that <strong>${activity.child_name}</strong> has a <strong>${activity.sport_type}</strong> ${event.event_type} coming up in <strong>${reminderLabel}</strong>.
+          This is a reminder that <strong>${escapeHtml(activity.child_name)}</strong> has a <strong>${escapeHtml(activity.sport_type)}</strong> ${escapeHtml(event.event_type)} coming up in <strong>${escapeHtml(reminderLabel)}</strong>.
         </p>
         
         <div style="${highlightBoxStyles}">
           <p style="margin: 0 0 8px; color: #92400e; font-weight: 600; font-size: 18px;">
-            ${eventTypeEmoji} ${event.title}
+            ${eventTypeEmoji} ${escapeHtml(event.title)}
           </p>
           <p style="margin: 8px 0; color: #333;"><strong>📅 Date:</strong> ${new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-          <p style="margin: 8px 0; color: #333;"><strong>⏰ Time:</strong> ${event.start_time}${event.end_time ? ` - ${event.end_time}` : ''}</p>
+          <p style="margin: 8px 0; color: #333;"><strong>⏰ Time:</strong> ${escapeHtml(event.start_time)}${event.end_time ? ` - ${escapeHtml(event.end_time)}` : ''}</p>
           ${locationDisplay}
           ${responsibilityDisplay}
         </div>
@@ -182,14 +219,14 @@ const getEmailHtml = (
         ${equipmentDisplay}
         ${venueNotesDisplay}
         
-        <a href="https://coparrent.lovable.app/dashboard/sports" style="${buttonStyles}">
+        <a href="https://coparrent.com/dashboard/sports" style="${buttonStyles}">
           View in Sports Hub
         </a>
       </div>
       <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
         <p>You're receiving this because you have sports event reminders enabled.</p>
         <p>
-          <a href="https://coparrent.lovable.app/dashboard/settings" style="color: #f59e0b;">
+          <a href="https://coparrent.com/dashboard/settings" style="color: #f59e0b;">
             Manage notification preferences
           </a>
         </p>
@@ -229,15 +266,67 @@ const calculateLeaveByTime = (
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  // Strict CORS validation
+  const corsResponse = strictCors(req);
+  if (corsResponse) return corsResponse;
+  const corsHeaders = getCorsHeaders(req);
+
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return new Response(
+      JSON.stringify({ error: "Server configuration error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  if (!isSchedulerAuthorized(req)) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized scheduler request" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const throttle = await checkSchedulerRateLimit(
+    supabaseUrl,
+    supabaseServiceKey,
+    "sports-event-reminders",
+  );
+  if (!throttle.allowed) {
+    return createRateLimitResponse(throttle, corsHeaders);
+  }
+
+  const invocationKey = buildInvocationKey(req, "sports-event-reminders");
+  const claim = await claimInvocation(
+    supabaseUrl,
+    supabaseServiceKey,
+    "sports-event-reminders",
+    invocationKey,
+  );
+  if (claim.error) {
+    console.error("Failed to record invocation:", claim.error);
+    return new Response(
+      JSON.stringify({ error: "Unable to validate invocation idempotency" }),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+  if (claim.duplicate) {
+    return new Response(
+      JSON.stringify({ success: true, skipped: true, reason: "duplicate_invocation" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   console.log("Sports event reminders function triggered at:", new Date().toISOString());
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const now = new Date();
@@ -280,11 +369,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     const activitiesMap = new Map<string, ActivityInfo>();
     for (const activity of activities || []) {
-      activitiesMap.set(activity.id, {
+      const typedActivity = activity as ChildActivityRow;
+      activitiesMap.set(typedActivity.id, {
         name: activity.name,
         sport_type: activity.sport_type,
         child_id: activity.child_id,
-        child_name: (activity.children as any)?.name || "Child",
+        child_name: typedActivity.children?.name || "Child",
         primary_parent_id: activity.primary_parent_id,
       });
     }
@@ -313,9 +403,9 @@ const handler = async (req: Request): Promise<Response> => {
           const leaveByTime = calculateLeaveByTime(event.start_time, distanceMiles);
 
           // Get equipment list
-          const equipment = (event.equipment_needed as any[] || [])
-            .filter((e: any) => e.required)
-            .map((e: any) => e.name);
+          const equipment = (event.equipment_needed || [])
+            .filter((e: EquipmentItem) => Boolean(e.required))
+            .map((e: EquipmentItem) => e.name);
 
           // Get parents to notify
           const parentsToNotify: { id: string; responsibility: string | null }[] = [];
@@ -336,12 +426,12 @@ const handler = async (req: Request): Promise<Response> => {
 
           // Update responsibilities
           for (const parent of parentsToNotify) {
-            if (event.dropoff_parent_id === parent.id) {
+            if (event.dropoff_parent_id === parent.id && event.pickup_parent_id === parent.id) {
+              parent.responsibility = "Drop-off & Pick-up";
+            } else if (event.dropoff_parent_id === parent.id) {
               parent.responsibility = "Drop-off";
             } else if (event.pickup_parent_id === parent.id) {
               parent.responsibility = "Pick-up";
-            } else if (event.dropoff_parent_id === parent.id && event.pickup_parent_id === parent.id) {
-              parent.responsibility = "Drop-off & Pick-up";
             }
           }
 
@@ -387,7 +477,7 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 async function sendSportsReminder(
-  supabase: any,
+  supabase: SupabaseClient,
   parentProfileId: string,
   event: SportsEvent,
   activity: ActivityInfo,
@@ -410,17 +500,18 @@ async function sendSportsReminder(
       return { success: false, sent: false };
     }
 
-    const preferences = profile.notification_preferences as Record<string, boolean> | null;
+    const typedProfile = profile as ParentProfile;
+    const preferences = typedProfile.notification_preferences;
 
     // Check if notifications are enabled globally
     if (preferences && !preferences.enabled) {
-      console.log(`All notifications disabled for ${profile.email}`);
+      console.log(`All notifications disabled for ${typedProfile.email}`);
       return { success: true, sent: false };
     }
 
     // Check if sports reminders are enabled
     if (preferences && preferences.sports_reminders === false) {
-      console.log(`Sports reminders disabled for ${profile.email}`);
+      console.log(`Sports reminders disabled for ${typedProfile.email}`);
       return { success: true, sent: false };
     }
 
@@ -439,10 +530,10 @@ async function sendSportsReminder(
     }
 
     // Send email
-    if (profile.email) {
+    if (typedProfile.email && resendApiKey) {
       try {
         const html = getEmailHtml(
-          profile.full_name,
+          typedProfile.full_name,
           event,
           activity,
           reminderLabel,
@@ -453,7 +544,7 @@ async function sendSportsReminder(
 
         const { error: emailError } = await resend.emails.send({
           from: "CoParrent <notifications@resend.dev>",
-          to: [profile.email],
+          to: [typedProfile.email],
           subject: `🏅 ${activity.child_name}'s ${activity.sport_type} ${event.event_type} in ${reminderLabel}`,
           html,
         });
@@ -461,11 +552,13 @@ async function sendSportsReminder(
         if (emailError) {
           console.error("Error sending email:", emailError);
         } else {
-          console.log(`Sports reminder email sent to ${profile.email}`);
+          console.log(`Sports reminder email sent to ${typedProfile.email}`);
         }
       } catch (emailErr) {
         console.error("Email exception:", emailErr);
       }
+    } else if (typedProfile.email && !resendApiKey) {
+      console.warn("RESEND_API_KEY missing; skipped sports reminder email");
     }
 
     return { success: true, sent: true };
