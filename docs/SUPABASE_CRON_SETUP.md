@@ -1,6 +1,6 @@
 # Supabase Cron Setup (Reminders)
 
-Last updated: 2026-02-10
+Last updated: 2026-02-11
 
 This app uses two Edge Functions to send reminder emails/notifications:
 
@@ -39,5 +39,6 @@ Set this header on the scheduled invocation:
 
 ## Notes
 
+- Do not use ad-hoc SQL tables (for example `public.scheduled_http_jobs`) as a "scheduler". They only store rows and do not execute jobs.
 - These scheduled calls should not send an `Origin` header; the functions explicitly allow origin-less server-to-server calls.
 - If schedules fire twice, the functions should safely skip duplicate invocations within the same minute.
